@@ -42,10 +42,16 @@
                 overflow: hidden;
             }
 
+            body.sidebar-open #sidebarToggle {
+                opacity: 0;
+                pointer-events: none;
+            }
+
             #sidebarToggle {
                 position: relative;
-                z-index: 2500;
+                z-index: 1200;
                 cursor: pointer;
+                transition: opacity 0.2s ease;
             }
         }
 
@@ -60,6 +66,11 @@
             #sidebarOverlay {
                 display: none;
             }
+
+            #sidebarToggle,
+            #sidebarToggleInner {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -73,7 +84,11 @@
                 <img src="{{ asset('SCHOLORIA LOGO.png') }}" alt="SCHOLORIA" class="h-9 w-9 object-contain" />
                 <div class="font-semibold">SCHOLORIA</div>
             </div>
-            <button id="sidebarClose" type="button" class="min-[992px]:hidden p-2 rounded-md hover:bg-gray-100">✕</button>
+            <button id="sidebarToggleInner" type="button" class="min-[992px]:hidden p-2 rounded-md hover:bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6 text-gray-700">
+                    <path fill-rule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75Zm0 5.25c0-.414.336-.75.75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25c0-.414.336-.75.75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                </svg>
+            </button>
         </div>
 
         <nav class="flex-1 px-3 py-4 overflow-y-auto">

@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
   const toggle = document.getElementById('sidebarToggle');
+  const toggleInner = document.getElementById('sidebarToggleInner');
   const closeBtn = document.getElementById('sidebarClose');
 
   if (!sidebar || !overlay || !toggle) return;
@@ -18,12 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.remove('sidebar-open');
   };
 
-  toggle.addEventListener('click', (e) => {
+  const handleToggle = (e) => {
     e.preventDefault();
     const isOpen = sidebar.classList.contains('is-open');
     isOpen ? close() : open();
-  });
+  };
 
+  toggle.addEventListener('click', handleToggle);
+  if (toggleInner) toggleInner.addEventListener('click', handleToggle);
   if (closeBtn) closeBtn.addEventListener('click', close);
   overlay.addEventListener('click', close);
 
