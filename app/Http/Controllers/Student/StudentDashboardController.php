@@ -13,12 +13,33 @@ class StudentDashboardController extends Controller
     {
         $userId = (int) $request->user()->id;
 
+        $totalCourses = 0;
+        $totalEnrollments = 0;
+        $totalStudents = 0;
+        $totalTeachers = 0;
+
         $enrolledCourses = 0;
         $inProgress = 0;
         $completed = 0;
         $myCourses = [];
 
         try {
+            $totalCourses = $this->countTable('courses');
+            $totalEnrollments = $this->countTable('enrollments');
+            $totalStudents = $this->countTable('students');
+            $totalTeachers = $this->countTable('teachers');
+
+            if ($totalTeachers === 0) {
+                $totalTeachers = $this->countUsersByRole('teacher');
+            }
+
+            if ($totalStudents === 0) {
+                $totalStudents = $this->countUsersByRole('student');
+                if ($totalStudents === 0) {
+                    $totalStudents = $this->countTable('users');
+                }
+            }
+
             if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'user_id')) {
                 $enrolledCourses = (int) DB::table('enrollments')->where('user_id', $userId)->count();
 
@@ -53,11 +74,41 @@ class StudentDashboardController extends Controller
 
         return view('student.dashboard', [
             'stats' => [
+                'total_courses' => $totalCourses,
+                'total_enrollments' => $totalEnrollments,
+                'total_students' => $totalStudents,
+                'total_teachers' => $totalTeachers,
                 'enrolled_courses' => $enrolledCourses,
                 'in_progress' => $inProgress,
                 'completed' => $completed,
             ],
             'myCourses' => $myCourses,
         ]);
+    }
+
+    private function countTable(string $table): int
+    {
+        try {
+            if (!Schema::hasTable($table)) {
+                return 0;
+            }
+
+            return (int) DB::table($table)->count();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function countUsersByRole(string $role): int
+    {
+        try {
+            if (!Schema::hasTable('users') || !Schema::hasColumn('users', 'role')) {
+                return 0;
+            }
+
+            return (int) DB::table('users')->where('role', $role)->count();
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 }

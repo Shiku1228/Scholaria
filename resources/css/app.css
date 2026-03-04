@@ -11,8 +11,8 @@
 }
 
 :root {
-    --slms-primary: #7c3aed;
-    --slms-primary-dark: #6d28d9;
+    --slms-primary: #0b2d6b;
+    --slms-primary-dark: #0a3a8a;
     --slms-bg: #f3f4f6;
 }
 
@@ -21,7 +21,7 @@
 }
 
 .auth-welcome {
-    background: linear-gradient(135deg, #8b5cf6 0%, var(--slms-primary) 38%, var(--slms-primary-dark) 100%);
+    background: linear-gradient(135deg, #123b85 0%, var(--slms-primary) 38%, var(--slms-primary-dark) 100%);
     overflow: hidden;
 }
 

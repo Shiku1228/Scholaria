@@ -15,7 +15,7 @@
                 <div class="relative z-10">
                     <div class="text-4xl font-extrabold tracking-wide">WELCOME</div>
                     <div class="mt-3 text-sm text-white/85 max-w-sm">
-                        Sign in to continue managing your SCHOLORIA dashboard.
+                        Sign in to continue managing your SCHOLARIA dashboard.
                     </div>
                 </div>
 
@@ -29,7 +29,12 @@
             </div>
 
             <div class="p-8 sm:p-10 order-1 lg:order-2">
-                <div class="text-2xl font-semibold">Sign in</div>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center">
+                        <img src="{{ asset('SCHOLORIA LOGO.png') }}" alt="SCHOLARIA" class="w-7 h-7 object-contain" />
+                    </div>
+                    <div class="text-2xl font-semibold">Sign in</div>
+                </div>
                 <div class="mt-1 text-sm text-gray-500">Use your account credentials to continue.</div>
 
                 <form class="mt-8 space-y-5" method="POST" action="{{ route('login.store') }}" novalidate>
@@ -45,7 +50,7 @@
                                 autocomplete="username"
                                 value="{{ old('login') }}"
                                 required
-                                class="block w-full h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 shadow-sm focus:border-violet-500 focus:ring-violet-500"
+                                class="block w-full h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 shadow-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]"
                             />
                         </div>
                         @error('login')
@@ -62,7 +67,7 @@
                                 type="password"
                                 autocomplete="current-password"
                                 required
-                                class="block w-full h-11 rounded-xl border border-gray-200 bg-white px-4 pr-20 text-sm text-gray-900 shadow-sm focus:border-violet-500 focus:ring-violet-500"
+                                class="block w-full h-11 rounded-xl border border-gray-200 bg-white px-4 pr-20 text-sm text-gray-900 shadow-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]"
                             />
                             <button
                                 type="button"
@@ -85,13 +90,13 @@
                                 name="remember"
                                 value="1"
                                 {{ old('remember') ? 'checked' : '' }}
-                                class="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                                class="h-4 w-4 rounded border-gray-300 text-[#0b2d6b] focus:ring-[#0b2d6b]"
                             />
                             Remember me
                         </label>
 
                         @if (Route::has('password.request'))
-                            <a href="{{ route('password.request') }}" class="text-sm font-medium text-violet-700 hover:text-violet-800">
+                            <a href="{{ route('password.request') }}" class="text-sm font-medium text-[#0b2d6b] hover:text-[#0a3a8a]">
                                 Forgot password?
                             </a>
                         @endif
@@ -99,7 +104,7 @@
 
                     <button
                         type="submit"
-                        class="w-full h-11 rounded-xl bg-violet-600 text-white text-sm font-semibold shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                        class="w-full h-11 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold shadow-sm hover:bg-[#0a3a8a] focus:outline-none focus:ring-2 focus:ring-[#0b2d6b] focus:ring-offset-2"
                     >
                         Sign in
                     </button>
