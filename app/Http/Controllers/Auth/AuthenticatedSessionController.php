@@ -38,32 +38,64 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
-        $role = (string) (data_get($user, 'role') ?? 'student');
 
-        $roleDefaultRedirect = match ($role) {
-            'admin' => route('admin.dashboard'),
-            'teacher' => route('teacher.dashboard'),
-            default => route('student.dashboard'),
-        };
+        $roleDefaultRedirect = route('student.dashboard');
+
+        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
+            $roleDefaultRedirect = route('admin.dashboard');
+        } elseif (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {
+            $roleDefaultRedirect = route('teacher.dashboard');
+        } elseif (method_exists($user, 'hasRole') && $user->hasRole('Student')) {
+            $roleDefaultRedirect = route('student.dashboard');
+        } elseif (method_exists($user, 'getRoleNames') && $user->getRoleNames()->isEmpty()) {
+            $legacyRole = (string) data_get($user, 'role', '');
+            if ($legacyRole === 'admin') {
+                $roleDefaultRedirect = route('admin.dashboard');
+            } elseif ($legacyRole === 'teacher') {
+                $roleDefaultRedirect = route('teacher.dashboard');
+            } elseif ($legacyRole === 'student') {
+                $roleDefaultRedirect = route('student.dashboard');
+            }
+        }
 
         $intended = $request->session()->pull('url.intended');
-        if (is_string($intended) && $this->intendedMatchesRole($intended, $role)) {
+        if (is_string($intended) && $this->intendedMatchesRole($intended, $user)) {
             return redirect()->to($intended);
         }
 
         return redirect()->to($roleDefaultRedirect);
     }
 
-    private function intendedMatchesRole(string $url, string $role): bool
+    private function intendedMatchesRole(string $url, $user): bool
     {
         $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
 
-        return match ($role) {
-            'admin' => str_starts_with($path, '/admin'),
-            'teacher' => str_starts_with($path, '/teacher'),
-            'student' => str_starts_with($path, '/student'),
-            default => false,
-        };
+        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
+            return str_starts_with($path, '/admin');
+        }
+
+        if (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {
+            return str_starts_with($path, '/teacher');
+        }
+
+        if (method_exists($user, 'hasRole') && $user->hasRole('Student')) {
+            return str_starts_with($path, '/student');
+        }
+
+        if (method_exists($user, 'getRoleNames') && $user->getRoleNames()->isEmpty()) {
+            $legacyRole = (string) data_get($user, 'role', '');
+            if ($legacyRole === 'admin') {
+                return str_starts_with($path, '/admin');
+            }
+            if ($legacyRole === 'teacher') {
+                return str_starts_with($path, '/teacher');
+            }
+            if ($legacyRole === 'student') {
+                return str_starts_with($path, '/student');
+            }
+        }
+
+        return false;
     }
 
     public function destroy(Request $request): RedirectResponse

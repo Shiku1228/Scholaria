@@ -1,10 +1,24 @@
 @php
     $nav = [
         ['label' => 'Dashboard', 'route' => 'teacher.dashboard', 'href' => route('teacher.dashboard')],
+        ['label' => 'My Courses', 'route' => 'teacher.courses.*', 'href' => route('teacher.courses.index')],
+        ['label' => 'Students', 'route' => 'teacher.students.*', 'href' => route('teacher.students.index')],
+        ['label' => 'Assignments', 'route' => 'teacher.assignments.*', 'href' => route('teacher.assignments.overview')],
+        ['label' => 'Enrollments', 'route' => 'teacher.enrollments.*', 'href' => route('teacher.enrollments.index')],
+        ['label' => 'Announcements', 'route' => 'teacher.announcements*', 'href' => route('teacher.announcements')],
+        ['label' => 'Messages', 'route' => 'teacher.messages', 'href' => route('teacher.messages')],
+        ['label' => 'Settings', 'route' => 'teacher.settings', 'href' => route('teacher.settings')],
     ];
 
     $icons = [
         'Dashboard' => 'layout-dashboard',
+        'My Courses' => 'book-open',
+        'Students' => 'users',
+        'Assignments' => 'clipboard-list',
+        'Enrollments' => 'clipboard-check',
+        'Announcements' => 'megaphone',
+        'Messages' => 'message-circle',
+        'Settings' => 'settings',
     ];
 @endphp
 

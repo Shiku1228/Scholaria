@@ -18,31 +18,40 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::query()->updateOrCreate(
+        $admin = User::query()->updateOrCreate(
             ['email' => 'admin@example.com'],
             [
                 'name' => 'Admin',
-                'role' => 'admin',
                 'password' => Hash::make('password'),
             ]
         );
 
-        User::query()->updateOrCreate(
+        $teacher = User::query()->updateOrCreate(
             ['email' => 'teacher@example.com'],
             [
                 'name' => 'Teacher',
-                'role' => 'teacher',
                 'password' => Hash::make('password'),
             ]
         );
 
-        User::query()->updateOrCreate(
+        $student = User::query()->updateOrCreate(
             ['email' => 'student@example.com'],
             [
                 'name' => 'Student',
-                'role' => 'student',
                 'password' => Hash::make('password'),
             ]
         );
+
+        $this->call(RolesAndPermissionsSeeder::class);
+
+        if (method_exists($admin, 'syncRoles')) {
+            $admin->syncRoles(['Admin']);
+        }
+        if (method_exists($teacher, 'syncRoles')) {
+            $teacher->syncRoles(['Teacher']);
+        }
+        if (method_exists($student, 'syncRoles')) {
+            $student->syncRoles(['Student']);
+        }
     }
 }

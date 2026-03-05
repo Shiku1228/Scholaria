@@ -24,8 +24,9 @@
         <div>
             <label class="block text-sm font-medium text-gray-700" for="role">Role</label>
             <select id="role" name="role" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
-                <option value="teacher" {{ old('role') === 'teacher' ? 'selected' : '' }}>teacher</option>
-                <option value="student" {{ old('role', 'student') === 'student' ? 'selected' : '' }}>student</option>
+                <option value="Admin" {{ old('role') === 'Admin' ? 'selected' : '' }}>Admin</option>
+                <option value="Teacher" {{ old('role') === 'Teacher' ? 'selected' : '' }}>Teacher</option>
+                <option value="Student" {{ old('role', 'Student') === 'Student' ? 'selected' : '' }}>Student</option>
             </select>
             @error('role')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>

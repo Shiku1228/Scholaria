@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -30,22 +31,22 @@ class StudentDashboardController extends Controller
             $totalTeachers = $this->countTable('teachers');
 
             if ($totalTeachers === 0) {
-                $totalTeachers = $this->countUsersByRole('teacher');
+                $totalTeachers = (int) User::role('Teacher')->count();
             }
 
             if ($totalStudents === 0) {
-                $totalStudents = $this->countUsersByRole('student');
+                $totalStudents = (int) User::role('Student')->count();
                 if ($totalStudents === 0) {
                     $totalStudents = $this->countTable('users');
                 }
             }
 
-            if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'user_id')) {
-                $enrolledCourses = (int) DB::table('enrollments')->where('user_id', $userId)->count();
+            if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'student_id')) {
+                $enrolledCourses = (int) DB::table('enrollments')->where('student_id', $userId)->count();
 
                 if (Schema::hasColumn('enrollments', 'status')) {
-                    $inProgress = (int) DB::table('enrollments')->where('user_id', $userId)->where('status', 'in_progress')->count();
-                    $completed = (int) DB::table('enrollments')->where('user_id', $userId)->where('status', 'completed')->count();
+                    $inProgress = (int) DB::table('enrollments')->where('student_id', $userId)->where('status', 'active')->count();
+                    $completed = (int) DB::table('enrollments')->where('student_id', $userId)->where('status', 'completed')->count();
                 }
 
                 if (Schema::hasColumn('enrollments', 'course_id') && Schema::hasTable('courses') && Schema::hasColumn('courses', 'id')) {
@@ -60,7 +61,7 @@ class StudentDashboardController extends Controller
                     if ($nameCol) {
                         $myCourses = DB::table('enrollments')
                             ->join('courses', 'courses.id', '=', 'enrollments.course_id')
-                            ->where('enrollments.user_id', $userId)
+                            ->where('enrollments.student_id', $userId)
                             ->select(['courses.' . $nameCol . ' as course_name'])
                             ->limit(10)
                             ->get()
@@ -94,19 +95,6 @@ class StudentDashboardController extends Controller
             }
 
             return (int) DB::table($table)->count();
-        } catch (\Throwable) {
-            return 0;
-        }
-    }
-
-    private function countUsersByRole(string $role): int
-    {
-        try {
-            if (!Schema::hasTable('users') || !Schema::hasColumn('users', 'role')) {
-                return 0;
-            }
-
-            return (int) DB::table('users')->where('role', $role)->count();
         } catch (\Throwable) {
             return 0;
         }

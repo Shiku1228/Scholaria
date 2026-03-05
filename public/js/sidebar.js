@@ -60,9 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const getStoredExpanded = () => {
     try {
-      return localStorage.getItem(storageKey) === '1';
+      const stored = localStorage.getItem(storageKey);
+      if (stored === null) {
+        return true;
+      }
+      return stored === '1';
     } catch {
-      return false;
+      return true;
     }
   };
 

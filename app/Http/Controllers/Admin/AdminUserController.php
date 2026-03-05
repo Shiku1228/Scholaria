@@ -7,11 +7,14 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AdminUserController extends Controller
 {
+    private const ROLE_OPTIONS = ['Admin', 'Teacher', 'Student'];
+
     public function index(Request $request): View
     {
         $role = (string) $request->query('role', 'all');
@@ -25,8 +28,8 @@ class AdminUserController extends Controller
             $query->withTrashed();
         }
 
-        if (in_array($role, ['teacher', 'student'], true)) {
-            $query->where('role', $role);
+        if (in_array($role, self::ROLE_OPTIONS, true)) {
+            $query->role($role);
         }
 
         $users = $query
@@ -54,15 +57,20 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
-            'role' => ['required', Rule::in(['teacher', 'student'])],
+            'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
         ]);
 
-        User::query()->create([
+        $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
         ]);
+
+        if (method_exists($user, 'syncRoles')) {
+            $user->syncRoles([$validated['role']]);
+        }
+
+        $this->syncLegacyRoleColumn($user, $validated['role']);
 
         return redirect()->route('admin.users.index');
     }
@@ -84,12 +92,11 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
-            'role' => ['required', Rule::in(['teacher', 'student'])],
+            'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
         ]);
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
-        $user->role = $validated['role'];
 
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
@@ -97,14 +104,36 @@ class AdminUserController extends Controller
 
         $user->save();
 
+        if (method_exists($user, 'syncRoles')) {
+            $user->syncRoles([$validated['role']]);
+        }
+
+        $this->syncLegacyRoleColumn($user, $validated['role']);
+
         return redirect()->route('admin.users.index');
+    }
+
+    private function syncLegacyRoleColumn(User $user, string $spatieRoleName): void
+    {
+        if (!Schema::hasColumn('users', 'role')) {
+            return;
+        }
+
+        $legacy = match ($spatieRoleName) {
+            'Admin' => 'admin',
+            'Teacher' => 'teacher',
+            default => 'student',
+        };
+
+        $user->setAttribute('role', $legacy);
+        $user->save();
     }
 
     public function destroy($user): RedirectResponse
     {
         $user = User::withTrashed()->findOrFail($user);
 
-        if ($user->role === 'admin') {
+        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
             abort(403);
         }
 
@@ -119,7 +148,7 @@ class AdminUserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($user);
 
-        if ($user->role === 'admin') {
+        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
             abort(403);
         }
 

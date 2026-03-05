@@ -24,8 +24,9 @@
             <label class="block text-xs font-medium text-gray-600" for="role">Role</label>
             <select id="role" name="role" class="mt-1 h-10 rounded-lg border-gray-200 text-sm focus:border-violet-500 focus:ring-violet-500">
                 <option value="all" {{ $role === 'all' ? 'selected' : '' }}>All</option>
-                <option value="teacher" {{ $role === 'teacher' ? 'selected' : '' }}>Teacher</option>
-                <option value="student" {{ $role === 'student' ? 'selected' : '' }}>Student</option>
+                <option value="Admin" {{ $role === 'Admin' ? 'selected' : '' }}>Admin</option>
+                <option value="Teacher" {{ $role === 'Teacher' ? 'selected' : '' }}>Teacher</option>
+                <option value="Student" {{ $role === 'Student' ? 'selected' : '' }}>Student</option>
             </select>
         </div>
     </form>
@@ -47,8 +48,17 @@
                     <td class="py-3 px-4 font-medium text-gray-900">{{ $user->name }}</td>
                     <td class="py-3 px-4">{{ $user->email }}</td>
                     <td class="py-3 px-4">
-                        <span class="inline-flex items-center h-6 px-2 rounded-lg text-xs font-semibold {{ $user->role === 'teacher' ? 'bg-blue-50 text-blue-700' : ($user->role === 'student' ? 'bg-gray-50 text-gray-700' : 'bg-violet-50 text-violet-700') }}">
-                            {{ $user->role ?? 'student' }}
+                        @php
+                            $roleName = method_exists($user, 'getRoleNames') ? ($user->getRoleNames()->first() ?? 'Student') : 'Student';
+                            $labelRole = in_array($roleName, ['Admin', 'Teacher', 'Student'], true) ? $roleName : 'Student';
+                            $badgeClass = match ($labelRole) {
+                                'Admin' => 'bg-violet-50 text-violet-700',
+                                'Teacher' => 'bg-blue-50 text-blue-700',
+                                default => 'bg-gray-50 text-gray-700',
+                            };
+                        @endphp
+                        <span class="inline-flex items-center h-6 px-2 rounded-lg text-xs font-semibold {{ $badgeClass }}">
+                            {{ $labelRole }}
                         </span>
                     </td>
                     <td class="py-3 px-4">
@@ -64,7 +74,7 @@
                                 Edit
                             </a>
 
-                            @if (($user->role ?? 'student') !== 'admin')
+                            @if (!(method_exists($user, 'hasRole') && $user->hasRole('Admin')))
                                 @if ($user->trashed())
                                     <form method="POST" action="{{ route('admin.users.restore', $user) }}" onsubmit="return confirm('Restore this user?');">
                                         @csrf

@@ -206,31 +206,13 @@
         .slms-hide-scrollbar::-webkit-scrollbar {
             display: none;
         }
-
-        @media (min-width: 992px) {
-            #sidebar {
-                position: static;
-                height: auto;
-                transform: none;
-                transition: none;
-                z-index: auto;
-            }
-            #sidebarOverlay {
-                display: none;
-            }
-
-            #sidebarToggle,
-            #sidebarToggleInner {
-                display: none !important;
-            }
-        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900">
-<div class="min-h-screen flex flex-col md:flex-row">
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden z-[1500]"></div>
+<div class="min-h-screen flex">
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300 min-[992px]:hidden z-[1500]"></div>
 
-    <aside id="sidebar" class="fixed left-0 top-0 h-screen w-20 bg-white flex flex-col justify-between items-center py-6 shadow-md border-r border-gray-100 z-30 md:relative md:translate-x-0 md:translate-y-0 md:z-auto md:transition-none">
+    <aside id="sidebar" class="fixed left-0 top-0 h-screen w-20 bg-white flex flex-col justify-between items-center py-6 shadow-md border-r border-gray-100 z-30">
         <!-- Top Section -->
         <div class="flex flex-col items-center space-y-6">
             <div class="slms-brand-row flex items-center justify-center gap-3 px-4 w-full">
@@ -267,7 +249,7 @@
         </div>
     </aside>
 
-    <div class="slms-main flex-1 flex flex-col min-w-0 md:ml-20">
+    <div class="slms-main flex-1 flex flex-col min-w-0">
         <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6">
             <div class="flex items-center gap-3">
                 <button id="sidebarToggle" type="button" class="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-500">
@@ -296,7 +278,7 @@
             </div>
         </header>
 
-        <main class="flex-1 p-4 sm:p-6 overflow-y-auto">
+        <main class="flex-1 p-4 sm:p-6">
             @yield('content')
         </main>
     </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
@@ -51,11 +52,11 @@ class AdminDashboardController extends Controller
         $teachersCount = $this->countTable('teachers');
 
         if ($teachersCount === 0) {
-            $teachersCount = $this->countUsersByRole('teacher');
+            $teachersCount = (int) User::role('Teacher')->count();
         }
 
         if ($studentsCount === 0) {
-            $studentsCount = $this->countUsersByRole('student');
+            $studentsCount = (int) User::role('Student')->count();
             if ($studentsCount === 0) {
                 $studentsCount = $this->countTable('users');
             }
@@ -328,19 +329,6 @@ class AdminDashboardController extends Controller
             }
 
             return (int) DB::table($table)->count();
-        } catch (\Throwable) {
-            return 0;
-        }
-    }
-
-    private function countUsersByRole(string $role): int
-    {
-        try {
-            if (!Schema::hasTable('users') || !Schema::hasColumn('users', 'role')) {
-                return 0;
-            }
-
-            return (int) DB::table('users')->where('role', $role)->count();
         } catch (\Throwable) {
             return 0;
         }
