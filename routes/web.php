@@ -17,6 +17,9 @@ use App\Http\Controllers\Teacher\TeacherAnnouncementController;
 use App\Http\Controllers\Teacher\TeacherSubmissionController;
 use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentSubmissionController;
+use App\Http\Controllers\Student\StudentCourseController;
+use App\Http\Controllers\Student\StudentAssignmentController;
+use App\Http\Controllers\Student\StudentGradeController;
 
 Route::get('/', function () {
     if (!auth()->check()) {
@@ -103,6 +106,10 @@ Route::prefix('student')
     ->middleware(['auth', 'role:Student'])
     ->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/courses', [StudentCourseController::class, 'index'])->name('courses.index');
+        Route::get('/assignments', [StudentAssignmentController::class, 'index'])->name('assignments.index');
+        Route::get('/grades', [StudentGradeController::class, 'index'])->name('grades.index');
 
         Route::get('/assignments/{assignment}/submit', [StudentSubmissionController::class, 'create'])->name('assignments.submit');
         Route::post('/assignments/{assignment}/submit', [StudentSubmissionController::class, 'store'])->name('assignments.submit.store');

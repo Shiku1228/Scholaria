@@ -26,7 +26,7 @@
             <select id="role" name="role" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
                 <option value="Admin" {{ old('role') === 'Admin' ? 'selected' : '' }}>Admin</option>
                 <option value="Teacher" {{ old('role') === 'Teacher' ? 'selected' : '' }}>Teacher</option>
-                <option value="Student" {{ old('role', 'Student') === 'Student' ? 'selected' : '' }}>Student</option>
+                <option value="Student" {{ old('role', request()->query('role', 'Student')) === 'Student' ? 'selected' : '' }}>Student</option>
             </select>
             @error('role')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>

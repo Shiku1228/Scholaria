@@ -30,4 +30,9 @@ class Assignment extends Model
     {
         return $this->hasMany(Submission::class, 'assignment_id');
     }
+
+    public function grades(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Grade::class, 'assignment_id');
+    }
 }

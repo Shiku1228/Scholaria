@@ -1,26 +1,23 @@
-@extends('layouts.teacher')
+@extends('layouts.dashboard', [
+    'title' => 'Teacher Dashboard',
+    'sidebarPartial' => 'partials.sidebars.teacher',
+])
 
 @section('content')
     <div class="space-y-6">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-6">
-            <div class="text-2xl font-semibold">WELCOME TEACHER</div>
-            <div class="text-sm text-gray-500 mt-1">{{ auth()->user()->name }}</div>
-        </div>
+        @include('partials.dashboard.welcome', [
+            'roleTitle' => 'TEACHER',
+            'subtitle' => auth()->user()->name,
+            'info' => 'Dashboard',
+        ])
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div class="text-xs text-gray-500">My Courses</div>
-                <div class="text-2xl font-semibold text-gray-900 mt-2">{{ number_format($stats['my_courses']) }}</div>
-            </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div class="text-xs text-gray-500">Students in My Courses</div>
-                <div class="text-2xl font-semibold text-gray-900 mt-2">{{ number_format($stats['students_in_my_courses']) }}</div>
-            </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div class="text-xs text-gray-500">New Enrollments (7 days)</div>
-                <div class="text-2xl font-semibold text-gray-900 mt-2">{{ number_format($stats['new_enrollments']) }}</div>
-            </div>
-        </div>
+        @include('partials.dashboard.stats', [
+            'items' => [
+                ['label' => 'My Courses', 'value' => $stats['my_courses'] ?? 0, 'icon' => 'book-open'],
+                ['label' => 'Students in My Courses', 'value' => $stats['students_in_my_courses'] ?? 0, 'icon' => 'users'],
+                ['label' => 'New Enrollments (7 days)', 'value' => $stats['new_enrollments'] ?? 0, 'icon' => 'clipboard-check'],
+            ],
+        ])
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100">

@@ -31,6 +31,9 @@ class AdminDashboardController extends Controller
         $bestSellingCourse = $this->buildBestSellingCourse();
         $bestSellingCourses = $this->buildBestSellingCourses(10);
         $recentEnrollments = $this->buildRecentEnrollments();
+        $systemOverview = $this->buildSystemOverview();
+        $recentActivity = $this->buildRecentActivity();
+        $analytics = $this->buildAnalyticsSeries();
 
         return view('admin.dashboard', [
             'filters' => [
@@ -41,6 +44,9 @@ class AdminDashboardController extends Controller
             'bestSellingCourse' => $bestSellingCourse,
             'bestSellingCourses' => $bestSellingCourses,
             'recentEnrollments' => $recentEnrollments,
+            'systemOverview' => $systemOverview,
+            'recentActivity' => $recentActivity,
+            'analytics' => $analytics,
         ]);
     }
 
@@ -72,54 +78,167 @@ class AdminDashboardController extends Controller
 
     private function buildOverviewSeries(string $range): array
     {
-        if ($range === '12m') {
+        try {
+            if ($range === '12m') {
+                $labels = [];
+                $courses = [];
+                $enroll = [];
+                $users = [];
+
+                $now = new \DateTimeImmutable('first day of this month');
+                $monthKeys = [];
+                for ($i = 11; $i >= 0; $i--) {
+                    $m = $now->modify('-' . $i . ' months');
+                    $labels[] = $m->format('M');
+                    $key = $m->format('Y-m');
+                    $monthKeys[] = $key;
+                    $courses[$key] = 0;
+                    $enroll[$key] = 0;
+                    $users[$key] = 0;
+                }
+
+                if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'created_at')) {
+                    $rows = DB::table('courses')
+                        ->select([DB::raw("DATE_FORMAT(created_at, '%Y-%m') as ym"), DB::raw('COUNT(*) as c')])
+                        ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+                        ->groupBy('ym')
+                        ->get();
+
+                    foreach ($rows as $r) {
+                        $k = (string) ($r->ym ?? '');
+                        if ($k !== '' && array_key_exists($k, $courses)) {
+                            $courses[$k] = (int) ($r->c ?? 0);
+                        }
+                    }
+                }
+
+                if (Schema::hasTable('enrollments')) {
+                    $col = Schema::hasColumn('enrollments', 'enrolled_at') ? 'enrolled_at' : (Schema::hasColumn('enrollments', 'created_at') ? 'created_at' : null);
+                    if ($col) {
+                        $rows = DB::table('enrollments')
+                            ->select([DB::raw("DATE_FORMAT($col, '%Y-%m') as ym"), DB::raw('COUNT(*) as c')])
+                            ->where($col, '>=', now()->subMonths(11)->startOfMonth())
+                            ->groupBy('ym')
+                            ->get();
+
+                        foreach ($rows as $r) {
+                            $k = (string) ($r->ym ?? '');
+                            if ($k !== '' && array_key_exists($k, $enroll)) {
+                                $enroll[$k] = (int) ($r->c ?? 0);
+                            }
+                        }
+                    }
+                }
+
+                if (Schema::hasTable('users') && Schema::hasColumn('users', 'created_at')) {
+                    $rows = DB::table('users')
+                        ->select([DB::raw("DATE_FORMAT(created_at, '%Y-%m') as ym"), DB::raw('COUNT(*) as c')])
+                        ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+                        ->groupBy('ym')
+                        ->get();
+
+                    foreach ($rows as $r) {
+                        $k = (string) ($r->ym ?? '');
+                        if ($k !== '' && array_key_exists($k, $users)) {
+                            $users[$k] = (int) ($r->c ?? 0);
+                        }
+                    }
+                }
+
+                return [
+                    'labels' => $labels,
+                    'series' => [
+                        'courses' => array_values($courses),
+                        'enrollments' => array_values($enroll),
+                        'users' => array_values($users),
+                    ],
+                ];
+            }
+
+            $days = $range === '30d' ? 30 : 7;
             $labels = [];
+            $keys = [];
             $courses = [];
             $enroll = [];
             $users = [];
 
-            $now = new \DateTimeImmutable('first day of this month');
-            for ($i = 11; $i >= 0; $i--) {
-                $m = $now->modify('-' . $i . ' months');
-                $labels[] = $m->format('M');
-                $courses[] = 0;
-                $enroll[] = 0;
-                $users[] = 0;
+            $start = now()->subDays($days - 1)->startOfDay();
+            for ($i = 0; $i < $days; $i++) {
+                $d = $start->copy()->addDays($i);
+                $labels[] = $d->format('M j');
+                $k = $d->format('Y-m-d');
+                $keys[] = $k;
+                $courses[$k] = 0;
+                $enroll[$k] = 0;
+                $users[$k] = 0;
+            }
+
+            if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'created_at')) {
+                $rows = DB::table('courses')
+                    ->select([DB::raw('DATE(created_at) as d'), DB::raw('COUNT(*) as c')])
+                    ->where('created_at', '>=', $start)
+                    ->groupBy('d')
+                    ->get();
+
+                foreach ($rows as $r) {
+                    $k = (string) ($r->d ?? '');
+                    if ($k !== '' && array_key_exists($k, $courses)) {
+                        $courses[$k] = (int) ($r->c ?? 0);
+                    }
+                }
+            }
+
+            if (Schema::hasTable('enrollments')) {
+                $col = Schema::hasColumn('enrollments', 'enrolled_at') ? 'enrolled_at' : (Schema::hasColumn('enrollments', 'created_at') ? 'created_at' : null);
+                if ($col) {
+                    $rows = DB::table('enrollments')
+                        ->select([DB::raw("DATE($col) as d"), DB::raw('COUNT(*) as c')])
+                        ->where($col, '>=', $start)
+                        ->groupBy('d')
+                        ->get();
+
+                    foreach ($rows as $r) {
+                        $k = (string) ($r->d ?? '');
+                        if ($k !== '' && array_key_exists($k, $enroll)) {
+                            $enroll[$k] = (int) ($r->c ?? 0);
+                        }
+                    }
+                }
+            }
+
+            if (Schema::hasTable('users') && Schema::hasColumn('users', 'created_at')) {
+                $rows = DB::table('users')
+                    ->select([DB::raw('DATE(created_at) as d'), DB::raw('COUNT(*) as c')])
+                    ->where('created_at', '>=', $start)
+                    ->groupBy('d')
+                    ->get();
+
+                foreach ($rows as $r) {
+                    $k = (string) ($r->d ?? '');
+                    if ($k !== '' && array_key_exists($k, $users)) {
+                        $users[$k] = (int) ($r->c ?? 0);
+                    }
+                }
             }
 
             return [
                 'labels' => $labels,
                 'series' => [
-                    'courses' => $courses,
-                    'enrollments' => $enroll,
-                    'users' => $users,
+                    'courses' => array_values($courses),
+                    'enrollments' => array_values($enroll),
+                    'users' => array_values($users),
+                ],
+            ];
+        } catch (\Throwable) {
+            return [
+                'labels' => [],
+                'series' => [
+                    'courses' => [],
+                    'enrollments' => [],
+                    'users' => [],
                 ],
             ];
         }
-
-        $days = $range === '30d' ? 30 : 7;
-        $labels = [];
-        $courses = [];
-        $enroll = [];
-        $users = [];
-
-        $start = new \DateTimeImmutable('-' . ($days - 1) . ' days');
-        for ($i = 0; $i < $days; $i++) {
-            $d = $start->modify('+' . $i . ' days');
-            $labels[] = $d->format('M j');
-            $courses[] = 0;
-            $enroll[] = 0;
-            $users[] = 0;
-        }
-
-        return [
-            'labels' => $labels,
-            'series' => [
-                'courses' => $courses,
-                'enrollments' => $enroll,
-                'users' => $users,
-            ],
-        ];
     }
 
     private function buildTopCourses(): array
@@ -174,6 +293,7 @@ class AdminDashboardController extends Controller
         $rows = $this->buildBestSellingCourses(1);
 
         return $rows[0] ?? [
+            'course_id' => 0,
             'course_name' => '',
             'teacher_name' => '',
             'sales' => 0,
@@ -216,6 +336,7 @@ class AdminDashboardController extends Controller
             }
 
             $select = [
+                'courses.id as course_id',
                 'courses.' . $courseNameColumn . ' as course_name',
                 DB::raw('COUNT(*) as sales'),
             ];
@@ -225,6 +346,9 @@ class AdminDashboardController extends Controller
             }
 
             $groupBy = ['courses.' . $courseNameColumn];
+            if (Schema::hasColumn('courses', 'id')) {
+                $groupBy[] = 'courses.id';
+            }
             if ($hasTeacher) {
                 $groupBy[] = 'users.name';
             }
@@ -238,6 +362,7 @@ class AdminDashboardController extends Controller
 
             return $rows
                 ->map(fn ($r) => [
+                    'course_id' => (int) ($r->course_id ?? 0),
                     'course_name' => (string) ($r->course_name ?? ''),
                     'teacher_name' => (string) ($r->teacher_name ?? ''),
                     'sales' => (int) ($r->sales ?? 0),
@@ -273,15 +398,16 @@ class AdminDashboardController extends Controller
                 }
             }
 
-            $hasUserJoin = false;
-            if (Schema::hasTable('users') && Schema::hasColumn('enrollments', 'user_id') && Schema::hasColumn('users', 'id')) {
-                $query->leftJoin('users', 'users.id', '=', 'enrollments.user_id');
-                $hasUserJoin = true;
+            $hasStudentJoin = false;
+            if (Schema::hasTable('users') && Schema::hasColumn('enrollments', 'student_id') && Schema::hasColumn('users', 'id')) {
+                $query->leftJoin('users', 'users.id', '=', 'enrollments.student_id');
+                $hasStudentJoin = true;
             }
 
             $select = [];
-            if (Schema::hasColumn('enrollments', 'created_at')) {
-                $select[] = 'enrollments.created_at as enrolled_at';
+            $enrolledCol = Schema::hasColumn('enrollments', 'enrolled_at') ? 'enrollments.enrolled_at as enrolled_at' : (Schema::hasColumn('enrollments', 'created_at') ? 'enrollments.created_at as enrolled_at' : null);
+            if ($enrolledCol) {
+                $select[] = $enrolledCol;
             }
             if (Schema::hasColumn('enrollments', 'id')) {
                 $select[] = 'enrollments.id as enrollment_id';
@@ -289,7 +415,7 @@ class AdminDashboardController extends Controller
             if ($courseNameColumn) {
                 $select[] = 'courses.' . $courseNameColumn . ' as course_name';
             }
-            if ($hasUserJoin && Schema::hasColumn('users', 'name')) {
+            if ($hasStudentJoin && Schema::hasColumn('users', 'name')) {
                 $select[] = 'users.name as student_name';
             }
 
@@ -297,7 +423,9 @@ class AdminDashboardController extends Controller
                 return [];
             }
 
-            if (Schema::hasColumn('enrollments', 'created_at')) {
+            if (Schema::hasColumn('enrollments', 'enrolled_at')) {
+                $query->orderByDesc('enrollments.enrolled_at');
+            } elseif (Schema::hasColumn('enrollments', 'created_at')) {
                 $query->orderByDesc('enrollments.created_at');
             } elseif (Schema::hasColumn('enrollments', 'id')) {
                 $query->orderByDesc('enrollments.id');
@@ -319,6 +447,351 @@ class AdminDashboardController extends Controller
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    private function buildSystemOverview(): array
+    {
+        $activeCourses = 0;
+        $inactiveCourses = 0;
+        $teachersWithoutCourses = 0;
+        $studentsNotEnrolled = 0;
+
+        try {
+            if (Schema::hasTable('courses')) {
+                if (Schema::hasColumn('courses', 'end_date')) {
+                    $activeCourses = (int) DB::table('courses')->whereNull('end_date')->orWhere('end_date', '>=', now()->toDateString())->count();
+                    $inactiveCourses = (int) DB::table('courses')->whereNotNull('end_date')->where('end_date', '<', now()->toDateString())->count();
+                } else {
+                    $activeCourses = (int) DB::table('courses')->count();
+                    $inactiveCourses = 0;
+                }
+            }
+
+            if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'teacher_id')) {
+                $teachersWithCourses = DB::table('courses')->whereNotNull('teacher_id')->distinct('teacher_id')->count('teacher_id');
+                $totalTeachers = (int) User::role('Teacher')->count();
+                $teachersWithoutCourses = max(0, $totalTeachers - (int) $teachersWithCourses);
+            }
+
+            if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'student_id')) {
+                $enrolledStudents = (int) DB::table('enrollments')->distinct('student_id')->count('student_id');
+                $totalStudents = (int) User::role('Student')->count();
+                $studentsNotEnrolled = max(0, $totalStudents - $enrolledStudents);
+            }
+        } catch (\Throwable) {
+        }
+
+        return [
+            'active_courses' => $activeCourses,
+            'inactive_courses' => $inactiveCourses,
+            'teachers_without_courses' => $teachersWithoutCourses,
+            'students_not_enrolled' => $studentsNotEnrolled,
+        ];
+    }
+
+    private function buildRecentActivity(): array
+    {
+        $items = [];
+
+        try {
+            $courseNameColumn = null;
+            if (Schema::hasTable('courses')) {
+                foreach (['title', 'name', 'course_name'] as $candidate) {
+                    if (Schema::hasColumn('courses', $candidate)) {
+                        $courseNameColumn = $candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'student_id') && Schema::hasColumn('enrollments', 'course_id') && Schema::hasTable('users') && Schema::hasColumn('users', 'name') && $courseNameColumn) {
+                $col = Schema::hasColumn('enrollments', 'enrolled_at') ? 'enrollments.enrolled_at' : (Schema::hasColumn('enrollments', 'created_at') ? 'enrollments.created_at' : null);
+                if ($col) {
+                    $rows = DB::table('enrollments')
+                        ->join('users', 'users.id', '=', 'enrollments.student_id')
+                        ->join('courses', 'courses.id', '=', 'enrollments.course_id')
+                        ->select([
+                            DB::raw("'enrollment' as type"),
+                            'users.name as actor',
+                            'courses.' . $courseNameColumn . ' as target',
+                            DB::raw("$col as happened_at"),
+                        ])
+                        ->orderByDesc('happened_at')
+                        ->limit(10)
+                        ->get();
+
+                    foreach ($rows as $r) {
+                        $items[] = [
+                            'type' => 'enrollment',
+                            'message' => (string) ($r->actor ?? 'Student') . ' enrolled in ' . (string) ($r->target ?? 'Course'),
+                            'happened_at' => (string) ($r->happened_at ?? ''),
+                        ];
+                    }
+                }
+            }
+
+            if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'created_at') && Schema::hasColumn('courses', 'teacher_id') && Schema::hasTable('users') && Schema::hasColumn('users', 'name')) {
+                $nameCol = $courseNameColumn ?? (Schema::hasColumn('courses', 'title') ? 'title' : null);
+                if ($nameCol) {
+                    $rows = DB::table('courses')
+                        ->leftJoin('users', 'users.id', '=', 'courses.teacher_id')
+                        ->select([
+                            DB::raw("'course' as type"),
+                            'users.name as actor',
+                            'courses.' . $nameCol . ' as target',
+                            'courses.created_at as happened_at',
+                        ])
+                        ->orderByDesc('courses.created_at')
+                        ->limit(10)
+                        ->get();
+
+                    foreach ($rows as $r) {
+                        $items[] = [
+                            'type' => 'course',
+                            'message' => ((string) ($r->actor ?? 'Teacher') !== '' ? (string) $r->actor : 'Teacher') . ' created course ' . (string) ($r->target ?? 'Course'),
+                            'happened_at' => (string) ($r->happened_at ?? ''),
+                        ];
+                    }
+                }
+            }
+
+            if (Schema::hasTable('submissions') && Schema::hasTable('assignments') && Schema::hasColumn('submissions', 'assignment_id') && Schema::hasColumn('submissions', 'student_id') && Schema::hasColumn('assignments', 'title') && Schema::hasTable('users') && Schema::hasColumn('users', 'name')) {
+                $submittedCol = Schema::hasColumn('submissions', 'submitted_at') ? 'submissions.submitted_at' : (Schema::hasColumn('submissions', 'created_at') ? 'submissions.created_at' : null);
+                if ($submittedCol) {
+                    $rows = DB::table('submissions')
+                        ->join('assignments', 'assignments.id', '=', 'submissions.assignment_id')
+                        ->join('users', 'users.id', '=', 'submissions.student_id')
+                        ->select([
+                            DB::raw("'submission' as type"),
+                            'users.name as actor',
+                            'assignments.title as target',
+                            DB::raw("$submittedCol as happened_at"),
+                        ])
+                        ->orderByDesc('happened_at')
+                        ->limit(10)
+                        ->get();
+
+                    foreach ($rows as $r) {
+                        $items[] = [
+                            'type' => 'submission',
+                            'message' => (string) ($r->actor ?? 'Student') . ' submitted ' . (string) ($r->target ?? 'Assignment'),
+                            'happened_at' => (string) ($r->happened_at ?? ''),
+                        ];
+                    }
+                }
+            }
+
+            if (Schema::hasTable('announcements') && Schema::hasColumn('announcements', 'title') && Schema::hasColumn('announcements', 'teacher_id') && Schema::hasColumn('announcements', 'created_at') && Schema::hasTable('users') && Schema::hasColumn('users', 'name')) {
+                $rows = DB::table('announcements')
+                    ->leftJoin('users', 'users.id', '=', 'announcements.teacher_id')
+                    ->select([
+                        DB::raw("'announcement' as type"),
+                        'users.name as actor',
+                        'announcements.title as target',
+                        'announcements.created_at as happened_at',
+                    ])
+                    ->orderByDesc('announcements.created_at')
+                    ->limit(10)
+                    ->get();
+
+                foreach ($rows as $r) {
+                    $items[] = [
+                        'type' => 'announcement',
+                        'message' => ((string) ($r->actor ?? 'Teacher') !== '' ? (string) $r->actor : 'Teacher') . ' posted announcement ' . (string) ($r->target ?? ''),
+                        'happened_at' => (string) ($r->happened_at ?? ''),
+                    ];
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        usort($items, fn ($a, $b) => strcmp((string) ($b['happened_at'] ?? ''), (string) ($a['happened_at'] ?? '')));
+
+        return array_slice($items, 0, 10);
+    }
+
+    private function buildAnalyticsSeries(): array
+    {
+        $enrollmentsLast7Days = [
+            'labels' => [],
+            'data' => [],
+        ];
+        $coursesPerMonth = [
+            'labels' => [],
+            'data' => [],
+        ];
+        $studentsPerCourse = [
+            'labels' => [],
+            'data' => [],
+        ];
+        $userGrowth = [
+            'labels' => [],
+            'students' => [],
+            'teachers' => [],
+        ];
+
+        try {
+            $start = now()->subDays(6)->startOfDay();
+            $labels = [];
+            $keys = [];
+            $series = [];
+
+            for ($i = 0; $i < 7; $i++) {
+                $d = $start->copy()->addDays($i);
+                $labels[] = $d->format('M j');
+                $k = $d->format('Y-m-d');
+                $keys[] = $k;
+                $series[$k] = 0;
+            }
+
+            if (Schema::hasTable('enrollments')) {
+                $col = Schema::hasColumn('enrollments', 'enrolled_at') ? 'enrolled_at' : (Schema::hasColumn('enrollments', 'created_at') ? 'created_at' : null);
+                if ($col) {
+                    $rows = DB::table('enrollments')
+                        ->select([DB::raw("DATE($col) as d"), DB::raw('COUNT(*) as c')])
+                        ->where($col, '>=', $start)
+                        ->groupBy('d')
+                        ->get();
+
+                    foreach ($rows as $r) {
+                        $k = (string) ($r->d ?? '');
+                        if ($k !== '' && array_key_exists($k, $series)) {
+                            $series[$k] = (int) ($r->c ?? 0);
+                        }
+                    }
+                }
+            }
+
+            $enrollmentsLast7Days = [
+                'labels' => $labels,
+                'data' => array_values($series),
+            ];
+
+            $monthLabels = [];
+            $monthKeys = [];
+            $monthSeries = [];
+            $now = now()->startOfMonth();
+            for ($i = 11; $i >= 0; $i--) {
+                $m = $now->copy()->subMonths($i);
+                $monthLabels[] = $m->format('M');
+                $k = $m->format('Y-m');
+                $monthKeys[] = $k;
+                $monthSeries[$k] = 0;
+            }
+
+            if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'created_at')) {
+                $rows = DB::table('courses')
+                    ->select([DB::raw("DATE_FORMAT(created_at, '%Y-%m') as ym"), DB::raw('COUNT(*) as c')])
+                    ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
+                    ->groupBy('ym')
+                    ->get();
+
+                foreach ($rows as $r) {
+                    $k = (string) ($r->ym ?? '');
+                    if ($k !== '' && array_key_exists($k, $monthSeries)) {
+                        $monthSeries[$k] = (int) ($r->c ?? 0);
+                    }
+                }
+            }
+
+            $coursesPerMonth = [
+                'labels' => $monthLabels,
+                'data' => array_values($monthSeries),
+            ];
+
+            if (Schema::hasTable('courses') && Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'course_id')) {
+                $courseNameColumn = null;
+                foreach (['title', 'name', 'course_name'] as $candidate) {
+                    if (Schema::hasColumn('courses', $candidate)) {
+                        $courseNameColumn = $candidate;
+                        break;
+                    }
+                }
+
+                if ($courseNameColumn && Schema::hasColumn('courses', 'id')) {
+                    $rows = DB::table('enrollments')
+                        ->join('courses', 'courses.id', '=', 'enrollments.course_id')
+                        ->select([
+                            'courses.' . $courseNameColumn . ' as name',
+                            DB::raw('COUNT(*) as c'),
+                        ])
+                        ->groupBy('courses.' . $courseNameColumn)
+                        ->orderByDesc('c')
+                        ->limit(10)
+                        ->get();
+
+                    $labels = [];
+                    $data = [];
+                    foreach ($rows as $r) {
+                        $labels[] = (string) ($r->name ?? 'Course');
+                        $data[] = (int) ($r->c ?? 0);
+                    }
+
+                    $studentsPerCourse = [
+                        'labels' => $labels,
+                        'data' => $data,
+                    ];
+                }
+            }
+
+            $days = 30;
+            $start = now()->subDays($days - 1)->startOfDay();
+            $labels = [];
+            $keys = [];
+            $students = [];
+            $teachers = [];
+            for ($i = 0; $i < $days; $i++) {
+                $d = $start->copy()->addDays($i);
+                $labels[] = $d->format('M j');
+                $k = $d->format('Y-m-d');
+                $keys[] = $k;
+                $students[$k] = 0;
+                $teachers[$k] = 0;
+            }
+
+            if (Schema::hasTable('users') && Schema::hasColumn('users', 'created_at') && Schema::hasTable('model_has_roles') && Schema::hasTable('roles')) {
+                $roleRows = DB::table('roles')->whereIn('name', ['Student', 'Teacher'])->select(['id', 'name'])->get();
+                $roleIds = [];
+                foreach ($roleRows as $r) {
+                    $roleIds[(string) $r->name] = (int) $r->id;
+                }
+
+                foreach (['Student' => &$students, 'Teacher' => &$teachers] as $roleName => &$seriesRef) {
+                    $rid = $roleIds[$roleName] ?? 0;
+                    if ($rid > 0) {
+                        $rows = DB::table('users')
+                            ->join('model_has_roles', 'model_has_roles.model_id', '=', 'users.id')
+                            ->where('model_has_roles.role_id', $rid)
+                            ->where('model_has_roles.model_type', User::class)
+                            ->where('users.created_at', '>=', $start)
+                            ->select([DB::raw('DATE(users.created_at) as d'), DB::raw('COUNT(*) as c')])
+                            ->groupBy('d')
+                            ->get();
+
+                        foreach ($rows as $r) {
+                            $k = (string) ($r->d ?? '');
+                            if ($k !== '' && array_key_exists($k, $seriesRef)) {
+                                $seriesRef[$k] = (int) ($r->c ?? 0);
+                            }
+                        }
+                    }
+                }
+            }
+
+            $userGrowth = [
+                'labels' => $labels,
+                'students' => array_values($students),
+                'teachers' => array_values($teachers),
+            ];
+        } catch (\Throwable) {
+        }
+
+        return [
+            'enrollments_last_7_days' => $enrollmentsLast7Days,
+            'courses_per_month' => $coursesPerMonth,
+            'students_per_course' => $studentsPerCourse,
+            'user_growth' => $userGrowth,
+        ];
     }
 
     private function countTable(string $table): int
