@@ -33,11 +33,17 @@ class AdminUserController extends Controller
             $query->role($role);
         }
 
+        $hasStudentNumberColumn = Schema::hasColumn('users', 'student_number');
+
         if ($search !== '') {
-            $query->where(function ($inner) use ($search) {
+            $query->where(function ($inner) use ($search, $hasStudentNumberColumn) {
                 $inner
                     ->where('name', 'like', '%' . $search . '%')
                     ->orWhere('email', 'like', '%' . $search . '%');
+
+                if ($hasStudentNumberColumn) {
+                    $inner->orWhere('student_number', 'like', '%' . $search . '%');
+                }
             });
         }
 
@@ -63,17 +69,27 @@ class AdminUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $hasStudentNumberColumn = Schema::hasColumn('users', 'student_number');
+        $hasFirstNameColumn = Schema::hasColumn('users', 'first_name');
+        $hasMiddleNameColumn = Schema::hasColumn('users', 'middle_name');
+        $hasLastNameColumn = Schema::hasColumn('users', 'last_name');
+
+        $rules = [
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
-            'student_number' => ['nullable', 'string', 'max:255', 'unique:users,student_number'],
-        ]);
+        ];
 
-        if (($validated['role'] ?? '') === 'Student' && empty($validated['student_number'])) {
+        if ($hasStudentNumberColumn) {
+            $rules['student_number'] = ['nullable', 'string', 'max:255', 'unique:users,student_number'];
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($hasStudentNumberColumn && ($validated['role'] ?? '') === 'Student' && empty($validated['student_number'])) {
             return back()->withErrors([
                 'student_number' => 'Student number is required for student accounts.',
             ])->withInput();
@@ -85,15 +101,26 @@ class AdminUserController extends Controller
             $validated['last_name'] ?? '',
         ])));
 
-        $user = User::query()->create([
+        $payload = [
             'name' => $name,
-            'first_name' => $validated['first_name'],
-            'middle_name' => $validated['middle_name'] ?? null,
-            'last_name' => $validated['last_name'],
-            'student_number' => ($validated['role'] ?? '') === 'Student' ? ($validated['student_number'] ?? null) : null,
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-        ]);
+        ];
+
+        if ($hasFirstNameColumn) {
+            $payload['first_name'] = $validated['first_name'];
+        }
+        if ($hasMiddleNameColumn) {
+            $payload['middle_name'] = $validated['middle_name'] ?? null;
+        }
+        if ($hasLastNameColumn) {
+            $payload['last_name'] = $validated['last_name'];
+        }
+        if ($hasStudentNumberColumn) {
+            $payload['student_number'] = ($validated['role'] ?? '') === 'Student' ? ($validated['student_number'] ?? null) : null;
+        }
+
+        $user = User::query()->create($payload);
 
         if (method_exists($user, 'syncRoles')) {
             $user->syncRoles([$validated['role']]);
@@ -117,17 +144,27 @@ class AdminUserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($user);
 
-        $validated = $request->validate([
+        $hasStudentNumberColumn = Schema::hasColumn('users', 'student_number');
+        $hasFirstNameColumn = Schema::hasColumn('users', 'first_name');
+        $hasMiddleNameColumn = Schema::hasColumn('users', 'middle_name');
+        $hasLastNameColumn = Schema::hasColumn('users', 'last_name');
+
+        $rules = [
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
             'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
-            'student_number' => ['nullable', 'string', 'max:255', Rule::unique('users', 'student_number')->ignore($user->id)],
-        ]);
+        ];
 
-        if (($validated['role'] ?? '') === 'Student' && empty($validated['student_number'])) {
+        if ($hasStudentNumberColumn) {
+            $rules['student_number'] = ['nullable', 'string', 'max:255', Rule::unique('users', 'student_number')->ignore($user->id)];
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($hasStudentNumberColumn && ($validated['role'] ?? '') === 'Student' && empty($validated['student_number'])) {
             return back()->withErrors([
                 'student_number' => 'Student number is required for student accounts.',
             ])->withInput();
@@ -140,10 +177,18 @@ class AdminUserController extends Controller
         ])));
 
         $user->name = $name;
-        $user->first_name = $validated['first_name'];
-        $user->middle_name = $validated['middle_name'] ?? null;
-        $user->last_name = $validated['last_name'];
-        $user->student_number = ($validated['role'] ?? '') === 'Student' ? ($validated['student_number'] ?? null) : null;
+        if ($hasFirstNameColumn) {
+            $user->first_name = $validated['first_name'];
+        }
+        if ($hasMiddleNameColumn) {
+            $user->middle_name = $validated['middle_name'] ?? null;
+        }
+        if ($hasLastNameColumn) {
+            $user->last_name = $validated['last_name'];
+        }
+        if ($hasStudentNumberColumn) {
+            $user->student_number = ($validated['role'] ?? '') === 'Student' ? ($validated['student_number'] ?? null) : null;
+        }
         $user->email = $validated['email'];
 
         if (!empty($validated['password'])) {

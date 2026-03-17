@@ -8,6 +8,7 @@
         $total = $users->total();
         $from = $users->firstItem() ?? 0;
         $to = $users->lastItem() ?? 0;
+        $showStudentNumber = in_array($role, ['all', 'Student'], true);
     @endphp
 
     <div class="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
@@ -58,6 +59,9 @@
                     <tr class="text-left text-xs font-semibold tracking-wide text-slate-500 uppercase border-b border-slate-200">
                         <th class="py-4 px-6">User</th>
                         <th class="py-4 px-6">ID</th>
+                        @if ($showStudentNumber)
+                            <th class="py-4 px-6">Student #</th>
+                        @endif
                         <th class="py-4 px-6">Role</th>
                         <th class="py-4 px-6">Status</th>
                         <th class="py-4 px-6">Joined Date</th>
@@ -96,6 +100,11 @@
                                 </div>
                             </td>
                             <td class="py-4 px-6 text-xs text-slate-500 font-medium">USR-{{ str_pad((string) $user->id, 3, '0', STR_PAD_LEFT) }}</td>
+                            @if ($showStudentNumber)
+                                <td class="py-4 px-6 text-xs text-slate-500 font-medium">
+                                    {{ $user->student_number ?: '--' }}
+                                </td>
+                            @endif
                             <td class="py-4 px-6">
                                 <span class="inline-flex items-center h-7 px-3 rounded-lg border text-xs font-medium {{ $roleBadgeClass }}">
                                     {{ $displayRole }}
@@ -137,7 +146,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-10 px-6 text-center text-sm text-slate-500">No users found for this filter.</td>
+                            <td colspan="{{ $showStudentNumber ? '7' : '6' }}" class="py-10 px-6 text-center text-sm text-slate-500">No users found for this filter.</td>
                         </tr>
                     @endforelse
                 </tbody>

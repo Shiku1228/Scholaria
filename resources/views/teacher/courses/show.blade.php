@@ -41,6 +41,7 @@
                 <button type="button" data-tab-btn="overview" class="tab-btn text-[#4f46e5] border-b-2 border-[#4f46e5] pb-2">Overview</button>
                 <button type="button" data-tab-btn="resources" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Resources</button>
                 <button type="button" data-tab-btn="discussion" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Discussion</button>
+                <button type="button" data-tab-btn="students" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Students</button>
                 <a href="{{ route('teacher.assignments.index', $course) }}" class="text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Assignments</a>
                 <a href="{{ route('teacher.announcements.index', $course) }}" class="text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Announcements</a>
             </div>
@@ -217,6 +218,48 @@
                 @endforelse
             </div>
         </div>
+
+        <div data-tab-panel="students" class="p-4 sm:p-6 hidden">
+            <div class="flex items-center justify-between gap-2">
+                <div>
+                    <div class="text-lg font-semibold text-slate-900">Enrolled Students</div>
+                    <div class="text-sm text-slate-500">Students currently enrolled in this course.</div>
+                </div>
+                <span class="inline-flex items-center h-8 px-3 rounded-lg bg-[#eaf0fb] text-[#0b2d6b] text-xs font-semibold">
+                    {{ $students->count() }} students
+                </span>
+            </div>
+
+            <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50">
+                        <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-200">
+                            <th class="py-3 px-4">Student</th>
+                            <th class="py-3 px-4">Email</th>
+                            <th class="py-3 px-4">Student #</th>
+                            <th class="py-3 px-4">Enrolled Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse ($students as $enrollment)
+                            @php
+                                $student = $enrollment->student;
+                            @endphp
+                            <tr class="text-slate-700">
+                                <td class="py-3 px-4 font-medium text-slate-900">{{ $student->name ?? 'Student' }}</td>
+                                <td class="py-3 px-4 text-slate-600">{{ $student->email ?? '--' }}</td>
+                                <td class="py-3 px-4 text-slate-600">{{ $student->student_number ?? '--' }}</td>
+                                <td class="py-3 px-4 text-slate-500">{{ $enrollment->enrolled_at ? \Illuminate\Support\Carbon::parse($enrollment->enrolled_at)->format('Y-m-d') : '--' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-10 px-4 text-center text-sm text-slate-500">No students enrolled yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
     <script>
         (function () {
@@ -249,7 +292,7 @@
             });
 
             const initial = (location.hash || '').replace('#', '');
-            const allowed = ['overview', 'resources', 'discussion'];
+            const allowed = ['overview', 'resources', 'discussion', 'students'];
             activate(allowed.includes(initial) ? initial : 'overview');
 
             const editBtn = document.getElementById('editOverviewToggle');
