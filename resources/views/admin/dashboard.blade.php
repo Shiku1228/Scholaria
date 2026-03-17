@@ -11,6 +11,16 @@
         $teachersWithoutCourses = (int) data_get($systemOverview, 'teachers_without_courses', 0);
         $studentsNotEnrolled = (int) data_get($systemOverview, 'students_not_enrolled', 0);
         $priorityCount = ($inactiveCourses > 0 ? 1 : 0) + ($teachersWithoutCourses > 0 ? 1 : 0) + ($studentsNotEnrolled > 0 ? 1 : 0);
+        $healthSeverityScore = ($inactiveCourses * 2) + ($teachersWithoutCourses * 2) + $studentsNotEnrolled;
+        $healthStatusLabel = 'Operational';
+        $healthStatusClasses = 'border-emerald-400/40 bg-emerald-500/20 text-emerald-300';
+        if ($healthSeverityScore >= 10) {
+            $healthStatusLabel = 'Critical';
+            $healthStatusClasses = 'border-rose-400/40 bg-rose-500/20 text-rose-200';
+        } elseif ($healthSeverityScore > 0) {
+            $healthStatusLabel = 'Needs Attention';
+            $healthStatusClasses = 'border-amber-400/40 bg-amber-500/20 text-amber-200';
+        }
         $overviewHasData = array_sum((array) data_get($overview, 'series.courses', [])) > 0
             || array_sum((array) data_get($overview, 'series.enrollments', [])) > 0
             || array_sum((array) data_get($overview, 'series.users', [])) > 0;
@@ -68,27 +78,98 @@
             </div>
         </section>
 
-        <div class="grid grid-cols-1 gap-6">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200">
                 <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3">
-                    <div>
-                        <div class="text-sm font-semibold text-slate-900">Recent Activity Feed</div>
-                        <div class="text-xs text-slate-500">Latest system events</div>
+                    <div class="flex items-start gap-2.5">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12h4l3-9 4 18 3-9h4"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <div class="text-xl font-bold text-slate-900">Recent Activity</div>
+                            <div class="text-sm text-slate-500">Latest platform events and actions</div>
+                        </div>
                     </div>
-                    <span class="inline-flex items-center h-7 px-2 rounded-lg bg-[#eaf0fb] text-[#0b2d6b] text-xs font-semibold">{{ count($recentActivity ?? []) }} items</span>
+                    @if (!empty($recentActivity))
+                        <a href="{{ route('admin.dashboard') }}#recent-activity" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View All</a>
+                    @endif
                 </div>
-                <div class="p-4 sm:p-5">
+                <div id="recent-activity" class="p-4 sm:p-5">
                     @if (empty($recentActivity))
                         <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
                             No recent activity yet. Once users enroll, submit, and publish content, events will appear here.
                         </div>
                     @else
-                        <div class="space-y-3 max-h-[320px] overflow-auto pr-1">
+                        <div class="space-y-3 max-h-[360px] overflow-auto pr-1">
+                            @php
+                                $activityIconClasses = [
+                                    'course' => 'bg-indigo-50 text-indigo-600',
+                                    'enroll' => 'bg-emerald-50 text-emerald-600',
+                                    'assignment' => 'bg-blue-50 text-blue-600',
+                                    'submission' => 'bg-blue-50 text-blue-600',
+                                    'system' => 'bg-violet-50 text-violet-600',
+                                    'settings' => 'bg-violet-50 text-violet-600',
+                                    'achievement' => 'bg-amber-50 text-amber-600',
+                                ];
+                            @endphp
                             @foreach ($recentActivity as $item)
-                                <div class="flex items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                    <div class="text-sm text-slate-700">{{ (string) ($item['message'] ?? '') }}</div>
-                                    <div class="text-xs text-slate-500 whitespace-nowrap">
-                                        {{ !empty($item['happened_at']) ? \Illuminate\Support\Carbon::parse($item['happened_at'])->diffForHumans() : 'now' }}
+                                @php
+                                    $message = (string) ($item['message'] ?? '');
+                                    $messageLower = strtolower($message);
+                                    $iconType = 'course';
+                                    if (str_contains($messageLower, 'enroll')) {
+                                        $iconType = 'enroll';
+                                    } elseif (str_contains($messageLower, 'assignment') || str_contains($messageLower, 'submit')) {
+                                        $iconType = 'assignment';
+                                    } elseif (str_contains($messageLower, 'setting') || str_contains($messageLower, 'system')) {
+                                        $iconType = 'system';
+                                    } elseif (str_contains($messageLower, 'achiev') || str_contains($messageLower, 'certif')) {
+                                        $iconType = 'achievement';
+                                    }
+                                    $iconClass = $activityIconClasses[$iconType] ?? $activityIconClasses['course'];
+                                @endphp
+                                <div class="flex items-start gap-3 rounded-xl p-2.5 hover:bg-slate-50 transition-colors">
+                                    <span class="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl {{ $iconClass }}">
+                                        @if ($iconType === 'enroll')
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                                <circle cx="8.5" cy="7" r="4"/>
+                                                <path d="M20 8v6M23 11h-6"/>
+                                            </svg>
+                                        @elseif ($iconType === 'assignment')
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <path d="M14 2v6h6"/>
+                                                <path d="M16 13H8M16 17H8M10 9H8"/>
+                                            </svg>
+                                        @elseif ($iconType === 'system')
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                        @elseif ($iconType === 'achievement')
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="8" r="6"/>
+                                                <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+                                            </svg>
+                                        @else
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20"/>
+                                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                            </svg>
+                                        @endif
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="text-base text-slate-800 leading-snug">{{ $message }}</p>
+                                        <p class="mt-1 text-sm text-slate-500 inline-flex items-center gap-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <polyline points="12 6 12 12 16 14"/>
+                                            </svg>
+                                            {{ !empty($item['happened_at']) ? \Illuminate\Support\Carbon::parse($item['happened_at'])->diffForHumans() : 'just now' }}
+                                        </p>
                                     </div>
                                 </div>
                             @endforeach
@@ -96,10 +177,50 @@
                     @endif
                 </div>
             </div>
+
+            <div class="xl:col-span-1 h-full rounded-2xl border border-slate-800 bg-gradient-to-br from-[#0a1638] to-[#131b46] text-white p-5 shadow-sm flex flex-col">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-slate-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="8" rx="2"/>
+                                <rect x="2" y="13" width="20" height="8" rx="2"/>
+                            </svg>
+                        </span>
+                        <div class="text-xl font-bold tracking-tight">System Health</div>
+                    </div>
+                    <span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold {{ $healthStatusClasses }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="m9 12 2 2 4-4"/>
+                        </svg>
+                        {{ $healthStatusLabel }}
+                    </span>
+                </div>
+
+                <div class="mt-auto pt-8 grid grid-cols-2 gap-x-5 gap-y-5">
+                    <div>
+                        <div class="text-sm text-slate-300">Active Courses</div>
+                        <div class="mt-1 text-2xl font-extrabold">{{ number_format($activeCourses) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-slate-300">Inactive Courses</div>
+                        <div class="mt-1 text-2xl font-extrabold">{{ number_format($inactiveCourses) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-slate-300">Teachers Without Courses</div>
+                        <div class="mt-1 text-2xl font-extrabold">{{ number_format($teachersWithoutCourses) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-slate-300">Students Not Enrolled</div>
+                        <div class="mt-1 text-2xl font-extrabold {{ $studentsNotEnrolled > 0 ? 'text-amber-300' : 'text-white' }}">{{ number_format($studentsNotEnrolled) }}</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200">
+        <div class="grid grid-cols-1 gap-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200">
                 <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <div class="text-sm font-semibold text-slate-900">Platform Overview</div>
@@ -127,30 +248,6 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200">
-                <div class="p-4 sm:p-5 border-b border-slate-100">
-                    <div class="text-sm font-semibold text-slate-900">System Health</div>
-                    <div class="text-xs text-slate-500">Current operational indicators</div>
-                </div>
-                <div class="p-4 sm:p-5 space-y-3">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-600">Active Courses</span>
-                        <span class="font-semibold text-slate-900">{{ number_format($activeCourses) }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-600">Inactive Courses</span>
-                        <span class="font-semibold {{ $inactiveCourses > 0 ? 'text-amber-700' : 'text-slate-900' }}">{{ number_format($inactiveCourses) }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-600">Teachers Without Courses</span>
-                        <span class="font-semibold {{ $teachersWithoutCourses > 0 ? 'text-amber-700' : 'text-slate-900' }}">{{ number_format($teachersWithoutCourses) }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-600">Students Not Enrolled</span>
-                        <span class="font-semibold {{ $studentsNotEnrolled > 0 ? 'text-amber-700' : 'text-slate-900' }}">{{ number_format($studentsNotEnrolled) }}</span>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">

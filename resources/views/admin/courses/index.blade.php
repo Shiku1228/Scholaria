@@ -17,10 +17,10 @@
             </a>
         </div>
 
-        <form method="GET" action="{{ route('admin.courses.index') }}" class="mt-6 flex flex-col lg:flex-row lg:items-end gap-4">
+        <form id="courseFilterForm" method="GET" action="{{ route('admin.courses.index') }}" class="mt-6 flex flex-col lg:flex-row lg:items-end gap-4">
             <div class="flex-1">
                 <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600" for="search">Search</label>
-                <input id="search" name="search" type="text" value="{{ $search }}" placeholder="Search by course number or title" class="mt-2 w-full h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
+                <input id="search" name="search" type="text" value="{{ $search }}" placeholder="Search by course number or title" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" class="mt-2 w-full h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
             </div>
 
             <div class="w-full sm:w-52">
@@ -65,7 +65,12 @@
                             default => $course->semester,
                         };
                     @endphp
-                    <tr class="text-slate-700">
+                    <tr
+                        class="text-slate-700 course-row"
+                        data-course-number="{{ strtolower((string) $course->course_number) }}"
+                        data-course-title="{{ strtolower((string) $course->title) }}"
+                        data-course-semester="{{ strtolower((string) $course->semester) }}"
+                    >
                         <td class="py-4 px-4 font-semibold text-slate-900">{{ $course->course_number }}</td>
                         <td class="py-4 px-4">{{ $course->title }}</td>
                         <td class="py-4 px-4">{{ $semesterLabel }}</td>
@@ -94,7 +99,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
+                    <tr id="coursesEmptyRow">
                         <td colspan="6" class="py-14 px-4 text-center text-sm text-slate-500">No courses yet.</td>
                     </tr>
                 @endforelse
@@ -106,5 +111,72 @@
     <div class="mt-4">
         {{ $courses->links() }}
     </div>
+
+    <script>
+        (function () {
+            const form = document.getElementById('courseFilterForm');
+            const searchInput = document.getElementById('search');
+            const semesterSelect = document.getElementById('semester');
+            const rows = Array.from(document.querySelectorAll('.course-row'));
+            const tbody = document.querySelector('table tbody');
+            const originalEmptyRow = document.getElementById('coursesEmptyRow');
+            if (!form) return;
+
+            function ensureNoResultRow() {
+                let row = document.getElementById('coursesNoMatchRow');
+                if (!row && tbody) {
+                    row = document.createElement('tr');
+                    row.id = 'coursesNoMatchRow';
+                    row.innerHTML = '<td colspan="6" class="py-10 px-4 text-center text-sm text-slate-500">No matching courses found.</td>';
+                    tbody.appendChild(row);
+                }
+                return row;
+            }
+
+            function applyLocalFilter() {
+                if (!rows.length) return;
+                const search = (searchInput?.value || '').trim().toLowerCase();
+                const semester = (semesterSelect?.value || '').trim().toLowerCase();
+                let visibleCount = 0;
+
+                rows.forEach((row) => {
+                    const number = row.dataset.courseNumber || '';
+                    const title = row.dataset.courseTitle || '';
+                    const rowSemester = row.dataset.courseSemester || '';
+
+                    const matchesSearch = search === ''
+                        || number.startsWith(search)
+                        || title.startsWith(search);
+                    const matchesSemester = semester === '' || rowSemester === semester;
+
+                    const show = matchesSearch && matchesSemester;
+                    row.style.display = show ? '' : 'none';
+                    if (show) visibleCount++;
+                });
+
+                const noMatchRow = ensureNoResultRow();
+                if (noMatchRow) {
+                    noMatchRow.style.display = visibleCount === 0 ? '' : 'none';
+                }
+
+                if (originalEmptyRow) {
+                    originalEmptyRow.style.display = 'none';
+                }
+            }
+
+            searchInput?.addEventListener('input', function () {
+                applyLocalFilter();
+            });
+
+            semesterSelect?.addEventListener('change', function () {
+                applyLocalFilter();
+            });
+
+            // Keep server-side filtering when user explicitly submits with Apply.
+            form.addEventListener('submit', function () {
+                // no-op: intentional
+            });
+        })();
+    </script>
 @endsection
 

@@ -64,14 +64,33 @@ class AdminUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
+            'student_number' => ['nullable', 'string', 'max:255', 'unique:users,student_number'],
         ]);
 
+        if (($validated['role'] ?? '') === 'Student' && empty($validated['student_number'])) {
+            return back()->withErrors([
+                'student_number' => 'Student number is required for student accounts.',
+            ])->withInput();
+        }
+
+        $name = trim(implode(' ', array_filter([
+            $validated['first_name'] ?? '',
+            $validated['middle_name'] ?? '',
+            $validated['last_name'] ?? '',
+        ])));
+
         $user = User::query()->create([
-            'name' => $validated['name'],
+            'name' => $name,
+            'first_name' => $validated['first_name'],
+            'middle_name' => $validated['middle_name'] ?? null,
+            'last_name' => $validated['last_name'],
+            'student_number' => ($validated['role'] ?? '') === 'Student' ? ($validated['student_number'] ?? null) : null,
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
@@ -99,13 +118,32 @@ class AdminUserController extends Controller
         $user = User::withTrashed()->findOrFail($user);
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
             'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
+            'student_number' => ['nullable', 'string', 'max:255', Rule::unique('users', 'student_number')->ignore($user->id)],
         ]);
 
-        $user->name = $validated['name'];
+        if (($validated['role'] ?? '') === 'Student' && empty($validated['student_number'])) {
+            return back()->withErrors([
+                'student_number' => 'Student number is required for student accounts.',
+            ])->withInput();
+        }
+
+        $name = trim(implode(' ', array_filter([
+            $validated['first_name'] ?? '',
+            $validated['middle_name'] ?? '',
+            $validated['last_name'] ?? '',
+        ])));
+
+        $user->name = $name;
+        $user->first_name = $validated['first_name'];
+        $user->middle_name = $validated['middle_name'] ?? null;
+        $user->last_name = $validated['last_name'];
+        $user->student_number = ($validated['role'] ?? '') === 'Student' ? ($validated['student_number'] ?? null) : null;
         $user->email = $validated['email'];
 
         if (!empty($validated['password'])) {

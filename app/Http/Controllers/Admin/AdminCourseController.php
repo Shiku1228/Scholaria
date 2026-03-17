@@ -23,8 +23,8 @@ class AdminCourseController extends Controller
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('course_number', 'like', '%' . $search . '%')
-                    ->orWhere('title', 'like', '%' . $search . '%');
+                $q->where('course_number', 'like', $search . '%')
+                    ->orWhere('title', 'like', $search . '%');
             });
         }
 
