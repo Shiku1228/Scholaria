@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -13,18 +13,16 @@
         <div class="mt-2 text-sm text-gray-500">You are signed in.</div>
 
         <div class="mt-6 flex flex-col sm:flex-row gap-3">
-            <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+            <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">
                 Go to Admin Dashboard
             </a>
 
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                    Logout
-                </button>
-            </form>
+            <a href="{{ route('logout') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                Logout
+            </a>
         </div>
     </div>
 </div>
 </body>
 </html>
+

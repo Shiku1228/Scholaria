@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -51,7 +51,7 @@
                                 autocomplete="email"
                                 value="{{ old('email') }}"
                                 required
-                                class="block w-full h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 shadow-sm focus:border-violet-500 focus:ring-violet-500"
+                                class="block w-full h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 shadow-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]"
                             />
                         </div>
                         @error('email')
@@ -67,7 +67,7 @@
 
                     <button
                         type="submit"
-                        class="w-full h-11 rounded-xl bg-violet-600 text-white text-sm font-semibold shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                        class="w-full h-11 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold shadow-sm hover:bg-[#0a275c] focus:outline-none focus:ring-2 focus:ring-[#0b2d6b] focus:ring-offset-2"
                     >
                         Send Password Reset Link
                     </button>
@@ -78,3 +78,4 @@
 </div>
 </body>
 </html>
+

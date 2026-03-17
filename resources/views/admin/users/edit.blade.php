@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('content')
     <div>
@@ -12,13 +12,13 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700" for="name">Name</label>
-            <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+            <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
             @error('name')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700" for="email">Email</label>
-            <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+            <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
             @error('email')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
 
@@ -27,7 +27,7 @@
             @php
                 $currentRole = method_exists($user, 'getRoleNames') ? ($user->getRoleNames()->first() ?? 'Student') : 'Student';
             @endphp
-            <select id="role" name="role" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+            <select id="role" name="role" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
                 <option value="Admin" {{ old('role', $currentRole) === 'Admin' ? 'selected' : '' }}>Admin</option>
                 <option value="Teacher" {{ old('role', $currentRole) === 'Teacher' ? 'selected' : '' }}>Teacher</option>
                 <option value="Student" {{ old('role', $currentRole) === 'Student' ? 'selected' : '' }}>Student</option>
@@ -37,18 +37,19 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700" for="password">New Password (optional)</label>
-            <input id="password" name="password" type="password" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500">
+            <input id="password" name="password" type="password" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
             @error('password')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700" for="password_confirmation">Confirm New Password</label>
-            <input id="password_confirmation" name="password_confirmation" type="password" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500">
+            <input id="password_confirmation" name="password_confirmation" type="password" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
         </div>
 
         <div class="flex items-center gap-3">
-            <button type="submit" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">Update</button>
+            <button type="submit" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">Update</button>
             <a href="{{ route('admin.users.index') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</a>
         </div>
     </form>
 @endsection
+

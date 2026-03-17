@@ -10,7 +10,7 @@
 <div class="w-full max-w-5xl">
     <div class="bg-white rounded-[28px] shadow-xl border border-gray-100 overflow-hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2">
-            <div class="auth-welcome relative flex flex-col justify-between p-10 text-white order-2 lg:order-1">
+            <div class="auth-welcome relative flex flex-col justify-between p-10 text-white order-2 lg:order-1 bg-blue-600">
                 <div class="auth-welcome-curve" aria-hidden="true"></div>
                 <div class="relative z-10">
                     <div class="text-4xl font-extrabold tracking-wide">WELCOME</div>
@@ -28,7 +28,7 @@
                 <div class="pointer-events-none absolute left-52 -bottom-6 h-44 w-44 rounded-full bg-white/10 auth-circle z-10"></div>
             </div>
 
-            <div class="p-8 sm:p-10 order-1 lg:order-2">
+            <div class="p-8 sm:p-10 order-1 lg:order-2 bg-white border-l" style="display: block !important; visibility: visible !important;">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center">
                         <img src="{{ asset('SCHOLORIA LOGO.png') }}" alt="SCHOLARIA" class="w-7 h-7 object-contain" />

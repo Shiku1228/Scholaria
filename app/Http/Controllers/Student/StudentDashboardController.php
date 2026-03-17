@@ -79,6 +79,11 @@ class StudentDashboardController extends Controller
                             'courses.id as course_id',
                             'courses.' . $nameCol . ' as course_name',
                         ];
+                        foreach (['course_number', 'semester', 'school_year', 'cover_image'] as $column) {
+                            if (Schema::hasColumn('courses', $column)) {
+                                $select[] = 'courses.' . $column . ' as ' . $column;
+                            }
+                        }
 
                         if ($hasTeacherJoin) {
                             $select[] = 'users.name as teacher_name';
@@ -135,9 +140,15 @@ class StudentDashboardController extends Controller
                                 return [
                                     'course_id' => $courseId,
                                     'course_name' => (string) ($r->course_name ?? ''),
+                                    'course_number' => (string) ($r->course_number ?? ''),
+                                    'semester' => (string) ($r->semester ?? ''),
+                                    'school_year' => (string) ($r->school_year ?? ''),
+                                    'cover_image' => (string) ($r->cover_image ?? ''),
                                     'teacher_name' => (string) ($r->teacher_name ?? ''),
                                     'enrollment_status' => (string) ($r->enrollment_status ?? ''),
                                     'progress' => $progress,
+                                    'assignments_total' => $total,
+                                    'assignments_submitted' => $done,
                                 ];
                             })
                             ->values()

@@ -26,6 +26,15 @@ class TeacherDashboardController extends Controller
         $recentEnrollments = [];
         $recentSubmissions = [];
         $recentAnnouncements = [];
+        $courseStats = [];
+        $upcomingClasses = [];
+        $avgEngagement = 0;
+        $performanceTrends = [
+            'labels' => ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+            'completion' => [0, 0, 0, 0, 0],
+            'engagement' => [0, 0, 0, 0, 0],
+            'avg_score' => [0, 0, 0, 0, 0],
+        ];
 
         try {
             $totalCourses = $this->countTable('courses');
@@ -188,6 +197,280 @@ class TeacherDashboardController extends Controller
                                 ])
                                 ->all();
                         }
+
+                        if ($courseNameCol) {
+                            $courses = DB::table('courses')
+                                ->whereIn('id', $courseIds)
+                                ->select(['id', $courseNameCol . ' as course_name'])
+                                ->orderBy('id', 'desc')
+                                ->get();
+
+                            $enrolledStudentsByCourse = [];
+                            if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'course_id') && Schema::hasColumn('enrollments', 'student_id')) {
+                                $enrolledRows = DB::table('enrollments')
+                                    ->whereIn('course_id', $courseIds)
+                                    ->select(['course_id', DB::raw('COUNT(DISTINCT student_id) as enrolled_students')])
+                                    ->groupBy('course_id')
+                                    ->get();
+
+                                foreach ($enrolledRows as $row) {
+                                    $enrolledStudentsByCourse[(int) $row->course_id] = (int) ($row->enrolled_students ?? 0);
+                                }
+                            }
+
+                            $assignmentCounts = [];
+                            if (Schema::hasTable('assignments') && Schema::hasColumn('assignments', 'course_id')) {
+                                $assignmentRows = DB::table('assignments')
+                                    ->whereIn('course_id', $courseIds)
+                                    ->select(['course_id', DB::raw('COUNT(*) as assignment_count')])
+                                    ->groupBy('course_id')
+                                    ->get();
+
+                                foreach ($assignmentRows as $row) {
+                                    $assignmentCounts[(int) $row->course_id] = (int) ($row->assignment_count ?? 0);
+                                }
+                            }
+
+                            $gradeAggByCourse = [];
+                            if (
+                                Schema::hasTable('submissions')
+                                && Schema::hasTable('assignments')
+                                && Schema::hasColumn('submissions', 'assignment_id')
+                                && Schema::hasColumn('submissions', 'student_id')
+                                && Schema::hasColumn('submissions', 'score')
+                                && Schema::hasColumn('assignments', 'id')
+                                && Schema::hasColumn('assignments', 'course_id')
+                                && Schema::hasColumn('assignments', 'max_score')
+                            ) {
+                                $scoreRows = DB::table('submissions')
+                                    ->join('assignments', 'assignments.id', '=', 'submissions.assignment_id')
+                                    ->whereIn('assignments.course_id', $courseIds)
+                                    ->whereNotNull('submissions.score')
+                                    ->where('assignments.max_score', '>', 0)
+                                    ->select([
+                                        'assignments.course_id as course_id',
+                                        DB::raw('SUM((submissions.score / assignments.max_score) * 100) as pct_sum'),
+                                        DB::raw('COUNT(*) as pct_count'),
+                                        DB::raw('COUNT(DISTINCT submissions.student_id) as submitted_students'),
+                                    ])
+                                    ->groupBy('assignments.course_id')
+                                    ->get();
+
+                                foreach ($scoreRows as $row) {
+                                    $gradeAggByCourse[(int) $row->course_id] = [
+                                        'pct_sum' => (float) ($row->pct_sum ?? 0),
+                                        'pct_count' => (int) ($row->pct_count ?? 0),
+                                        'submitted_students' => (int) ($row->submitted_students ?? 0),
+                                    ];
+                                }
+                            }
+
+                            $courseStats = $courses->map(function ($course) use ($enrolledStudentsByCourse, $assignmentCounts, $gradeAggByCourse) {
+                                $courseId = (int) ($course->id ?? 0);
+                                $enrolledStudents = (int) ($enrolledStudentsByCourse[$courseId] ?? 0);
+                                $assignmentCount = (int) ($assignmentCounts[$courseId] ?? 0);
+                                $agg = $gradeAggByCourse[$courseId] ?? [
+                                    'pct_sum' => 0.0,
+                                    'pct_count' => 0,
+                                    'submitted_students' => 0,
+                                ];
+
+                                $avgGrade = $agg['pct_count'] > 0
+                                    ? (int) round($agg['pct_sum'] / max(1, $agg['pct_count']))
+                                    : 0;
+
+                                // Completion = students who submitted at least one scored work / enrolled students.
+                                $completion = $enrolledStudents > 0
+                                    ? (int) round((($agg['submitted_students'] ?? 0) / $enrolledStudents) * 100)
+                                    : 0;
+
+                                return [
+                                    'name' => (string) ($course->course_name ?? ''),
+                                    'students' => $enrolledStudents,
+                                    'avg_grade' => max(0, min(100, $avgGrade)),
+                                    'completion' => max(0, min(100, $completion)),
+                                    'assignment_count' => $assignmentCount,
+                                ];
+                            })->all();
+                        }
+
+                        // Build accurate upcoming classes from course schedule + enrollment counts.
+                        if ($courseNameCol && Schema::hasColumn('courses', 'days_pattern') && Schema::hasColumn('courses', 'start_time')) {
+                            $courseRows = DB::table('courses')
+                                ->whereIn('id', $courseIds)
+                                ->select(['id', $courseNameCol . ' as course_name', 'days_pattern', 'start_time'])
+                                ->get();
+
+                            $dayMap = [
+                                'Sun' => 0,
+                                'Mon' => 1,
+                                'Tue' => 2,
+                                'Wed' => 3,
+                                'Thu' => 4,
+                                'Fri' => 5,
+                                'Sat' => 6,
+                            ];
+
+                            $now = now();
+                            $today = $now->copy()->startOfDay();
+                            $tomorrow = $today->copy()->addDay();
+                            $upcoming = [];
+
+                            foreach ($courseRows as $courseRow) {
+                                $cid = (int) ($courseRow->id ?? 0);
+                                $courseName = (string) ($courseRow->course_name ?? '');
+                                $daysRaw = (string) ($courseRow->days_pattern ?? '');
+                                $startTime = (string) ($courseRow->start_time ?? '');
+
+                                if ($courseName === '' || $daysRaw === '' || $startTime === '') {
+                                    continue;
+                                }
+
+                                $enrolledStudents = (int) ($enrolledStudentsByCourse[$cid] ?? 0);
+                                $days = array_values(array_filter(array_map('trim', explode(',', $daysRaw))));
+
+                                $bestDt = null;
+                                foreach ($days as $d) {
+                                    if (!array_key_exists($d, $dayMap)) {
+                                        continue;
+                                    }
+
+                                    $targetDow = $dayMap[$d];
+                                    $candidate = $now->copy()->startOfDay();
+                                    $delta = ($targetDow - (int) $candidate->dayOfWeek + 7) % 7;
+                                    $candidate->addDays($delta);
+
+                                    // apply course start time
+                                    [$hh, $mm, $ss] = array_pad(explode(':', $startTime), 3, '00');
+                                    $candidate->setTime((int) $hh, (int) $mm, (int) $ss);
+
+                                    // if the class time today already passed, move to next week
+                                    if ($candidate->lessThanOrEqualTo($now)) {
+                                        $candidate->addWeek();
+                                    }
+
+                                    if ($bestDt === null || $candidate->lessThan($bestDt)) {
+                                        $bestDt = $candidate->copy();
+                                    }
+                                }
+
+                                if ($bestDt === null) {
+                                    continue;
+                                }
+
+                                $dateLabel = $bestDt->copy()->startOfDay()->equalTo($today)
+                                    ? 'Today'
+                                    : ($bestDt->copy()->startOfDay()->equalTo($tomorrow) ? 'Tomorrow' : $bestDt->format('M j'));
+
+                                $upcoming[] = [
+                                    'course_name' => $courseName,
+                                    'time' => $bestDt->format('g:i A'),
+                                    'label' => $dateLabel,
+                                    'students' => $enrolledStudents,
+                                    'next_at' => $bestDt->toDateTimeString(),
+                                ];
+                            }
+
+                            usort($upcoming, fn ($a, $b) => strcmp((string) ($a['next_at'] ?? ''), (string) ($b['next_at'] ?? '')));
+                            $upcomingClasses = array_slice($upcoming, 0, 3);
+                        }
+
+                        // Build accurate trend metrics from real data for the last 5 weeks.
+                        $weekStarts = [];
+                        $baseWeek = now()->startOfWeek();
+                        for ($i = 4; $i >= 0; $i--) {
+                            $weekStarts[] = $baseWeek->copy()->subWeeks($i);
+                        }
+
+                        $completionSeries = [];
+                        $engagementSeries = [];
+                        $avgScoreSeries = [];
+
+                        $submissionDateCol = Schema::hasColumn('submissions', 'submitted_at')
+                            ? 'submitted_at'
+                            : (Schema::hasColumn('submissions', 'created_at') ? 'created_at' : null);
+
+                        $enrollmentDateCol = Schema::hasColumn('enrollments', 'enrolled_at')
+                            ? 'enrolled_at'
+                            : (Schema::hasColumn('enrollments', 'created_at') ? 'created_at' : null);
+
+                        $enrolledTotal = max(0, (int) $studentsInMyCourses);
+
+                        foreach ($weekStarts as $start) {
+                            $end = $start->copy()->endOfWeek();
+
+                            $submittedStudentIds = [];
+                            $newEnrollmentStudentIds = [];
+                            $avgScorePct = 0.0;
+
+                            if (
+                                $submissionDateCol
+                                && Schema::hasTable('submissions')
+                                && Schema::hasTable('assignments')
+                                && Schema::hasColumn('submissions', 'assignment_id')
+                                && Schema::hasColumn('submissions', 'student_id')
+                                && Schema::hasColumn('assignments', 'id')
+                                && Schema::hasColumn('assignments', 'course_id')
+                            ) {
+                                $submittedStudentIds = DB::table('submissions')
+                                    ->join('assignments', 'assignments.id', '=', 'submissions.assignment_id')
+                                    ->whereIn('assignments.course_id', $courseIds)
+                                    ->whereBetween('submissions.' . $submissionDateCol, [$start, $end])
+                                    ->distinct()
+                                    ->pluck('submissions.student_id')
+                                    ->map(fn ($v) => (int) $v)
+                                    ->all();
+
+                                if (Schema::hasColumn('submissions', 'score') && Schema::hasColumn('assignments', 'max_score')) {
+                                    $avgRow = DB::table('submissions')
+                                        ->join('assignments', 'assignments.id', '=', 'submissions.assignment_id')
+                                        ->whereIn('assignments.course_id', $courseIds)
+                                        ->whereBetween('submissions.' . $submissionDateCol, [$start, $end])
+                                        ->whereNotNull('submissions.score')
+                                        ->where('assignments.max_score', '>', 0)
+                                        ->selectRaw('AVG((submissions.score / assignments.max_score) * 100) as avg_pct')
+                                        ->first();
+
+                                    $avgScorePct = (float) (($avgRow->avg_pct ?? 0) ?: 0);
+                                }
+                            }
+
+                            if (
+                                $enrollmentDateCol
+                                && Schema::hasTable('enrollments')
+                                && Schema::hasColumn('enrollments', 'course_id')
+                                && Schema::hasColumn('enrollments', 'student_id')
+                            ) {
+                                $newEnrollmentStudentIds = DB::table('enrollments')
+                                    ->whereIn('course_id', $courseIds)
+                                    ->whereBetween($enrollmentDateCol, [$start, $end])
+                                    ->distinct()
+                                    ->pluck('student_id')
+                                    ->map(fn ($v) => (int) $v)
+                                    ->all();
+                            }
+
+                            $submittedCount = count(array_unique($submittedStudentIds));
+                            $activeStudentCount = count(array_unique(array_merge($submittedStudentIds, $newEnrollmentStudentIds)));
+
+                            $completionPct = $enrolledTotal > 0 ? (int) round(($submittedCount / $enrolledTotal) * 100) : 0;
+                            $engagementPct = $enrolledTotal > 0 ? (int) round(($activeStudentCount / $enrolledTotal) * 100) : 0;
+
+                            $completionSeries[] = max(0, min(100, $completionPct));
+                            $engagementSeries[] = max(0, min(100, $engagementPct));
+                            $avgScoreSeries[] = max(0, min(100, (int) round($avgScorePct)));
+                        }
+
+                        $performanceTrends = [
+                            'labels' => ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+                            'completion' => $completionSeries,
+                            'engagement' => $engagementSeries,
+                            'avg_score' => $avgScoreSeries,
+                        ];
+
+                        $avgEngagement = !empty($engagementSeries)
+                            ? (int) round(array_sum($engagementSeries) / count($engagementSeries))
+                            : 0;
                     }
                 }
             }
@@ -208,6 +491,10 @@ class TeacherDashboardController extends Controller
             'recentEnrollments' => $recentEnrollments,
             'recentSubmissions' => $recentSubmissions,
             'recentAnnouncements' => $recentAnnouncements,
+            'courseStats' => $courseStats,
+            'upcomingClasses' => $upcomingClasses,
+            'avgEngagement' => $avgEngagement,
+            'performanceTrends' => $performanceTrends,
         ]);
     }
 

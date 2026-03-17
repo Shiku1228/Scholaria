@@ -19,6 +19,7 @@ class AdminUserController extends Controller
     {
         $role = (string) $request->query('role', 'all');
         $status = (string) $request->query('status', 'active');
+        $search = trim((string) $request->query('q', ''));
 
         $query = User::query();
 
@@ -32,9 +33,17 @@ class AdminUserController extends Controller
             $query->role($role);
         }
 
+        if ($search !== '') {
+            $query->where(function ($inner) use ($search) {
+                $inner
+                    ->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%');
+            });
+        }
+
         $users = $query
             ->orderBy('id', 'desc')
-            ->paginate(15)
+            ->paginate(7)
             ->withQueryString();
 
         return view('admin.users.index', [
@@ -42,6 +51,7 @@ class AdminUserController extends Controller
             'filters' => [
                 'role' => $role,
                 'status' => $status,
+                'q' => $search,
             ],
         ]);
     }

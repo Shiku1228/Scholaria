@@ -33,9 +33,20 @@
     display: none;
 }
 
-
-
 .auth-circle {
     filter: blur(0px);
     opacity: 0.95;
+}
+
+/* Ensure login form is always visible */
+@media (min-width: 1024px) {
+    .grid.lg\\:grid-cols-2 > .order-1.lg\\:order-2 {
+        display: block !important;
+    }
+}
+
+@media (max-width: 1023px) {
+    .grid.grid-cols-1 > .order-1 {
+        display: block !important;
+    }
 }

@@ -21,6 +21,8 @@ class Course extends Model
         'start_time',
         'end_time',
         'teacher_id',
+        'cover_image',
+        'overview',
     ];
 
     protected $casts = [
@@ -46,6 +48,16 @@ class Course extends Model
     public function announcements(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Announcement::class, 'course_id');
+    }
+
+    public function resources(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CourseResource::class, 'course_id');
+    }
+
+    public function discussions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CourseDiscussion::class, 'course_id');
     }
 
     public function setCourseNumberAttribute($value): void

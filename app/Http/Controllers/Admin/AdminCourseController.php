@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class AdminCourseController extends Controller
@@ -44,7 +45,7 @@ class AdminCourseController extends Controller
 
     public function create(): View
     {
-        $teachers = User::role('Teacher')->orderBy('name')->get();
+        $teachers = $this->getTeacherOptions();
 
         return view('admin.courses.create', [
             'teachers' => $teachers,
@@ -74,7 +75,7 @@ class AdminCourseController extends Controller
 
     public function edit(Course $course): View
     {
-        $teachers = User::role('Teacher')->orderBy('name')->get();
+        $teachers = $this->getTeacherOptions();
 
         return view('admin.courses.edit', [
             'course' => $course,
@@ -125,5 +126,21 @@ class AdminCourseController extends Controller
         }
 
         return response()->json(['exists' => $query->exists()]);
+    }
+
+    private function getTeacherOptions()
+    {
+        return User::query()
+            ->where(function ($query) {
+                $query->whereHas('roles', function ($roleQuery) {
+                    $roleQuery->where('name', 'Teacher');
+                });
+
+                if (Schema::hasColumn('users', 'role')) {
+                    $query->orWhere('role', 'teacher');
+                }
+            })
+            ->orderBy('name')
+            ->get();
     }
 }

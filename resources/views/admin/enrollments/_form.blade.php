@@ -1,4 +1,4 @@
-@php
+﻿@php
     $editing = isset($enrollment) && $enrollment;
 
     $selectedCourseId = (string) old('course_id', $editing ? $enrollment->course_id : '');
@@ -13,7 +13,7 @@
 
 <div>
     <label class="block text-sm font-medium text-gray-700" for="student_id">Student</label>
-    <select id="student_id" name="student_id" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+    <select id="student_id" name="student_id" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
         <option value="">Select student</option>
         @foreach ($students as $student)
             <option value="{{ $student->id }}" {{ $selectedStudentId === (string) $student->id ? 'selected' : '' }}>{{ $student->name }}</option>
@@ -24,7 +24,7 @@
 
 <div>
     <label class="block text-sm font-medium text-gray-700" for="course_id">Course</label>
-    <select id="course_id" name="course_id" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+    <select id="course_id" name="course_id" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
         <option value="">Select course</option>
         @foreach ($courses as $course)
             @php
@@ -47,14 +47,14 @@
 <div>
     <div class="block text-sm font-medium text-gray-700">Teacher</div>
     <div id="teacherDisplay" class="mt-2 h-11 rounded-xl border border-gray-200 bg-gray-50 px-4 flex items-center text-sm text-gray-700">
-        —
+        â€”
     </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
     <div>
         <label class="block text-sm font-medium text-gray-700" for="status">Status</label>
-        <select id="status" name="status" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+        <select id="status" name="status" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
             <option value="active" {{ $selectedStatus === 'active' ? 'selected' : '' }}>Active</option>
             <option value="completed" {{ $selectedStatus === 'completed' ? 'selected' : '' }}>Completed</option>
             <option value="dropped" {{ $selectedStatus === 'dropped' ? 'selected' : '' }}>Dropped</option>
@@ -64,7 +64,7 @@
 
     <div>
         <label class="block text-sm font-medium text-gray-700" for="enrolled_at">Enrollment Date</label>
-        <input id="enrolled_at" name="enrolled_at" type="date" value="{{ $enrolledAtValue }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500">
+        <input id="enrolled_at" name="enrolled_at" type="date" value="{{ $enrolledAtValue }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
         @error('enrolled_at')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
     </div>
 </div>
@@ -79,10 +79,11 @@
             const name = opt?.dataset?.teacherName || '';
 
             if (!teacherDisplay) return;
-            teacherDisplay.textContent = name ? name : '—';
+            teacherDisplay.textContent = name ? name : 'â€”';
         }
 
         courseSelect?.addEventListener('change', updateTeacher);
         updateTeacher();
     })();
 </script>
+

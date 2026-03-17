@@ -1,4 +1,4 @@
-@php
+﻿@php
     $editing = isset($course) && $course;
     $courseDays = [];
 
@@ -11,27 +11,27 @@
 
 <div>
     <label class="block text-sm font-medium text-gray-700" for="course_number">Course Number</label>
-    <input id="course_number" name="course_number" type="text" value="{{ old('course_number', $course->course_number ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+    <input id="course_number" name="course_number" type="text" value="{{ old('course_number', $course->course_number ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
     <div id="courseNumberLiveMessage" class="mt-2 text-sm hidden"></div>
     @error('course_number')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
 </div>
 
 <div>
     <label class="block text-sm font-medium text-gray-700" for="course_title">Course Title</label>
-    <input id="course_title" name="course_title" type="text" value="{{ old('course_title', $course->title ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+    <input id="course_title" name="course_title" type="text" value="{{ old('course_title', $course->title ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
     @error('course_title')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
 </div>
 
 <div>
     <label class="block text-sm font-medium text-gray-700" for="course_description">Course Description</label>
-    <textarea id="course_description" name="course_description" rows="4" class="mt-2 block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-violet-500 focus:ring-violet-500">{{ old('course_description', $course->description ?? '') }}</textarea>
+    <textarea id="course_description" name="course_description" rows="4" class="mt-2 block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">{{ old('course_description', $course->description ?? '') }}</textarea>
     @error('course_description')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
     <div>
         <label class="block text-sm font-medium text-gray-700" for="semester">Semester</label>
-        <select id="semester" name="semester" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
+        <select id="semester" name="semester" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
             @php
                 $semesterValue = old('semester', $course->semester ?? '');
             @endphp
@@ -45,7 +45,7 @@
 
     <div>
         <label class="block text-sm font-medium text-gray-700" for="school_year">School Year</label>
-        <input id="school_year" name="school_year" type="text" value="{{ old('school_year', $course->school_year ?? '') }}" placeholder="e.g. 2025-2026" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500">
+        <input id="school_year" name="school_year" type="text" value="{{ old('school_year', $course->school_year ?? '') }}" placeholder="e.g. 2025-2026" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
         @error('school_year')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
     </div>
 </div>
@@ -53,13 +53,13 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
     <div>
         <label class="block text-sm font-medium text-gray-700" for="start_date">Start Date</label>
-        <input id="start_date" name="start_date" type="date" value="{{ old('start_date', optional($course->start_date ?? null)?->format('Y-m-d')) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500">
+        <input id="start_date" name="start_date" type="date" value="{{ old('start_date', optional($course->start_date ?? null)?->format('Y-m-d')) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
         @error('start_date')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
     </div>
 
     <div>
         <label class="block text-sm font-medium text-gray-700" for="end_date">End Date</label>
-        <input id="end_date" name="end_date" type="date" value="{{ old('end_date', optional($course->end_date ?? null)?->format('Y-m-d')) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500">
+        <input id="end_date" name="end_date" type="date" value="{{ old('end_date', optional($course->end_date ?? null)?->format('Y-m-d')) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
         @error('end_date')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
     </div>
 </div>
@@ -67,13 +67,13 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
     <div>
         <label class="block text-sm font-medium text-gray-700" for="class_time_start">Class Time Start</label>
-        <input id="class_time_start" name="class_time_start" type="time" value="{{ old('class_time_start', $course->start_time ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500">
+        <input id="class_time_start" name="class_time_start" type="time" value="{{ old('class_time_start', $course->start_time ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
         @error('class_time_start')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
     </div>
 
     <div>
         <label class="block text-sm font-medium text-gray-700" for="class_time_end">Class Time End</label>
-        <input id="class_time_end" name="class_time_end" type="time" value="{{ old('class_time_end', $course->end_time ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500">
+        <input id="class_time_end" name="class_time_end" type="time" value="{{ old('class_time_end', $course->end_time ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
         @error('class_time_end')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
     </div>
 </div>
@@ -91,7 +91,7 @@
             'Sun' => 'Sun',
         ] as $dayValue => $dayLabel)
             <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" name="class_days[]" value="{{ $dayValue }}" class="rounded border-gray-300 text-violet-600 focus:ring-violet-500" {{ in_array($dayValue, (array) $selectedDays, true) ? 'checked' : '' }}>
+                <input type="checkbox" name="class_days[]" value="{{ $dayValue }}" class="rounded border-gray-300 text-[#0b2d6b] focus:ring-[#0b2d6b]" {{ in_array($dayValue, (array) $selectedDays, true) ? 'checked' : '' }}>
                 <span>{{ $dayLabel }}</span>
             </label>
         @endforeach
@@ -101,10 +101,12 @@
 
 <div>
     <label class="block text-sm font-medium text-gray-700" for="teacher_id">Assigned Teacher</label>
-    <select id="teacher_id" name="teacher_id" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-violet-500 focus:ring-violet-500" required>
-        <option value="">Select teacher</option>
+    <select id="teacher_id" name="teacher_id" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
+        <option value="">{{ $teachers->isEmpty() ? 'No teachers available' : 'Select teacher' }}</option>
         @foreach ($teachers as $teacher)
-            <option value="{{ $teacher->id }}" {{ (string) old('teacher_id', $course->teacher_id ?? '') === (string) $teacher->id ? 'selected' : '' }}>{{ $teacher->name }}</option>
+            <option value="{{ $teacher->id }}" {{ (string) old('teacher_id', $course->teacher_id ?? '') === (string) $teacher->id ? 'selected' : '' }}>
+                {{ $teacher->name }}{{ !empty($teacher->email) ? ' (' . $teacher->email . ')' : '' }}
+            </option>
         @endforeach
     </select>
     @error('teacher_id')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
@@ -183,3 +185,4 @@
         });
     })();
 </script>
+

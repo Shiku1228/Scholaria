@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\Course;
 use App\Models\Submission;
+use App\Models\User;
+use App\Notifications\CourseEventNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -89,6 +92,22 @@ class TeacherAssignmentController extends Controller
             'due_date' => $validated['due_date'] ?? null,
             'max_score' => (int) ($validated['max_score'] ?? 100),
         ]);
+
+        $studentIdsQuery = DB::table('enrollments')->where('course_id', (int) $course->id);
+        if (Schema::hasColumn('enrollments', 'status')) {
+            $studentIdsQuery->whereRaw('LOWER(status) = ?', ['active']);
+        }
+        $studentIds = $studentIdsQuery->pluck('student_id')->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
+        if (!empty($studentIds)) {
+            $students = User::query()->whereIn('id', $studentIds)->get();
+            foreach ($students as $student) {
+                $student->notify(new CourseEventNotification(
+                    'New Assignment Posted',
+                    'New assignment "' . (string) $assignment->title . '" was posted in ' . ((string) ($course->title ?: $course->course_number ?: 'your course')) . '.',
+                    route('student.assignments.index', ['course_id' => (int) $course->id])
+                ));
+            }
+        }
 
         return redirect()->route('teacher.assignments.show', [$course, $assignment])->with('success', 'Assignment created.');
     }

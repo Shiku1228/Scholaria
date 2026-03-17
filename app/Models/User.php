@@ -47,4 +47,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function courseDiscussions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CourseDiscussion::class, 'user_id');
+    }
+
+    public function uploadedCourseResources(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CourseResource::class, 'uploaded_by');
+    }
 }

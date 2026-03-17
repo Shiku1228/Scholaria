@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -168,7 +168,7 @@
     <div class="slms-main flex-1 flex flex-col min-w-0">
         <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6">
             <div class="flex items-center gap-3">
-                <button id="sidebarToggle" type="button" class="min-[992px]:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <button id="sidebarToggle" type="button" class="min-[992px]:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0b2d6b]">
                     <span class="sr-only">Open sidebar</span>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6 text-gray-700">
                         <path fill-rule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75Zm0 5.25c0-.414.336-.75.75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25c0-.414.336-.75.75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
@@ -177,10 +177,51 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button type="button" class="h-10 w-10 rounded-full bg-white text-gray-600 border border-gray-200 flex items-center justify-center hover:bg-gray-50" aria-label="Notifications">
-                    <i data-lucide="bell" style="width:18px;height:18px;"></i>
-                </button>
-                <div class="h-10 w-10 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center border border-violet-200">
+                @php
+                    $isStudent = auth()->check() && method_exists(auth()->user(), 'hasRole') && auth()->user()->hasRole('Student');
+                    $isTeacher = auth()->check() && method_exists(auth()->user(), 'hasRole') && auth()->user()->hasRole('Teacher');
+                    $markAllRoute = $isStudent ? 'student.notifications.read-all' : ($isTeacher ? 'teacher.notifications.read-all' : null);
+                    $openRoute = $isStudent ? 'student.notifications.open' : ($isTeacher ? 'teacher.notifications.open' : null);
+                @endphp
+                <div class="relative">
+                    <button id="sharedNotificationToggle" type="button" class="h-10 w-10 rounded-full bg-white text-gray-600 border border-gray-200 flex items-center justify-center hover:bg-gray-50 relative" aria-label="Notifications">
+                        <i data-lucide="bell" style="width:18px;height:18px;"></i>
+                        @if (($headerUnreadNotificationCount ?? 0) > 0)
+                            <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">{{ min(99, (int) $headerUnreadNotificationCount) }}</span>
+                        @endif
+                    </button>
+                    <div id="sharedNotificationPanel" class="hidden absolute right-0 mt-2 w-96 max-w-[92vw] rounded-xl border border-gray-200 bg-white shadow-xl z-50">
+                        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                            <div class="text-sm font-semibold text-gray-900">Notifications</div>
+                            @if ($markAllRoute && \Illuminate\Support\Facades\Route::has($markAllRoute))
+                                <form method="POST" action="{{ route($markAllRoute) }}">
+                                    @csrf
+                                    <button type="submit" class="text-xs font-semibold text-[#0b2d6b] hover:text-[#0a275c]">Mark all read</button>
+                                </form>
+                            @endif
+                        </div>
+                        <div class="max-h-96 overflow-y-auto">
+                            @forelse (($headerNotifications ?? collect()) as $notification)
+                                @php $data = (array) $notification->data; @endphp
+                                @if ($openRoute && \Illuminate\Support\Facades\Route::has($openRoute))
+                                    <a href="{{ route($openRoute, ['notification' => $notification->id]) }}" class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50">
+                                        <div class="text-sm font-semibold text-gray-900">{{ (string) ($data['title'] ?? 'Notification') }}</div>
+                                        <div class="text-xs text-gray-600 mt-1">{{ (string) ($data['message'] ?? '') }}</div>
+                                        <div class="text-[11px] text-gray-400 mt-1">{{ $notification->created_at?->diffForHumans() ?? '' }}</div>
+                                    </a>
+                                @else
+                                    <div class="px-4 py-3 border-b border-gray-100">
+                                        <div class="text-sm font-semibold text-gray-900">{{ (string) ($data['title'] ?? 'Notification') }}</div>
+                                        <div class="text-xs text-gray-600 mt-1">{{ (string) ($data['message'] ?? '') }}</div>
+                                    </div>
+                                @endif
+                            @empty
+                                <div class="px-4 py-6 text-sm text-gray-500 text-center">No notifications yet.</div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+                <div class="h-10 w-10 rounded-full bg-[#eaf0fb] text-[#0b2d6b] flex items-center justify-center border border-[#c9d7f2]">
                     <i data-lucide="user" style="width:18px;height:18px;"></i>
                 </div>
                 <div class="hidden sm:block leading-tight">
@@ -201,9 +242,24 @@
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
             window.lucide.createIcons();
         }
+
+        const toggle = document.getElementById('sharedNotificationToggle');
+        const panel = document.getElementById('sharedNotificationPanel');
+        if (toggle && panel) {
+            toggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                panel.classList.toggle('hidden');
+            });
+            document.addEventListener('click', function (e) {
+                if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+                    panel.classList.add('hidden');
+                }
+            });
+        }
     });
 </script>
 
 <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>
+

@@ -1,4 +1,4 @@
-@extends('layouts.teacher')
+﻿@extends('layouts.teacher')
 
 @section('content')
     <div class="flex items-start justify-between gap-4">
@@ -8,7 +8,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('teacher.courses.show', $course) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">Back</a>
-            <a href="{{ route('teacher.announcements.create', $course) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">Create</a>
+            <a href="{{ route('teacher.announcements.create', $course) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">Create</a>
         </div>
     </div>
 
@@ -24,8 +24,8 @@
             <tbody class="divide-y divide-gray-100">
             @forelse ($announcements as $n)
                 <tr class="text-gray-700">
-                    <td class="py-3 px-4 font-medium text-gray-900">{{ $n->title ?? '—' }}</td>
-                    <td class="py-3 px-4 text-gray-500">{{ $n->created_at ?? '—' }}</td>
+                    <td class="py-3 px-4 font-medium text-gray-900">{{ $n->title ?? 'â€”' }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ $n->created_at ?? 'â€”' }}</td>
                     <td class="py-3 px-4 text-right">
                         <div class="flex items-center justify-end gap-3">
                             <a href="{{ route('teacher.announcements.show', [$course, $n]) }}" class="text-sm font-semibold text-[#0a3a8a] hover:underline">View</a>
@@ -51,3 +51,4 @@
         <div class="mt-6">{{ $announcements->links() }}</div>
     @endif
 @endsection
+

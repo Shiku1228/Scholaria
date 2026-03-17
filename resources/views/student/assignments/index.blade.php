@@ -1,4 +1,4 @@
-@extends('layouts.student')
+﻿@extends('layouts.student')
 
 @section('content')
     <div class="space-y-6">
@@ -43,7 +43,7 @@
                                         @if ($submissionId > 0)
                                             <span class="inline-flex items-center h-8 px-3 rounded-lg bg-green-50 text-green-700 text-xs font-semibold">Submitted</span>
                                         @else
-                                            <a href="{{ $assignmentId > 0 ? route('student.assignments.submit', $assignmentId) : '#' }}" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700">Submit</a>
+                                            <a href="{{ $assignmentId > 0 ? route('student.assignments.submit', $assignmentId) : '#' }}" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-[#0b2d6b] text-white text-xs font-semibold hover:bg-[#0a275c]">Submit</a>
                                         @endif
                                     </td>
                                 </tr>
@@ -56,3 +56,4 @@
         </div>
     </div>
 @endsection
+

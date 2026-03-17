@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -89,7 +89,7 @@
                   min-[992px]:translate-x-0 min-[992px]:static min-[992px]:inset-auto min-[992px]:z-auto">
         <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200">
             <div class="flex items-center gap-2">
-                <div class="h-9 w-9 rounded-xl bg-violet-600"></div>
+                <div class="h-9 w-9 rounded-xl bg-[#0b2d6b]"></div>
                 <div class="font-semibold">SCHOLORIA</div>
             </div>
             <button id="sidebarToggleInner" type="button" class="min-[992px]:hidden p-2 rounded-md hover:bg-gray-100">
@@ -120,8 +120,8 @@
                         $isActive = isset($item['route']) ? request()->routeIs($item['route']) : false;
                     @endphp
                     <a href="{{ $item['href'] }}"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {{ $isActive ? 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200' : 'text-gray-700 hover:bg-gray-50' }}">
-                        <span class="h-8 w-8 rounded-lg {{ $isActive ? 'bg-violet-600' : 'bg-gray-200' }}"></span>
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {{ $isActive ? 'bg-[#eaf0fb] text-[#0b2d6b] ring-1 ring-inset ring-[#c9d7f2]' : 'text-gray-700 hover:bg-gray-50' }}">
+                        <span class="h-8 w-8 rounded-lg {{ $isActive ? 'bg-[#0b2d6b]' : 'bg-gray-200' }}"></span>
                         <span>{{ $item['label'] }}</span>
                     </a>
                 @endforeach
@@ -139,7 +139,7 @@
     <div class="flex-1 flex flex-col min-w-0 w-full lg:ml-0">
         <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6">
             <div class="flex items-center gap-3">
-                <button id="sidebarToggle" type="button" class="min-[992px]:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <button id="sidebarToggle" type="button" class="min-[992px]:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0b2d6b]">
                     <span class="sr-only">Open sidebar</span>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6 text-gray-700">
                         <path fill-rule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75Zm0 5.25c0-.414.336-.75.75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25c0-.414.336-.75.75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
@@ -156,7 +156,7 @@
                         <path d="M5.25 9.75a6.75 6.75 0 0 1 13.5 0v5.126c0 .317.12.621.336.852l1.407 1.507a.75.75 0 0 1-.547 1.265H4.054a.75.75 0 0 1-.547-1.265l1.407-1.507a1.25 1.25 0 0 0 .336-.852V9.75Z" />
                         <path d="M9.75 19.5a2.25 2.25 0 0 0 4.5 0h-4.5Z" />
                     </svg>
-                    <span class="absolute top-2 right-2 h-2 w-2 rounded-full bg-violet-600"></span>
+                    <span class="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#0b2d6b]"></span>
                 </button>
 
                 <button type="button" class="inline-flex items-center gap-2 h-10 px-3 rounded-lg hover:bg-gray-50">
@@ -186,3 +186,4 @@
 <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>
+

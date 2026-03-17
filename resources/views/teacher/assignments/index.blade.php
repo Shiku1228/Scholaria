@@ -1,4 +1,4 @@
-@extends('layouts.teacher')
+﻿@extends('layouts.teacher')
 
 @section('content')
     <div class="flex items-start justify-between gap-4">
@@ -8,7 +8,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('teacher.courses.show', $course) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">Back</a>
-            <a href="{{ route('teacher.assignments.create', $course) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">Create</a>
+            <a href="{{ route('teacher.assignments.create', $course) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">Create</a>
         </div>
     </div>
 
@@ -26,9 +26,9 @@
             <tbody class="divide-y divide-gray-100">
             @forelse ($assignments as $a)
                 <tr class="text-gray-700">
-                    <td class="py-3 px-4 font-medium text-gray-900">{{ $a->title ?? '—' }}</td>
-                    <td class="py-3 px-4 text-gray-500">{{ $a->due_date ?? '—' }}</td>
-                    <td class="py-3 px-4 text-gray-500">{{ $a->max_score ?? '—' }}</td>
+                    <td class="py-3 px-4 font-medium text-gray-900">{{ $a->title ?? 'â€”' }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ $a->due_date ?? 'â€”' }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ $a->max_score ?? 'â€”' }}</td>
                     <td class="py-3 px-4 text-gray-500">{{ $a->submissions_count ?? 0 }}</td>
                     <td class="py-3 px-4 text-right">
                         <div class="flex items-center justify-end gap-3">
@@ -55,3 +55,4 @@
         <div class="mt-6">{{ $assignments->links() }}</div>
     @endif
 @endsection
+
