@@ -15,14 +15,19 @@ class TeacherStudentController extends Controller
         $teacherId = (int) $request->user()->id;
 
         $rows = collect();
+        $courses = collect();
+        $filters = [
+            'course_id' => $request->query('course_id'),
+            'student' => $request->query('student'),
+        ];
 
         try {
             if (!Schema::hasTable('courses') || !Schema::hasTable('enrollments') || !Schema::hasTable('users')) {
-                return view('teacher.students.index', ['rows' => $rows]);
+                return view('teacher.students.index', ['rows' => $rows, 'courses' => $courses, 'filters' => $filters]);
             }
 
             if (!Schema::hasColumn('courses', 'teacher_id') || !Schema::hasColumn('enrollments', 'course_id') || !Schema::hasColumn('enrollments', 'student_id')) {
-                return view('teacher.students.index', ['rows' => $rows]);
+                return view('teacher.students.index', ['rows' => $rows, 'courses' => $courses, 'filters' => $filters]);
             }
 
             $courseNameCol = null;
@@ -34,8 +39,14 @@ class TeacherStudentController extends Controller
             }
 
             if ($courseNameCol === null || !Schema::hasColumn('users', 'name')) {
-                return view('teacher.students.index', ['rows' => $rows]);
+                return view('teacher.students.index', ['rows' => $rows, 'courses' => $courses, 'filters' => $filters]);
             }
+
+            $courses = DB::table('courses')
+                ->where('teacher_id', $teacherId)
+                ->select(['id', $courseNameCol . ' as name'])
+                ->orderBy($courseNameCol)
+                ->get();
 
             $select = [
                 'users.name as student_name',
@@ -56,16 +67,28 @@ class TeacherStudentController extends Controller
                 ->join('courses', 'courses.id', '=', 'enrollments.course_id')
                 ->join('users', 'users.id', '=', 'enrollments.student_id')
                 ->where('courses.teacher_id', $teacherId)
+                ->when($filters['course_id'], function ($q) use ($filters) {
+                    $q->where('courses.id', (int) $filters['course_id']);
+                })
+                ->when($filters['student'], function ($q) use ($filters) {
+                    $term = trim((string) $filters['student']);
+                    if ($term !== '') {
+                        $q->where('users.name', 'like', '%' . $term . '%');
+                    }
+                })
                 ->select($select)
                 ->orderBy('users.name')
                 ->limit(500)
                 ->get();
         } catch (\Throwable) {
             $rows = collect();
+            $courses = collect();
         }
 
         return view('teacher.students.index', [
             'rows' => $rows,
+            'courses' => $courses,
+            'filters' => $filters,
         ]);
     }
 }
