@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Dashboard Colors (Dark) -->
+    <color name="dash_bg">#121212</color>
+    <color name="dash_text_primary">#FFFFFF</color>
+    <color name="dash_icon_tint">#FFFFFF</color>
+    <color name="dash_nav_unselected">#FFFFFF</color>
+    <color name="dash_nav_selected">#00D1A0</color>
+    <color name="dash_nav_selected_bg">#26FFFFFF</color>
+    <color name="dash_card_assignment_bg">#1E1E1E</color>
+    <color name="dash_card_event_bg">#252525</color>
+    <color name="dash_badge_bg">#00D1A0</color>
+    <color name="dash_badge_text">#000000</color>
+
     <!-- Semantic Colors (Dark mode) -->
     <color name="login_bg">#000000</color>
     <color name="login_title">@color/white</color>
-    <color name="login_button_bg">@color/dark_teal</color>
+    <color name="login_button_bg">@color/dash_teal</color>
     <color name="login_button_text">@color/black</color>
-    <color name="login_link_text">@color/dark_teal</color>
-    <color name="login_register_text">@color/dark_teal</color>
+    <color name="login_link_text">@color/dash_teal</color>
+    <color name="login_register_text">@color/dash_teal</color>
     <color name="login_divider">#333333</color>
     <color name="login_input_border">#333333</color>
-    <color name="login_input_border_focused">@color/dark_teal</color>
+    <color name="login_input_border_focused">@color/dash_teal</color>
     <color name="login_input_hint">@color/gray_text</color>
     <color name="login_input_text">@color/white</color>
 </resources>

@@ -13,7 +13,7 @@
         android:theme="@style/Theme.Scholaria">
 
         <activity
-            android:name=".AuthActivity"
+            android:name=".activities.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,7 +22,7 @@
         </activity>
 
         <activity
-            android:name=".MainActivity"
+            android:name=".activities.AuthActivity"
             android:exported="false" />
 
     </application>
