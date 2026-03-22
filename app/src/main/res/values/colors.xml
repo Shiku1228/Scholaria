@@ -26,6 +26,11 @@
     <color name="dash_badge_bg">#1A2F4B</color>
     <color name="dash_badge_text">#FFFFFF</color>
 
+    <!-- Dashboard Status Cards (Theme-Aware) -->
+    <color name="status_card_bg">@color/primary_dark</color>
+    <color name="status_card_text_primary">@color/white</color>
+    <color name="status_card_text_secondary">#B0C4DE</color>
+
     <!-- Fixed Colors for Light-Style Cards (Stay same in Dark Mode) -->
     <color name="fixed_card_bg_blue">#F0F4FF</color>
     <color name="fixed_card_bg_mint">#C7F9E1</color>
