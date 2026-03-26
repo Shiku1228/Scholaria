@@ -1,5 +1,6 @@
 package com.example.scholaria.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -32,9 +33,17 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        setupNavigation();
         setupSubjects();
         setupAssignments();
         setupEvents();
+    }
+
+    private void setupNavigation() {
+        findViewById(R.id.navCourses).setOnClickListener(v -> {
+            Intent intent = new Intent(this, MyCoursesActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void setupSubjects() {

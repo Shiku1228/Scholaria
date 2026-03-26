@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Selected Background (Rounded Rect) -->
-    <item android:top="8dp" android:bottom="12dp" android:left="6dp" android:right="6dp">
+    <!-- Glow / Background Highlight -->
+    <item android:top="4dp" android:bottom="6dp" android:left="4dp" android:right="4dp">
         <shape android:shape="rectangle">
-            <corners android:radius="10dp" />
-            <solid android:color="@color/dash_nav_selected_bg" />
+            <solid android:color="#1A00D1A0" />
+            <corners android:radius="12dp" />
         </shape>
     </item>
-    <!-- Selected Indicator (Green bar) -->
-    <item android:gravity="bottom" android:height="3dp" android:left="10dp" android:right="10dp" android:bottom="2dp">
+
+    <!-- Sharp Green Underline -->
+    <item android:gravity="bottom" android:height="4dp">
         <shape android:shape="rectangle">
-            <solid android:color="@color/dash_nav_selected" />
+            <solid android:color="@color/dash_teal" />
         </shape>
     </item>
 </layer-list>

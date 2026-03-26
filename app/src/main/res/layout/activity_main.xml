@@ -70,27 +70,35 @@
         app:layout_constraintTop_toBottomOf="@id/topBar">
 
         <ImageView
+            android:id="@+id/navHome"
             style="@style/SubNavIcon"
             android:src="@drawable/ic_nav_dashboard"
-            android:background="@drawable/sub_nav_selected_bg" />
+            android:background="@drawable/sub_nav_selected_bg"
+            android:tint="@color/dash_nav_selected"
+            tools:ignore="UseAppTint" />
 
         <ImageView
+            android:id="@+id/navCourses"
+            style="@style/SubNavIcon"
+            android:src="@drawable/ic_nav_courses" />
+
+        <ImageView
+            android:id="@+id/navTasks"
             style="@style/SubNavIcon"
             android:src="@drawable/ic_nav_tasks" />
 
         <ImageView
-            style="@style/SubNavIcon"
-            android:src="@drawable/ic_nav_calendar" />
-
-        <ImageView
+            android:id="@+id/navMessages"
             style="@style/SubNavIcon"
             android:src="@drawable/ic_nav_messages" />
 
         <ImageView
+            android:id="@+id/navNotifications"
             style="@style/SubNavIcon"
             android:src="@drawable/ic_nav_notifications" />
 
         <ImageView
+            android:id="@+id/navProfile"
             style="@style/SubNavIcon"
             android:src="@drawable/ic_nav_profile" />
     </LinearLayout>
@@ -146,7 +154,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0"
+                        android:text="3"
                         android:textColor="@color/status_card_text_secondary"
                         android:textSize="14sp"/>
                 </LinearLayout>
@@ -174,7 +182,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0"
+                        android:text="3"
                         android:textColor="@color/status_card_text_secondary"
                         android:textSize="14sp"/>
                 </LinearLayout>
@@ -221,12 +229,15 @@
                     android:textStyle="bold"
                     android:textSize="16sp"/>
                 <TextView
+                    android:id="@+id/tvSeeAllSubjects"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:text="See all subjects"
                     android:textColor="@color/dash_teal"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp"
+                    android:clickable="true"
+                    android:focusable="true"/>
             </RelativeLayout>
 
             <androidx.recyclerview.widget.RecyclerView

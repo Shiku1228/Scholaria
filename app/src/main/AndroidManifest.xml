@@ -22,6 +22,10 @@
         </activity>
 
         <activity
+            android:name=".activities.MyCoursesActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".activities.AuthActivity"
             android:exported="false" />
 
