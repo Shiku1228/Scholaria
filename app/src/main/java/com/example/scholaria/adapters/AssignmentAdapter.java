@@ -19,27 +19,31 @@ public class AssignmentAdapter extends RecyclerView.Adapter<AssignmentAdapter.Vi
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Updated to use item_assignment_card
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_assignment_card, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position){
         Assignment assignment = assignments.get(position);
-        holder.tvName.setText(assignment.getName());
-        holder.tvDue.setText(assignment.getDueDate());
+        holder.tvAssignmentName.setText(assignment.getSubject()); // Using subject as primary title based on current design
+        holder.tvAssignmentDue.setText(assignment.getDeadline());
     }
 
     @Override
-    public int getItemCount() { return assignments.size(); }
+    public int getItemCount() {
+        return assignments.size();
+    }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName, tvDue;
-        public ViewHolder(@NonNull View itemView) {
+        TextView tvAssignmentName, tvAssignmentDue;
+        public ViewHolder(@NonNull View itemView){
             super(itemView);
-            tvName = itemView.findViewById(R.id.tvAssignmentName);
-            tvDue = itemView.findViewById(R.id.tvAssignmentDue);
+            // Updated to match IDs in item_assignment_card.xml
+            tvAssignmentName = itemView.findViewById(R.id.tvAssignmentName);
+            tvAssignmentDue = itemView.findViewById(R.id.tvAssignmentDue);
         }
     }
 }

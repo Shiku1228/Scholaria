@@ -1,25 +1,24 @@
 package com.example.scholaria.activities;
 
-import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ImageView;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 import com.example.scholaria.R;
-import com.example.scholaria.adapters.AssignmentAdapter;
-import com.example.scholaria.adapters.EventAdapter;
-import com.example.scholaria.adapters.SubjectAdapter;
-import com.example.scholaria.models.Assignment;
-import com.example.scholaria.models.Event;
-import com.example.scholaria.models.Subject;
-import java.util.ArrayList;
-import java.util.List;
+import com.example.scholaria.adapters.MainPagerAdapter;
 
 public class MainActivity extends AppCompatActivity {
+
+    private ViewPager2 viewPager;
+    private View navIndicator;
+    private ImageView[] navIcons;
+    private int activeColor, inactiveColor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,49 +32,74 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        setupNavigation();
-        setupSubjects();
-        setupAssignments();
-        setupEvents();
+        activeColor = ContextCompat.getColor(this, R.color.dash_nav_selected);
+        inactiveColor = ContextCompat.getColor(this, R.color.dash_nav_unselected);
+
+        initViews();
+        setupViewPager();
+        setupNavClicks();
     }
 
-    private void setupNavigation() {
-        findViewById(R.id.navCourses).setOnClickListener(v -> {
-            Intent intent = new Intent(this, MyCoursesActivity.class);
-            startActivity(intent);
+    private void initViews() {
+        viewPager = findViewById(R.id.mainViewPager);
+        navIndicator = findViewById(R.id.navIndicator);
+
+        navIcons = new ImageView[]{
+                findViewById(R.id.navHome),
+                findViewById(R.id.navCourses),
+                findViewById(R.id.navTasks),
+                findViewById(R.id.navMessages),
+                findViewById(R.id.navNotifications),
+                findViewById(R.id.navProfile)
+        };
+    }
+
+    private void setupViewPager() {
+        viewPager.setAdapter(new MainPagerAdapter(this));
+
+        // Disable swiping if you want it strictly button-based,
+        // but swiping makes it feel more "modern" like Facebook.
+        viewPager.setUserInputEnabled(true);
+
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                updateIndicatorPosition(position, positionOffset);
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                updateNavIcons(position);
+            }
         });
     }
 
-    private void setupSubjects() {
-        RecyclerView rv = findViewById(R.id.rvSubjects);
-        List<Subject> list = new ArrayList<>();
-        list.add(new Subject("Application Development", "CC106", "CN 48125"));
-        list.add(new Subject("Web Systems", "WS067", "CN 48126"));
-        list.add(new Subject("Data Structures", "CS201", "CN 48127"));
-
-        rv.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        rv.setAdapter(new SubjectAdapter(list));
+    private void setupNavClicks() {
+        for (int i = 0; i < navIcons.length; i++) {
+            final int index = i;
+            navIcons[i].setOnClickListener(v -> viewPager.setCurrentItem(index));
+        }
     }
 
-    private void setupAssignments() {
-        RecyclerView rv = findViewById(R.id.rvAssignments);
-        List<Assignment> list = new ArrayList<>();
-        list.add(new Assignment("Computer Programming 2", "Due: March 23, 2026 | 11:59 PM"));
-        list.add(new Assignment("Systems Integration", "Due: March 30, 2026 | 11:59 PM"));
-        list.add(new Assignment("Database Management", "Due: April 05, 2026 | 11:59 PM"));
+    private void updateIndicatorPosition(int position, float positionOffset) {
+        int tabWidth = navIcons[0].getWidth();
+        if (tabWidth == 0) return; // Wait for layout
 
-        rv.setLayoutManager(new LinearLayoutManager(this));
-        rv.setAdapter(new AssignmentAdapter(list));
+        // Calculate the translation based on tab width and scroll offset
+        float translationX = (position + positionOffset) * tabWidth;
+
+        navIndicator.getLayoutParams().width = tabWidth;
+        navIndicator.setTranslationX(translationX + navIcons[0].getLeft());
+        navIndicator.requestLayout();
     }
 
-    private void setupEvents() {
-        RecyclerView rv = findViewById(R.id.rvEvents);
-        List<Event> list = new ArrayList<>();
-        list.add(new Event("Midterm Exam", "MAR 05", "08:00 AM - 10:00 AM"));
-        list.add(new Event("Project Demo", "MAR 12", "01:00 PM - 03:00 PM"));
-        list.add(new Event("Tech Seminar", "MAR 20", "09:00 AM - 12:00 PM"));
-
-        rv.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        rv.setAdapter(new EventAdapter(list));
+    private void updateNavIcons(int activeIndex) {
+        for (int i = 0; i < navIcons.length; i++) {
+            navIcons[i].setColorFilter(i == activeIndex ? activeColor : inactiveColor);
+            // Optionally remove background from all and add to active
+            navIcons[i].setBackgroundResource(0);
+        }
+        // If you want the subtle teal background on active tab:
+        // navIcons[activeIndex].setBackgroundResource(R.drawable.sub_nav_selected_bg);
     }
 }

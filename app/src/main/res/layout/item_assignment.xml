@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="12dp"
+    android:gravity="center_vertical">
+
+    <!-- Icon/Status Indicator -->
+    <View
+        android:layout_width="8dp"
+        android:layout_height="40dp"
+        android:background="@color/dash_teal"
+        android:layout_marginEnd="16dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvAssignmentName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Final Project: Mobile App"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvSubjectName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Application Development | CC106"
+            android:textColor="@color/gray_text"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvDeadline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Oct 25"
+        android:textColor="#E53935"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

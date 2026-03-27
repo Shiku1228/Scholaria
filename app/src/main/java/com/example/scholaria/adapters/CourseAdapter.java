@@ -12,29 +12,58 @@ import com.google.android.material.progressindicator.LinearProgressIndicator;
 import java.util.List;
 
 public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder> {
+    public static final int VIEW_TYPE_LARGE = 0;
+    public static final int VIEW_TYPE_SMALL = 1;
+    public static final int VIEW_TYPE_LIST = 2;
+
     private List<Course> courses;
+    private int currentViewType = VIEW_TYPE_LARGE;
 
     public CourseAdapter(List<Course> courses) {
         this.courses = courses;
     }
 
+    public void setViewType(int viewType) {
+        this.currentViewType = viewType;
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return currentViewType;
+    }
+
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_course_card, parent, false);
+        int layoutRes;
+        if (viewType == VIEW_TYPE_SMALL) {
+            layoutRes = R.layout.item_course_small;
+        } else if (viewType == VIEW_TYPE_LIST) {
+            layoutRes = R.layout.item_course_list;
+        } else {
+            layoutRes = R.layout.item_course_card;
+        }
+        View view = LayoutInflater.from(parent.getContext()).inflate(layoutRes, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Course course = courses.get(position);
-        holder.tvTitle.setText(course.getTitle());
-        holder.tvSubtitle.setText(course.getSubtitle());
-        holder.tvSemester.setText(course.getSemester());
-        holder.tvYear.setText(course.getYear());
-        holder.tvProgressPercent.setText(course.getProgress() + "% Completed");
-        holder.tvAssignmentsCount.setText(course.getAssignments());
-        holder.progressIndicator.setProgress(course.getProgress());
+        if (holder.tvTitle != null) holder.tvTitle.setText(course.getTitle());
+        if (holder.tvSubtitle != null) holder.tvSubtitle.setText(course.getSubtitle());
+        if (holder.tvSemester != null) holder.tvSemester.setText(course.getSemester());
+        if (holder.tvYear != null) holder.tvYear.setText(course.getYear());
+        if (holder.tvProgressPercent != null) {
+            if (currentViewType == VIEW_TYPE_LIST) {
+                holder.tvProgressPercent.setText(course.getProgress() + "%");
+            } else {
+                holder.tvProgressPercent.setText(course.getProgress() + "% Completed");
+            }
+        }
+        if (holder.tvAssignmentsCount != null) holder.tvAssignmentsCount.setText(course.getAssignments());
+        if (holder.progressIndicator != null) holder.progressIndicator.setProgress(course.getProgress());
     }
 
     @Override
