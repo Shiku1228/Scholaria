@@ -26,6 +26,13 @@
     <color name="dash_badge_bg">#1A2F4B</color>
     <color name="dash_badge_text">#FFFFFF</color>
 
+    <!-- UI Elements Semantic -->
+    <color name="card_surface">#FFFFFF</color>
+    <color name="search_bg">#F1F3F4</color>
+
+    <!-- Filter Chips -->
+    <color name="filter_chip_selected_bg">@color/primary_dark</color>
+
     <!-- Dashboard Status Cards (Theme-Aware) -->
     <color name="status_card_bg">@color/primary_dark</color>
     <color name="status_card_text_primary">@color/white</color>

@@ -24,7 +24,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Final Project: Mobile App"
-            android:textColor="@color/black"
+            android:textColor="@color/dash_text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -33,7 +33,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Application Development | CC106"
-            android:textColor="@color/gray_text"
+            android:textColor="@color/dash_text_gray"
             android:textSize="12sp" />
     </LinearLayout>
 

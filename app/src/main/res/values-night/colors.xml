@@ -3,9 +3,10 @@
     <!-- Dark Mode Palette -->
     <color name="dash_bg">#121212</color>
 
-    <!-- We should keep white as white and black as black to avoid unreadable text -->
+    <!-- Base Colors -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#000000</color>
+    <color name="primary_dark">#BBDDFF</color> <!-- Light blue accent for Dark Mode -->
 
     <!-- Semantic Text Colors -->
     <color name="dash_text_primary">#FFFFFF</color>
@@ -14,15 +15,21 @@
     <color name="dash_nav_unselected">#FFFFFF</color>
     <color name="dash_teal">#00D1A0</color>
 
-    <!-- Assignment Card Background for Dark Mode -->
-    <color name="dash_card_assignment_bg">#FFFFFF</color>
+    <!-- Card & Surface Colors -->
+    <color name="card_surface">#1E1E1E</color>
+    <color name="dash_card_assignment_bg">#1E1E1E</color>
+    <color name="search_bg">#2C2C2C</color>
+    <color name="divider_color">#333333</color>
 
-    <!-- Dashboard Status Cards (Matching Screenshot: They stay light blue) -->
+    <!-- Filter Chips -->
+    <color name="filter_chip_selected_bg">@color/dash_teal</color>
+
+    <!-- Dashboard Status Cards (Matching Dashboard guide) -->
     <color name="status_card_bg">#BBDDFF</color>
     <color name="status_card_text_primary">#1A2F4B</color>
     <color name="status_card_text_secondary">#757575</color>
 
-    <!-- Fixed Colors for Cards (Matching Screenshot: Top part is now White) -->
+    <!-- Fixed Colors (Used for Subject Cards which stay colorful) -->
     <color name="fixed_card_bg_blue">#FFFFFF</color>
     <color name="fixed_card_bg_mint">#C7F9E1</color>
     <color name="fixed_card_text_primary">#1A2F4B</color>
@@ -32,6 +39,10 @@
 
     <!-- Course Specific -->
     <color name="course_card_header">#7C4DFF</color>
-    <color name="course_progress_bg">#20000000</color>
-    <color name="course_progress_fill">#1A2F4B</color>
+    <color name="course_progress_bg">#20FFFFFF</color>
+    <color name="course_progress_fill">#BBDDFF</color>
+
+    <!-- Profile Specific -->
+    <color name="profile_card_bg">#1E1E1E</color>
+    <color name="profile_stroke">#333333</color>
 </resources>
