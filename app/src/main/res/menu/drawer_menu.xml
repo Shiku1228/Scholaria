@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_files"
+            android:icon="@drawable/ic_nav_files"
+            android:title="Files" />
+        <item
+            android:id="@+id/nav_activities"
+            android:icon="@drawable/ic_nav_activities"
+            android:title="Activities" />
+        <item
+            android:id="@+id/nav_grades"
+            android:icon="@drawable/ic_nav_grades"
+            android:title="Grades" />
+        <item
+            android:id="@+id/nav_calendar"
+            android:icon="@drawable/ic_nav_calendar"
+            android:title="Calendar" />
+    </group>
+
+    <item android:title="Others">
+        <menu>
+            <item
+                android:id="@+id/nav_settings"
+                android:icon="@drawable/ic_nav_settings"
+                android:title="Settings" />
+            <item
+                android:id="@+id/nav_help"
+                android:icon="@drawable/ic_nav_help"
+                android:title="Help" />
+            <item
+                android:id="@+id/nav_logout"
+                android:icon="@android:drawable/ic_lock_power_off"
+                android:title="Logout" />
+        </menu>
+    </item>
+</menu>

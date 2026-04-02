@@ -1,5 +1,6 @@
 package com.example.scholaria.adapters;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,7 +8,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.scholaria.R;
+import com.example.scholaria.activities.CourseDetailsActivity;
 import com.example.scholaria.models.Course;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import java.util.List;
 
@@ -64,6 +67,19 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder
         }
         if (holder.tvAssignmentsCount != null) holder.tvAssignmentsCount.setText(course.getAssignments());
         if (holder.progressIndicator != null) holder.progressIndicator.setProgress(course.getProgress());
+
+        View.OnClickListener openCourseListener = v -> {
+            Intent intent = new Intent(v.getContext(), CourseDetailsActivity.class);
+            intent.putExtra("COURSE_TITLE", course.getTitle());
+            intent.putExtra("COURSE_CODE", course.getSubtitle() + " | " + course.getSemester() + " " + course.getYear());
+            intent.putExtra("COURSE_PROGRESS", course.getProgress());
+            v.getContext().startActivity(intent);
+        };
+
+        holder.itemView.setOnClickListener(openCourseListener);
+        if (holder.btnOpenCourse != null) {
+            holder.btnOpenCourse.setOnClickListener(openCourseListener);
+        }
     }
 
     @Override
@@ -72,6 +88,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvSubtitle, tvSemester, tvYear, tvProgressPercent, tvAssignmentsCount;
         LinearProgressIndicator progressIndicator;
+        MaterialButton btnOpenCourse;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -82,6 +99,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder
             tvProgressPercent = itemView.findViewById(R.id.tvProgressPercent);
             tvAssignmentsCount = itemView.findViewById(R.id.tvAssignmentsCount);
             progressIndicator = itemView.findViewById(R.id.courseProgress);
+            btnOpenCourse = itemView.findViewById(R.id.btnOpenCourse);
         }
     }
 }

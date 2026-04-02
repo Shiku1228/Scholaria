@@ -4,11 +4,13 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 import com.example.scholaria.R;
 import com.example.scholaria.adapters.AssignmentAdapter;
 import com.example.scholaria.adapters.EventAdapter;
@@ -29,8 +31,31 @@ public class DashboardFragment extends Fragment {
         setupSubjects(view);
         setupAssignments(view);
         setupEvents(view);
+        setupNavigation(view);
 
         return view;
+    }
+
+    private void setupNavigation(View v) {
+        TextView tvSeeAllSubjects = v.findViewById(R.id.tvSeeAllSubjects);
+        TextView tvSeeAllAssignments = v.findViewById(R.id.tvSeeAllAssignments);
+        TextView tvViewCalendar = v.findViewById(R.id.tvViewCalendar);
+
+        ViewPager2 viewPager = getActivity().findViewById(R.id.mainViewPager);
+
+        if (viewPager != null) {
+            if (tvSeeAllSubjects != null) {
+                tvSeeAllSubjects.setOnClickListener(view -> viewPager.setCurrentItem(1));
+            }
+            if (tvSeeAllAssignments != null) {
+                tvSeeAllAssignments.setOnClickListener(view -> viewPager.setCurrentItem(2));
+            }
+            if (tvViewCalendar != null) {
+                // Assuming index 2 is for tasks/assignments which might contain a calendar view or similar
+                // or if there's a specific calendar tab. In this project, index 2 is Assignments/Tasks.
+                tvViewCalendar.setOnClickListener(view -> viewPager.setCurrentItem(2));
+            }
+        }
     }
 
     private void setupSubjects(View v) {

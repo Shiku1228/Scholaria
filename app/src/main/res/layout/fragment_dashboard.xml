@@ -141,14 +141,28 @@
             tools:listitem="@layout/item_subject_card" />
 
         <!-- Your Assignments Section -->
-        <TextView
-            android:layout_width="wrap_content"
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Your Assignments"
-            android:textColor="@color/dash_text_primary"
-            android:textStyle="bold"
-            android:textSize="16sp"/>
+            android:layout_marginTop="24dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Your Assignments"
+                android:textColor="@color/dash_text_primary"
+                android:textStyle="bold"
+                android:textSize="16sp"/>
+            <TextView
+                android:id="@+id/tvSeeAllAssignments"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:text="See all assignments"
+                android:textColor="@color/dash_teal"
+                android:textSize="14sp"
+                android:clickable="true"
+                android:focusable="true"/>
+        </RelativeLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvAssignments"
@@ -172,12 +186,15 @@
                 android:textStyle="bold"
                 android:textSize="16sp"/>
             <TextView
+                android:id="@+id/tvViewCalendar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:text="View Calendar"
                 android:textColor="@color/dash_teal"
-                android:textSize="14sp"/>
+                android:textSize="14sp"
+                android:clickable="true"
+                android:focusable="true"/>
         </RelativeLayout>
 
         <androidx.recyclerview.widget.RecyclerView

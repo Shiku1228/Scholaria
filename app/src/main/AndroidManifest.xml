@@ -33,6 +33,15 @@
             android:name=".activities.AssignmentActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".activities.SearchActivity"
+            android:exported="false"
+            android:windowSoftInputMode="stateVisible" />
+
+        <activity
+            android:name=".activities.CourseDetailsActivity"
+            android:exported="false" />
+
 
     </application>
 

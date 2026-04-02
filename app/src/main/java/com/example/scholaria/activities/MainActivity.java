@@ -1,20 +1,27 @@
 package com.example.scholaria.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager2.widget.ViewPager2;
 import com.example.scholaria.R;
 import com.example.scholaria.adapters.MainPagerAdapter;
+import com.google.android.material.navigation.NavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
     private ViewPager2 viewPager;
     private View navIndicator;
     private ImageView[] navIcons;
@@ -26,7 +33,8 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content), (v, insets) -> {
+        View mainContent = findViewById(R.id.mainContent);
+        ViewCompat.setOnApplyWindowInsetsListener(mainContent, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
@@ -38,9 +46,13 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         setupViewPager();
         setupNavClicks();
+        setupDrawer();
+        setupSearch();
     }
 
     private void initViews() {
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navView);
         viewPager = findViewById(R.id.mainViewPager);
         navIndicator = findViewById(R.id.navIndicator);
 
@@ -54,11 +66,45 @@ public class MainActivity extends AppCompatActivity {
         };
     }
 
+    private void setupSearch() {
+        ImageView ivSearch = findViewById(R.id.ivSearch);
+        ivSearch.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SearchActivity.class);
+            startActivity(intent);
+        });
+    }
+
+    private void setupDrawer() {
+        ImageView ivMenu = findViewById(R.id.ivMenu);
+        ivMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.nav_files) {
+                Toast.makeText(this, "Opening Files...", Toast.LENGTH_SHORT).show();
+            } else if (id == R.id.nav_activities) {
+                Toast.makeText(this, "Opening Activities...", Toast.LENGTH_SHORT).show();
+            } else if (id == R.id.nav_grades) {
+                Toast.makeText(this, "Opening Grades...", Toast.LENGTH_SHORT).show();
+            } else if (id == R.id.nav_calendar) {
+                Toast.makeText(this, "Opening Calendar...", Toast.LENGTH_SHORT).show();
+            } else if (id == R.id.nav_settings) {
+                Toast.makeText(this, "Opening Settings...", Toast.LENGTH_SHORT).show();
+            } else if (id == R.id.nav_help) {
+                Toast.makeText(this, "Opening Help...", Toast.LENGTH_SHORT).show();
+            } else if (id == R.id.nav_logout) {
+                Toast.makeText(this, "Logging out...", Toast.LENGTH_SHORT).show();
+                finish(); // Example action
+            }
+
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
+    }
+
     private void setupViewPager() {
         viewPager.setAdapter(new MainPagerAdapter(this));
-
-        // Disable swiping if you want it strictly button-based,
-        // but swiping makes it feel more "modern" like Facebook.
         viewPager.setUserInputEnabled(true);
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -83,11 +129,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateIndicatorPosition(int position, float positionOffset) {
         int tabWidth = navIcons[0].getWidth();
-        if (tabWidth == 0) return; // Wait for layout
+        if (tabWidth == 0) return;
 
-        // Calculate the translation based on tab width and scroll offset
         float translationX = (position + positionOffset) * tabWidth;
-
         navIndicator.getLayoutParams().width = tabWidth;
         navIndicator.setTranslationX(translationX + navIcons[0].getLeft());
         navIndicator.requestLayout();
@@ -96,10 +140,16 @@ public class MainActivity extends AppCompatActivity {
     private void updateNavIcons(int activeIndex) {
         for (int i = 0; i < navIcons.length; i++) {
             navIcons[i].setColorFilter(i == activeIndex ? activeColor : inactiveColor);
-            // Optionally remove background from all and add to active
             navIcons[i].setBackgroundResource(0);
         }
-        // If you want the subtle teal background on active tab:
-        // navIcons[activeIndex].setBackgroundResource(R.drawable.sub_nav_selected_bg);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 }
