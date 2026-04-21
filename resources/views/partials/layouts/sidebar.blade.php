@@ -17,6 +17,18 @@
     <div class="flex flex-col items-center space-y-4">
         <hr class="w-10 border-gray-300">
 
+        @if(auth()->user()->google2fa_enabled)
+            <button onclick="open2FAModal()" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors" title="2FA Settings">
+                <i data-lucide="shield-check" style="width:20px;height:20px;color:#10b981;"></i>
+                <span class="sr-only">2FA Settings</span>
+            </button>
+        @else
+            <button onclick="open2FAModal()" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors" title="Setup 2FA">
+                <i data-lucide="shield" style="width:20px;height:20px;"></i>
+                <span class="sr-only">Setup 2FA</span>
+            </button>
+        @endif
+
         <a href="{{ route('logout') }}" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
             <i data-lucide="log-out" style="width:20px;height:20px;"></i>
             <span class="sr-only">Logout</span>

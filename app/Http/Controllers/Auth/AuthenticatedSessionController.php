@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
@@ -22,6 +23,9 @@ class AuthenticatedSessionController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        // Rate limiting to prevent brute force attacks
+        $this->ensureIsNotRateLimited($request);
+
         $remember = (bool) $request->boolean('remember');
 
         $login = $request->string('login')->toString();
@@ -30,14 +34,22 @@ class AuthenticatedSessionController extends Controller
             || Auth::attempt(['name' => $login, 'password' => $request->input('password')], $remember);
 
         if (!$attempted) {
+            RateLimiter::hit($this->throttleKey($request));
+
             throw ValidationException::withMessages([
                 'login' => __('auth.failed'),
             ]);
         }
 
+        RateLimiter::clear($this->throttleKey($request));
         $request->session()->regenerate();
 
         $user = $request->user();
+
+        // Check if user has 2FA enabled
+        if ($user->google2fa_enabled) {
+            return redirect()->route('2fa.verify.show');
+        }
 
         $roleDefaultRedirect = route('student.dashboard');
 
@@ -106,5 +118,32 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    /**
+     * Ensure the login request is not rate limited.
+     */
+    protected function ensureIsNotRateLimited(Request $request): void
+    {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey($request), 5)) {
+            return;
+        }
+
+        $seconds = RateLimiter::availableIn($this->throttleKey($request));
+
+        throw ValidationException::withMessages([
+            'login' => trans('auth.throttle', [
+                'seconds' => $seconds,
+                'minutes' => ceil($seconds / 60),
+            ]),
+        ]);
+    }
+
+    /**
+     * Get the rate limiting throttle key for the request.
+     */
+    protected function throttleKey(Request $request): string
+    {
+        return strtolower($request->input('login')).'|'.$request->ip();
     }
 }

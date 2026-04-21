@@ -165,6 +165,94 @@
 
     @include('partials.layouts.sidebar', ['sidebarPartial' => $sidebarPartial ?? ''])
 
+    <!-- 2FA Setup Modal -->
+    <div id="twoFactorModal" class="fixed inset-0 bg-black/50 z-[2000] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-[28px] shadow-xl border border-gray-100 w-full max-w-md overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center">
+                            <i data-lucide="shield" style="width:16px;height:16px;"></i>
+                        </div>
+                        <div class="text-lg font-semibold">Two-Factor Authentication</div>
+                    </div>
+                    <button onclick="close2FAModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="mt-1 text-xs text-gray-500">Setup 2FA to secure your account.</div>
+
+                <div id="2faSetupContent" class="mt-5 space-y-4">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-600 mb-3">Scan QR code with Google Authenticator</p>
+                        <div class="inline-block bg-white p-3 rounded-xl border-2 border-gray-200 shadow-sm">
+                            <img id="2faQrCode" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="QR Code" class="w-32 h-32" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Secret Key</label>
+                        <div class="flex items-center gap-2">
+                            <p id="2faSecretKey" class="font-mono text-xs bg-gray-50 px-3 py-2 rounded-xl border border-gray-200 flex-1 overflow-x-auto">Loading...</p>
+                            <button onclick="copySecret()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-semibold transition-colors">
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="2faEnableForm" class="space-y-4">
+                        @csrf
+                        <div>
+                            <label for="code" class="block text-xs font-medium text-gray-700">Verification Code</label>
+                            <div class="mt-1">
+                                <input type="text" name="code" id="code" required pattern="[0-9]{6}" maxlength="6"
+                                    class="block w-full h-10 rounded-xl border border-gray-200 bg-white px-4 text-center text-lg tracking-widest text-gray-900 shadow-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]"
+                                    placeholder="000000">
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="button" onclick="close2FAModal()" class="flex-1 h-10 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit" class="flex-1 h-10 rounded-xl bg-[#0b2d6b] text-white text-xs font-semibold shadow-sm hover:bg-[#0a3a8a]">
+                                Enable 2FA
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="2faDisableContent" class="hidden">
+                    <div class="space-y-4">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <p class="text-sm text-green-800 flex items-center gap-2">
+                                <i data-lucide="shield-check" style="width:14px;height:14px;color:#10b981;"></i>
+                                <strong>2FA is enabled</strong>
+                            </p>
+                        </div>
+
+                        <form id="2faDisableForm" class="space-y-3">
+                            @csrf
+                            <input type="password" name="password" required
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:ring-red-500"
+                                placeholder="Enter password to disable">
+                            <div class="flex gap-2">
+                                <button type="button" onclick="close2FAModal()" class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
+                                    Disable
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="slms-main flex-1 flex flex-col min-w-0">
         <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6">
             <div class="flex items-center gap-3">
@@ -256,6 +344,124 @@
                 }
             });
         }
+    });
+
+    // 2FA Modal Functions
+    function open2FAModal() {
+        const modal = document.getElementById('twoFactorModal');
+        const setupContent = document.getElementById('2faSetupContent');
+        const disableContent = document.getElementById('2faDisableContent');
+
+        modal.classList.remove('hidden');
+
+        // Check if 2FA is enabled
+        const isEnabled = @json(auth()->user()->google2fa_enabled);
+
+        if (isEnabled) {
+            setupContent.classList.add('hidden');
+            disableContent.classList.remove('hidden');
+        } else {
+            setupContent.classList.remove('hidden');
+            disableContent.classList.add('hidden');
+            fetchQRCode();
+        }
+    }
+
+    function close2FAModal() {
+        const modal = document.getElementById('twoFactorModal');
+        modal.classList.add('hidden');
+    }
+
+    function fetchQRCode() {
+        fetch('/2fa/qr-code', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('2faQrCode').src = data.qrCode;
+                document.getElementById('2faSecretKey').textContent = data.secret;
+            } else {
+                alert(data.message || 'Failed to generate QR code');
+                close2FAModal();
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching QR code:', error);
+            alert('Failed to generate QR code');
+            close2FAModal();
+        });
+    }
+
+    function copySecret() {
+        const secretText = document.getElementById('2faSecretKey').textContent;
+        navigator.clipboard.writeText(secretText).then(() => {
+            alert('Secret key copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('Failed to copy secret key');
+        });
+    }
+
+    // Handle 2FA Enable Form
+    document.getElementById('2faEnableForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch('/2fa/enable', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('2FA enabled successfully!');
+                close2FAModal();
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to enable 2FA');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to enable 2FA');
+        });
+    });
+
+    // Handle 2FA Disable Form
+    document.getElementById('2faDisableForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch('/2fa/disable', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('2FA disabled successfully!');
+                close2FAModal();
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to disable 2FA');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to disable 2FA');
+        });
     });
 </script>
 

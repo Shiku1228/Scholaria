@@ -23,6 +23,7 @@ use App\Http\Controllers\Student\StudentAssignmentController;
 use App\Http\Controllers\Student\StudentGradeController;
 use App\Http\Controllers\Student\StudentAnnouncementController;
 use App\Http\Controllers\Student\StudentNotificationController;
+use App\Http\Controllers\TwoFactorAuthController;
 
 Route::get('/', function () {
     if (!auth()->check()) {
@@ -53,6 +54,15 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::match(['GET', 'POST'], '/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+
+Route::middleware(['auth'])->prefix('2fa')->name('2fa.')->group(function () {
+    Route::get('/setup', [TwoFactorAuthController::class, 'showSetup'])->name('setup');
+    Route::get('/qr-code', [TwoFactorAuthController::class, 'getQrCode'])->name('qr-code');
+    Route::post('/enable', [TwoFactorAuthController::class, 'enable'])->name('enable');
+    Route::post('/disable', [TwoFactorAuthController::class, 'disable'])->name('disable');
+    Route::get('/verify/show', [TwoFactorAuthController::class, 'showVerification'])->name('verify.show');
+    Route::post('/verify', [TwoFactorAuthController::class, 'verify'])->name('verify');
+});
 
 Route::prefix('admin')
     ->name('admin.')

@@ -4,6 +4,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -134,3 +135,8 @@ Artisan::command('db:cleanup {--execute : Actually delete rows (otherwise dry-ru
 
     $this->line($execute ? 'Cleanup executed.' : 'Dry-run only. Re-run with --execute to delete rows.');
 })->purpose('Safely clean up expired/old rows from framework tables (dry-run by default)');
+
+// Schedule daily database backup at 2:00 AM
+Schedule::command('backup:database')
+    ->dailyAt('02:00')
+    ->description('Backup the database daily');

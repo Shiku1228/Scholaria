@@ -27,6 +27,8 @@ class User extends Authenticatable
         'student_number',
         'email',
         'password',
+        'google2fa_secret',
+        'google2fa_enabled',
     ];
 
     /**
@@ -37,6 +39,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'google2fa_secret',
     ];
 
     /**
