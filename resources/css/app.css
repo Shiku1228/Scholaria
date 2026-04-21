@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+:root {
+    --slms-primary: #0b2d6b;
+    --slms-primary-dark: #0a3a8a;
+    --slms-bg: #f3f4f6;
+}
+
+.auth-page {
+    background: #ffffff;
+}
+
+.auth-welcome {
+    background: linear-gradient(135deg, #123b85 0%, var(--slms-primary) 38%, var(--slms-primary-dark) 100%);
+    overflow: hidden;
+}
+
+.auth-welcome-curve {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    display: none;
+}
+
+.auth-circle {
+    filter: blur(0px);
+    opacity: 0.95;
+}
+
+/* Ensure login form is always visible */
+@media (min-width: 1024px) {
+    .grid.lg\\:grid-cols-2 > .order-1.lg\\:order-2 {
+        display: block !important;
+    }
+}
+
+@media (max-width: 1023px) {
+    .grid.grid-cols-1 > .order-1 {
+        display: block !important;
+    }
+}
