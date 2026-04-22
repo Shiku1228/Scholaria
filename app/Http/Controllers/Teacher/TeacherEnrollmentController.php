@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Services\CourseChatGroupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -102,7 +103,7 @@ class TeacherEnrollmentController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, CourseChatGroupService $chatService): RedirectResponse
     {
         $teacherId = (int) $request->user()->id;
 
@@ -181,6 +182,7 @@ class TeacherEnrollmentController extends Controller
         }
 
         Enrollment::query()->create($payload);
+        $chatService->syncCourseMembers($course);
 
         return redirect()
             ->route('teacher.enrollments.index')

@@ -60,6 +60,11 @@ class Course extends Model
         return $this->hasMany(CourseDiscussion::class, 'course_id');
     }
 
+    public function chatGroup(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ChatGroup::class, 'course_id');
+    }
+
     public function setCourseNumberAttribute($value): void
     {
         $this->attributes['course_number'] = strtoupper((string) $value);

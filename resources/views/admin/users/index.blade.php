@@ -74,15 +74,7 @@
                             $roleName = method_exists($user, 'getRoleNames') ? ($user->getRoleNames()->first() ?? 'Student') : 'Student';
                             $labelRole = in_array($roleName, ['Admin', 'Teacher', 'Student'], true) ? $roleName : 'Student';
                             $displayRole = $labelRole === 'Teacher' ? 'Instructor' : $labelRole;
-                            $roleBadgeClass = match ($labelRole) {
-                                'Admin' => 'bg-[#eaf0fb] text-[#0b2d6b] border-[#c9d7f2]',
-                                'Teacher' => 'bg-blue-50 text-blue-700 border-blue-200',
-                                default => 'bg-slate-100 text-slate-700 border-slate-200',
-                            };
                             $isDeleted = $user->trashed();
-                            $statusClass = $isDeleted
-                                ? 'bg-red-50 text-red-700 border-red-200'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200';
                             $statusLabel = $isDeleted ? 'Suspended' : 'Active';
                             $initial = strtoupper(substr((string) $user->name, 0, 1));
                         @endphp
@@ -106,13 +98,26 @@
                                 </td>
                             @endif
                             <td class="py-4 px-6">
-                                <span class="inline-flex items-center h-7 px-3 rounded-lg border text-xs font-medium {{ $roleBadgeClass }}">
+                                <span @class([
+                                    'inline-flex items-center h-7 px-3 rounded-lg border text-xs font-medium',
+                                    'bg-[#eaf0fb] text-[#0b2d6b] border-[#c9d7f2]' => $labelRole === 'Admin',
+                                    'bg-blue-50 text-blue-700 border-blue-200' => $labelRole === 'Teacher',
+                                    'bg-slate-100 text-slate-700 border-slate-200' => $labelRole === 'Student',
+                                ])>
                                     {{ $displayRole }}
                                 </span>
                             </td>
                             <td class="py-4 px-6">
-                                <span class="inline-flex items-center gap-2 h-7 px-3 rounded-full border text-xs font-medium {{ $statusClass }}">
-                                    <span class="h-1.5 w-1.5 rounded-full {{ $isDeleted ? 'bg-red-500' : 'bg-emerald-500' }}"></span>
+                                <span @class([
+                                    'inline-flex items-center gap-2 h-7 px-3 rounded-full border text-xs font-medium',
+                                    'bg-red-50 text-red-700 border-red-200' => $isDeleted,
+                                    'bg-emerald-50 text-emerald-700 border-emerald-200' => !$isDeleted,
+                                ])>
+                                    <span @class([
+                                        'h-1.5 w-1.5 rounded-full',
+                                        'bg-red-500' => $isDeleted,
+                                        'bg-emerald-500' => !$isDeleted,
+                                    ])></span>
                                     {{ $statusLabel }}
                                 </span>
                             </td>

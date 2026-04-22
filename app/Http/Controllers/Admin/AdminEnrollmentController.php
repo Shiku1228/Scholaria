@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateEnrollmentRequest;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Services\CourseChatGroupService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -74,7 +75,7 @@ class AdminEnrollmentController extends Controller
         ]);
     }
 
-    public function store(StoreEnrollmentRequest $request)
+    public function store(StoreEnrollmentRequest $request, CourseChatGroupService $chatService)
     {
         $validated = $request->validated();
 
@@ -90,6 +91,8 @@ class AdminEnrollmentController extends Controller
             'status' => (string) $validated['status'],
             'enrolled_at' => $validated['enrolled_at'] ?? now(),
         ]);
+
+        $chatService->syncCourseMembers($course);
 
         return redirect()->route('admin.enrollments.edit', $enrollment)->with('success', 'Enrollment created.');
     }
@@ -108,8 +111,9 @@ class AdminEnrollmentController extends Controller
         ]);
     }
 
-    public function update(UpdateEnrollmentRequest $request, Enrollment $enrollment)
+    public function update(UpdateEnrollmentRequest $request, Enrollment $enrollment, CourseChatGroupService $chatService)
     {
+        $oldCourseId = (int) $enrollment->course_id;
         $validated = $request->validated();
 
         $course = Course::query()->with('teacher')->findOrFail((int) $validated['course_id']);
@@ -125,12 +129,24 @@ class AdminEnrollmentController extends Controller
             'enrolled_at' => $validated['enrolled_at'] ?? $enrollment->enrolled_at,
         ]);
 
+        if ($oldCourseId > 0 && $oldCourseId !== (int) $course->id) {
+            $oldCourse = Course::query()->find($oldCourseId);
+            if ($oldCourse) {
+                $chatService->syncCourseMembers($oldCourse);
+            }
+        }
+        $chatService->syncCourseMembers($course);
+
         return redirect()->route('admin.enrollments.edit', $enrollment)->with('success', 'Enrollment updated.');
     }
 
-    public function destroy(Enrollment $enrollment)
+    public function destroy(Enrollment $enrollment, CourseChatGroupService $chatService)
     {
+        $course = $enrollment->course()->first();
         $enrollment->delete();
+        if ($course) {
+            $chatService->syncCourseMembers($course);
+        }
 
         return redirect()->route('admin.enrollments.index')->with('success', 'Enrollment deleted.');
     }

@@ -64,4 +64,16 @@ class User extends Authenticatable
     {
         return $this->hasMany(CourseResource::class, 'uploaded_by');
     }
+
+    public function chatGroups(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(ChatGroup::class, 'chat_group_user', 'user_id', 'chat_group_id')
+            ->withPivot(['role_in_group', 'joined_at', 'last_read_at'])
+            ->withTimestamps();
+    }
+
+    public function chatMessages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ChatMessage::class, 'user_id');
+    }
 }

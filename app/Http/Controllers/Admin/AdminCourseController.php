@@ -7,6 +7,7 @@ use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\User;
+use App\Services\CourseChatGroupService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Schema;
@@ -52,7 +53,7 @@ class AdminCourseController extends Controller
         ]);
     }
 
-    public function store(StoreCourseRequest $request)
+    public function store(StoreCourseRequest $request, CourseChatGroupService $chatService)
     {
         $validated = $request->validated();
 
@@ -70,6 +71,8 @@ class AdminCourseController extends Controller
             'teacher_id' => $validated['teacher_id'],
         ]);
 
+        $chatService->syncCourseMembers($course);
+
         return redirect()->route('admin.courses.edit', $course)->with('success', 'Course created.');
     }
 
@@ -83,7 +86,7 @@ class AdminCourseController extends Controller
         ]);
     }
 
-    public function update(UpdateCourseRequest $request, Course $course)
+    public function update(UpdateCourseRequest $request, Course $course, CourseChatGroupService $chatService)
     {
         $validated = $request->validated();
 
@@ -100,6 +103,8 @@ class AdminCourseController extends Controller
             'days_pattern' => isset($validated['class_days']) ? implode(',', $validated['class_days']) : null,
             'teacher_id' => $validated['teacher_id'],
         ]);
+
+        $chatService->syncCourseMembers($course->fresh());
 
         return redirect()->route('admin.courses.edit', $course)->with('success', 'Course updated.');
     }

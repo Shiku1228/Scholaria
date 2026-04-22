@@ -24,6 +24,7 @@ use App\Http\Controllers\Student\StudentGradeController;
 use App\Http\Controllers\Student\StudentAnnouncementController;
 use App\Http\Controllers\Student\StudentNotificationController;
 use App\Http\Controllers\TwoFactorAuthController;
+use App\Http\Controllers\Messaging\CourseMessagingController;
 
 Route::get('/', function () {
     if (!auth()->check()) {
@@ -78,6 +79,22 @@ Route::prefix('admin')
         Route::resource('/enrollments', AdminEnrollmentController::class)->except(['show']);
     });
 
+Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(function () {
+    Route::get('/', [CourseMessagingController::class, 'index'])->name('index');
+    Route::get('/courses/{course}', [CourseMessagingController::class, 'course'])->name('courses.show');
+    Route::get('/courses/{course}/members', [CourseMessagingController::class, 'members'])->name('courses.members');
+    Route::get('/courses/{course}/conversations', [CourseMessagingController::class, 'conversations'])->name('courses.conversations');
+    Route::get('/courses/{course}/conversations/{conversation}', [CourseMessagingController::class, 'showConversation'])->name('courses.conversations.show');
+    Route::post('/courses/{course}/private-chat/{user}', [CourseMessagingController::class, 'startPrivate'])->name('courses.private.start');
+    Route::get('/conversations/{conversation}/messages', [CourseMessagingController::class, 'conversationMessages'])->name('conversations.messages');
+    Route::post('/conversations/{conversation}/messages', [CourseMessagingController::class, 'storeMessage'])->middleware('throttle:chat-messages')->name('conversations.messages.store');
+    Route::patch('/messages/{message}', [CourseMessagingController::class, 'updateMessage'])->middleware('throttle:chat-messages')->name('messages.update');
+    Route::delete('/messages/{message}', [CourseMessagingController::class, 'deleteMessage'])->middleware('throttle:chat-messages')->name('messages.delete');
+    Route::post('/messages/{message}/reactions', [CourseMessagingController::class, 'reactMessage'])->middleware('throttle:chat-messages')->name('messages.react');
+    Route::delete('/messages/{message}/reactions', [CourseMessagingController::class, 'unreactMessage'])->middleware('throttle:chat-messages')->name('messages.unreact');
+    Route::get('/attachments/{message}', [CourseMessagingController::class, 'attachment'])->name('attachment');
+});
+
 Route::prefix('teacher')
     ->name('teacher.')
     ->middleware(['auth', 'role:Teacher'])
@@ -111,7 +128,7 @@ Route::prefix('teacher')
         Route::post('/enrollments', [TeacherEnrollmentController::class, 'store'])->name('enrollments.store');
 
         Route::get('/announcements', [TeacherAnnouncementController::class, 'overview'])->name('announcements');
-        Route::view('/messages', 'teacher.messages')->name('messages');
+        Route::redirect('/messages', '/messages')->name('messages');
         Route::view('/settings', 'teacher.settings')->name('settings');
         Route::post('/notifications/read-all', [TeacherNotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::get('/notifications/{notification}/open', [TeacherNotificationController::class, 'open'])->name('notifications.open');
@@ -136,4 +153,5 @@ Route::prefix('student')
         Route::post('/assignments/{assignment}/submit', [StudentSubmissionController::class, 'store'])->name('assignments.submit.store');
         Route::post('/notifications/read-all', [StudentNotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::get('/notifications/{notification}/open', [StudentNotificationController::class, 'open'])->name('notifications.open');
+        Route::redirect('/messages', '/messages')->name('messages');
     });
