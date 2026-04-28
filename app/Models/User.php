@@ -8,8 +8,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
@@ -29,6 +30,9 @@ class User extends Authenticatable
         'password',
         'google2fa_secret',
         'google2fa_enabled',
+        'provider',
+        'provider_id',
+        'provider_token',
     ];
 
     /**
@@ -55,6 +59,77 @@ class User extends Authenticatable
         ];
     }
 
+    // Encryption mutators
+    public function setFirstNameAttribute($value)
+    {
+        $this->attributes['first_name'] = $value ? encrypt($value) : null;
+    }
+
+    public function getFirstNameAttribute($value)
+    {
+        try {
+            return $value ? decrypt($value) : null;
+        } catch (\Exception $e) {
+            return $value; // Return original if decryption fails
+        }
+    }
+
+    public function setMiddleNameAttribute($value)
+    {
+        $this->attributes['middle_name'] = $value ? encrypt($value) : null;
+    }
+
+    public function getMiddleNameAttribute($value)
+    {
+        try {
+            return $value ? decrypt($value) : null;
+        } catch (\Exception $e) {
+            return $value; // Return original if decryption fails
+        }
+    }
+
+    public function setLastNameAttribute($value)
+    {
+        $this->attributes['last_name'] = $value ? encrypt($value) : null;
+    }
+
+    public function getLastNameAttribute($value)
+    {
+        try {
+            return $value ? decrypt($value) : null;
+        } catch (\Exception $e) {
+            return $value; // Return original if decryption fails
+        }
+    }
+
+    public function setStudentNumberAttribute($value)
+    {
+        $this->attributes['student_number'] = $value ? encrypt($value) : null;
+    }
+
+    public function getStudentNumberAttribute($value)
+    {
+        try {
+            return $value ? decrypt($value) : null;
+        } catch (\Exception $e) {
+            return $value; // Return original if decryption fails
+        }
+    }
+
+    public function setProviderTokenAttribute($value)
+    {
+        $this->attributes['provider_token'] = $value ? encrypt($value) : null;
+    }
+
+    public function getProviderTokenAttribute($value)
+    {
+        try {
+            return $value ? decrypt($value) : null;
+        } catch (\Exception $e) {
+            return $value; // Return original if decryption fails
+        }
+    }
+
     public function courseDiscussions(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(CourseDiscussion::class, 'user_id');
@@ -75,5 +150,25 @@ class User extends Authenticatable
     public function chatMessages(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ChatMessage::class, 'user_id');
+    }
+
+    /**
+     * Get the identifier that will be stored in the subject claim of the JWT.
+     *
+     * @return mixed
+     */
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    /**
+     * Return a key value array, containing any custom claims to be added to the JWT.
+     *
+     * @return array
+     */
+    public function getJWTCustomClaims()
+    {
+        return [];
     }
 }

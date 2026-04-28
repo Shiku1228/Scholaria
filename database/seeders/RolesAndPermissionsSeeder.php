@@ -34,7 +34,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::findOrCreate($permission, 'web');
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
         $adminRole = Role::findOrCreate('Admin', 'web');
