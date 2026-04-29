@@ -19,7 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
             '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
             'jwt' => \App\Http\Middleware\JwtMiddleware::class,
             'api' => \App\Http\Middleware\ApiMiddleware::class,
+            'session.tracking' => \App\Http\Middleware\SessionTracking::class,
+            'auth.monitoring' => \App\Http\Middleware\AuthenticationMonitoring::class,
         ]);
+        
+                
+        // Add authentication monitoring to web middleware group
+        $middleware->appendToGroup('web', \App\Http\Middleware\AuthenticationMonitoring::class);
         
         // Create API middleware group without CSRF
         $middleware->group('api', [

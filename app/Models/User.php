@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsTransactions;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,7 +14,7 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles, LogsTransactions;
 
     /**
      * The attributes that are mass assignable.

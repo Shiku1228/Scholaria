@@ -169,6 +169,11 @@
                 width: 16rem;
             }
         }
+
+        .critical-events-card {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
+            border: 3px solid #f87171 !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900">

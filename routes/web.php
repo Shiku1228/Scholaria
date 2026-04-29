@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\SecurityDashboardController;
+use App\Http\Controllers\SessionController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminCourseController;
 use App\Http\Controllers\Admin\AdminEnrollmentController;
@@ -72,11 +74,30 @@ Route::middleware(['auth'])->prefix('2fa')->name('2fa.')->group(function () {
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'role:Admin'])
+    ->middleware(['auth', 'role:Admin', 'session.tracking'])
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::post('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');
         Route::resource('/users', AdminUserController::class);
+
+        // Security Dashboard Routes
+        Route::prefix('security-dashboard')->name('security-dashboard.')->group(function () {
+            Route::get('/', [SecurityDashboardController::class, 'index'])->name('index');
+            Route::get('/metrics', [SecurityDashboardController::class, 'metrics'])->name('metrics');
+            Route::get('/alerts', [SecurityDashboardController::class, 'alerts'])->name('alerts');
+            Route::get('/trends', [SecurityDashboardController::class, 'trends'])->name('trends');
+            Route::get('/report', [SecurityDashboardController::class, 'report'])->name('report');
+            Route::get('/report/download', [SecurityDashboardController::class, 'downloadReport'])->name('report-download');
+            Route::get('/event/{id}', [SecurityDashboardController::class, 'event'])->name('event');
+            Route::post('/event/{id}/resolve', [SecurityDashboardController::class, 'resolveEvent'])->name('event-resolve');
+            Route::get('/failed-logins', [SecurityDashboardController::class, 'failedLogins'])->name('failed-logins');
+            Route::get('/sessions', [SecurityDashboardController::class, 'sessions'])->name('sessions');
+            Route::get('/anomalies', [SecurityDashboardController::class, 'anomalies'])->name('anomalies');
+            Route::get('/activity-log', [SecurityDashboardController::class, 'activityLog'])->name('activity-log');
+            
+            // Test alert endpoint
+            Route::post('/test-alert', [SecurityDashboardController::class, 'testAlert'])->name('test-alert');
+        });
 
         Route::get('/courses/check-number', [AdminCourseController::class, 'checkNumber'])->name('courses.check-number');
         Route::resource('/courses', AdminCourseController::class)->except(['show']);
@@ -84,7 +105,7 @@ Route::prefix('admin')
         Route::resource('/enrollments', AdminEnrollmentController::class)->except(['show']);
     });
 
-Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(function () {
+Route::middleware(['auth', 'session.tracking'])->prefix('messages')->name('messages.')->group(function () {
     Route::get('/', [CourseMessagingController::class, 'index'])->name('index');
     Route::get('/courses/{course}', [CourseMessagingController::class, 'course'])->name('courses.show');
     Route::get('/courses/{course}/members', [CourseMessagingController::class, 'members'])->name('courses.members');
@@ -102,7 +123,7 @@ Route::middleware(['auth'])->prefix('messages')->name('messages.')->group(functi
 
 Route::prefix('teacher')
     ->name('teacher.')
-    ->middleware(['auth', 'role:Teacher'])
+    ->middleware(['auth', 'role:Teacher', 'session.tracking'])
     ->group(function () {
         Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
 
@@ -141,7 +162,7 @@ Route::prefix('teacher')
 
 Route::prefix('student')
     ->name('student.')
-    ->middleware(['auth', 'role:Student'])
+    ->middleware(['auth', 'role:Student', 'session.tracking'])
     ->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 
@@ -175,4 +196,14 @@ Route::prefix('api')->middleware('api')->group(function () {
         Route::get('/me', [JwtAuthController::class, 'me'])->name('api.me');
         Route::get('/validate', [JwtAuthController::class, 'validate'])->name('api.validate');
     });
+});
+
+// Security and Session Management Routes
+Route::middleware(['auth', 'session.tracking'])->prefix('security')->group(function () {
+    Route::get('/sessions', [SessionController::class, 'index'])->name('security.sessions');
+    Route::get('/sessions/stats', [SessionController::class, 'stats'])->name('security.sessions.stats');
+    Route::get('/sessions/realtime', [SessionController::class, 'realtime'])->name('security.sessions.realtime');
+    Route::post('/sessions/{sessionId}/end', [SessionController::class, 'end'])->name('security.sessions.end');
+    Route::post('/sessions/end-others', [SessionController::class, 'endAllOthers'])->name('security.sessions.end-others');
+    Route::get('/sessions/{sessionId}', [SessionController::class, 'show'])->name('security.sessions.show');
 });

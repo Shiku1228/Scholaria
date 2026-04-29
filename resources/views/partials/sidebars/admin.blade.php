@@ -1,6 +1,7 @@
 @php
     $nav = [
         ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'href' => route('admin.dashboard')],
+        ['label' => 'Security', 'route' => 'admin.security-dashboard.*', 'href' => route('admin.security-dashboard.index')],
         ['label' => 'Enrollment', 'route' => 'admin.enrollments.*', 'href' => route('admin.enrollments.index')],
         ['label' => 'Course', 'route' => 'admin.courses.*', 'href' => route('admin.courses.index')],
         ['label' => 'Message', 'href' => '#'],
@@ -10,6 +11,7 @@
 
     $icons = [
         'Dashboard' => 'layout-dashboard',
+        'Security' => 'shield',
         'Enrollment' => 'clipboard-check',
         'Course' => 'book-open',
         'Message' => 'message-circle',

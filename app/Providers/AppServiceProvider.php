@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Transaction;
+use App\Observers\TransactionObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register transaction observer
+        Transaction::observe(TransactionObserver::class);
+
         RateLimiter::for('chat-messages', function (Request $request) {
             $userId = (int) optional($request->user())->id;
             return Limit::perMinute(45)->by($userId . '|' . $request->ip());

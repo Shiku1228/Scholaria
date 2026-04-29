@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
+use App\Jobs\SessionCleanupJob;
+use App\Jobs\AnomalyDetectionJob;
+use App\Console\Commands\SecurityCleanup;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -135,6 +138,33 @@ Artisan::command('db:cleanup {--execute : Actually delete rows (otherwise dry-ru
 
     $this->line($execute ? 'Cleanup executed.' : 'Dry-run only. Re-run with --execute to delete rows.');
 })->purpose('Safely clean up expired/old rows from framework tables (dry-run by default)');
+
+// Register security cleanup command
+Artisan::command('security:cleanup', function () {
+    return app(SecurityCleanup::class)->handle();
+})->purpose('Run security cleanup tasks including session and log cleanup');
+
+// Schedule anomaly detection job every 30 minutes
+Schedule::job(new AnomalyDetectionJob())
+    ->everyThirtyMinutes()
+    ->description('Run anomaly detection and security monitoring')
+    ->onSuccess(function () {
+        Log::info('Scheduled anomaly detection completed successfully');
+    })
+    ->onFailure(function () {
+        Log::error('Scheduled anomaly detection failed');
+    });
+
+// Schedule security cleanup job daily at 3:00 AM
+Schedule::job(new SessionCleanupJob())
+    ->dailyAt('03:00')
+    ->description('Clean up expired sessions and old security logs')
+    ->onSuccess(function () {
+        Log::info('Scheduled security cleanup completed successfully');
+    })
+    ->onFailure(function () {
+        Log::error('Scheduled security cleanup failed');
+    });
 
 // Schedule daily database backup at 2:00 AM
 Schedule::command('backup:database')

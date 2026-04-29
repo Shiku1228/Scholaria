@@ -50,3 +50,8 @@
         display: block !important;
     }
 }
+
+.critical-events-card {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
+    border: 3px solid #f87171 !important;
+}
