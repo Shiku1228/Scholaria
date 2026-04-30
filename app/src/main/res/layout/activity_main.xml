@@ -6,6 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/dash_bg"
+    android:fitsSystemWindows="true"
     tools:context=".activities.MainActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -13,62 +14,73 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- Top App Bar (Static) -->
+        <!-- Top Bar -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/topBar"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:paddingHorizontal="15dp"
+            android:paddingHorizontal="16dp"
             android:background="@color/dash_bg"
             app:layout_constraintTop_toTopOf="parent">
 
+            <!-- Hamburger Menu (Left) -->
             <ImageView
                 android:id="@+id/ivMenu"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/search_edittext_bg"
+                android:padding="8dp"
                 android:src="@drawable/ic_menu_hamburger"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:tint="@color/dash_icon_tint"
-                android:contentDescription="Menu" />
+                app:tint="@color/dash_icon_tint" />
 
-            <ImageView
-                android:id="@+id/ivLogo"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="12dp"
-                android:src="@drawable/scholaria_logo"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@id/ivMenu"
-                app:layout_constraintTop_toTopOf="parent"
-                app:tint="@null" />
-
-            <TextView
-                android:id="@+id/tvAppTitle"
+            <!-- Logo and Title (Center) -->
+            <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="SCHOLARIA"
-                android:textColor="@color/dash_text_primary"
-                android:textSize="18sp"
-                android:textStyle="bold"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="horizontal"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent">
 
+                <ImageView
+                    android:id="@+id/ivLogo"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/scholaria_logo" />
+
+                <TextView
+                    android:id="@+id/tvAppTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Scholaria"
+                    android:textColor="@color/dash_teal"
+                    android:textSize="22sp"
+                    android:fontFamily="sans-serif-black"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Search (Right) -->
             <ImageView
                 android:id="@+id/ivSearch"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/search_edittext_bg"
+                android:padding="8dp"
                 android:src="@drawable/ic_search_custom"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:tint="@color/dash_icon_tint" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- Sub Navigation Bar (Static) -->
+        <!-- Sub Navigation Bar -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/navContainer"
             android:layout_width="match_parent"
@@ -84,18 +96,25 @@
 
                 <ImageView android:id="@+id/navHome" style="@style/SubNavIcon" android:src="@drawable/ic_nav_dashboard" />
                 <ImageView android:id="@+id/navCourses" style="@style/SubNavIcon" android:src="@drawable/ic_nav_courses" />
+
+                <!-- Added Students Icon for Teacher -->
+                <ImageView android:id="@+id/navStudents"
+                    style="@style/SubNavIcon"
+                    android:src="@drawable/ic_nav_students"
+                    android:visibility="gone" />
+
                 <ImageView android:id="@+id/navTasks" style="@style/SubNavIcon" android:src="@drawable/ic_nav_tasks" />
                 <ImageView android:id="@+id/navMessages" style="@style/SubNavIcon" android:src="@drawable/ic_nav_messages" />
                 <ImageView android:id="@+id/navNotifications" style="@style/SubNavIcon" android:src="@drawable/ic_nav_notifications" />
                 <ImageView android:id="@+id/navProfile" style="@style/SubNavIcon" android:src="@drawable/ic_nav_profile" />
             </LinearLayout>
 
-            <!-- The Sliding Indicator -->
+            <!-- Sliding Indicator -->
             <View
                 android:id="@+id/navIndicator"
                 android:layout_width="0dp"
-                android:layout_height="4dp"
-                android:background="@drawable/sub_nav_selected_bg"
+                android:layout_height="3dp"
+                android:background="@color/dash_teal"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent" />
 
@@ -104,11 +123,11 @@
         <View
             android:id="@+id/navDivider"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/dash_teal"
+            android:layout_height="0.5dp"
+            android:background="@color/divider_color"
             app:layout_constraintTop_toBottomOf="@id/navContainer" />
 
-        <!-- ViewPager for Content (Sliding) -->
+        <!-- ViewPager for Content -->
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/mainViewPager"
             android:layout_width="match_parent"

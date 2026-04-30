@@ -24,12 +24,25 @@
     <!-- Filter Chips -->
     <color name="filter_chip_selected_bg">@color/dash_teal</color>
 
-    <!-- Dashboard Status Cards (Matching Dashboard guide) -->
-    <color name="status_card_bg">#BBDDFF</color>
-    <color name="status_card_text_primary">#1A2F4B</color>
-    <color name="status_card_text_secondary">#757575</color>
+    <!-- Dashboard Status Cards -->
+    <color name="status_card_bg">#1E1E1E</color>
+    <color name="status_card_text_primary">#FFFFFF</color>
+    <color name="status_card_text_secondary">#B0B0B0</color>
 
-    <!-- Fixed Colors (Used for Subject Cards which stay colorful) -->
+    <!-- Login Specific Dark Mode -->
+    <color name="login_bg">#121212</color>
+    <color name="login_title">#FFFFFF</color>
+    <color name="login_button_bg">@color/dash_teal</color>
+    <color name="login_button_text">#121212</color>
+    <color name="login_link_text">@color/dash_teal</color>
+    <color name="login_register_text">@color/dash_teal</color>
+    <color name="login_divider">#333333</color>
+    <color name="login_input_border">#333333</color>
+    <color name="login_input_border_focused">@color/dash_teal</color>
+    <color name="login_input_hint">#B0B0B0</color>
+    <color name="login_input_text">#FFFFFF</color>
+
+    <!-- Fixed Colors -->
     <color name="fixed_card_bg_blue">#FFFFFF</color>
     <color name="fixed_card_bg_mint">#C7F9E1</color>
     <color name="fixed_card_text_primary">#1A2F4B</color>

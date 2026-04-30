@@ -10,29 +10,47 @@ import com.example.scholaria.fragments.DashboardFragment;
 import com.example.scholaria.fragments.MessagesFragment;
 import com.example.scholaria.fragments.NotificationsFragment;
 import com.example.scholaria.fragments.ProfileFragment;
+import com.example.scholaria.fragments.StudentsFragment;
+import com.example.scholaria.fragments.TeacherDashboardFragment;
 
 public class MainPagerAdapter extends FragmentStateAdapter {
 
-    public MainPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
+    private boolean isTeacher;
+
+    public MainPagerAdapter(@NonNull FragmentActivity fragmentActivity, boolean isTeacher) {
         super(fragmentActivity);
+        this.isTeacher = isTeacher;
     }
 
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        switch (position) {
-            case 0: return new DashboardFragment();
-            case 1: return new CoursesFragment();
-            case 2: return new AssignmentFragment();
-            case 3: return new MessagesFragment();
-            case 4: return new NotificationsFragment();
-            case 5: return new ProfileFragment();
-            default: return new DashboardFragment();
+        if (isTeacher) {
+            switch (position) {
+                case 0: return new TeacherDashboardFragment();
+                case 1: return new CoursesFragment();
+                case 2: return new StudentsFragment();
+                case 3: return new AssignmentFragment();
+                case 4: return new MessagesFragment();
+                case 5: return new NotificationsFragment();
+                case 6: return new ProfileFragment();
+                default: return new TeacherDashboardFragment();
+            }
+        } else {
+            switch (position) {
+                case 0: return new DashboardFragment();
+                case 1: return new CoursesFragment();
+                case 2: return new AssignmentFragment();
+                case 3: return new MessagesFragment();
+                case 4: return new NotificationsFragment();
+                case 5: return new ProfileFragment();
+                default: return new DashboardFragment();
+            }
         }
     }
 
     @Override
     public int getItemCount() {
-        return 6; // Total tabs: Home, Courses, Tasks, Messages, Notifications, Profile
+        return isTeacher ? 7 : 6;
     }
 }
