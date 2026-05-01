@@ -174,6 +174,42 @@
             background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
             border: 3px solid #f87171 !important;
         }
+
+        /* Enhanced Sidebar Scrolling with SCHOLARIA Brand Theme */
+        .custom-scrollbar {
+            scrollbar-width: thin !important;
+            scrollbar-color: #1e3a5f #f1f5f9 !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px !important;
+            display: block !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9 !important;
+            border-radius: 8px !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #1e3a5f 0%, #0f2440 100%) !important;
+            border-radius: 8px !important;
+            border: 1px solid #cbd5e1 !important;
+            transition: all 0.3s ease !important;
+            min-height: 24px !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #152542 0%, #0a1a2e 100%) !important;
+            border-color: #94a3b8 !important;
+            transform: scaleY(1.05) !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #0f1d32 0%, #061020 100%) !important;
+            transform: scaleY(0.95) !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900">
@@ -191,7 +227,7 @@
             </div>
 
             <!-- Navigation Icons -->
-            <nav class="flex flex-col items-center space-y-6 mt-8">
+            <nav class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col items-center space-y-6 mt-8">
                 @include('partials.sidebars.admin')
             </nav>
         </div>
@@ -201,7 +237,7 @@
             <hr class="w-10 border-gray-300">
             
             <!-- Logout Button -->
-            <a href="{{ route('logout') }}" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+            <a href="{{ route('web.logout') }}" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
                 <i data-lucide="log-out" style="width:20px;height:20px;"></i>
                 <span class="sr-only">Logout</span>
             </a>

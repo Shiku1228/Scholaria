@@ -1,4 +1,7 @@
-﻿@extends('layouts.admin')
+﻿@extends('layouts.dashboard', [
+    'title' => 'Create Course',
+    'sidebarPartial' => 'partials.sidebars.admin',
+])
 
 @section('content')
     <div class="rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-slate-50 to-white p-6 shadow-sm">

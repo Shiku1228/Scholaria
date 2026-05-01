@@ -12,16 +12,25 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar.classList.add('is-open');
     overlay.classList.add('is-open');
     document.body.classList.add('sidebar-open');
+    
+    // Prevent body scroll when sidebar is open on mobile
+    if (window.innerWidth < 992) {
+      document.body.style.overflow = 'hidden';
+    }
   };
 
   const close = () => {
     sidebar.classList.remove('is-open');
     overlay.classList.remove('is-open');
     document.body.classList.remove('sidebar-open');
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
   };
 
   const handleToggle = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     const isOpen = sidebar.classList.contains('is-open');
     isOpen ? close() : open();
   };
@@ -35,8 +44,28 @@ document.addEventListener('DOMContentLoaded', () => {
   sidebar.addEventListener('click', (e) => {
     const link = e.target.closest('a');
     if (!link) return;
-    if (window.innerWidth < 992) close();
+    if (window.innerWidth < 992) {
+      setTimeout(() => close(), 150); // Small delay for navigation
+    }
   });
+
+  // Handle escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+      close();
+    }
+  });
+
+  // Handle window resize
+  const handleResize = () => {
+    if (window.innerWidth >= 992) {
+      close(); // Close mobile sidebar on desktop
+      document.body.style.overflow = ''; // Ensure scroll is restored
+      applyExpanded(getStoredExpanded());
+    } else {
+      applyExpanded(false); // Collapse sidebar on mobile
+    }
+  };
 
   const storageKey = 'slms.sidebar.expanded';
   const applyExpanded = (expanded) => {
@@ -90,19 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') close();
-  });
-
-  // when resizing to desktop, ensure overlay removed and scrolling restored
-  window.addEventListener('resize', () => {
-    close();
-    if (window.innerWidth >= 992) {
-      applyExpanded(getStoredExpanded());
-    } else {
-      applyExpanded(false);
-    }
-  });
+  window.addEventListener('resize', handleResize);
 
   // MOBILE DEFAULT MUST BE HIDDEN ON FIRST LOAD
   if (window.innerWidth < 992) close();

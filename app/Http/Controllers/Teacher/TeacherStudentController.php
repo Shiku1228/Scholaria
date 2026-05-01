@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -22,65 +23,90 @@ class TeacherStudentController extends Controller
         ];
 
         try {
-            if (!Schema::hasTable('courses') || !Schema::hasTable('enrollments') || !Schema::hasTable('users')) {
+            if (!Schema::hasTable('users')) {
                 return view('teacher.students.index', ['rows' => $rows, 'courses' => $courses, 'filters' => $filters]);
             }
 
-            if (!Schema::hasColumn('courses', 'teacher_id') || !Schema::hasColumn('enrollments', 'course_id') || !Schema::hasColumn('enrollments', 'student_id')) {
+            if (!Schema::hasColumn('users', 'name')) {
                 return view('teacher.students.index', ['rows' => $rows, 'courses' => $courses, 'filters' => $filters]);
             }
 
-            $courseNameCol = null;
-            foreach (['course_number', 'title', 'name', 'course_name'] as $c) {
-                if (Schema::hasColumn('courses', $c)) {
-                    $courseNameCol = $c;
-                    break;
+            // Get teacher's courses for filter dropdown
+            if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'teacher_id')) {
+                $courseNameCol = null;
+                foreach (['course_number', 'title', 'name', 'course_name'] as $c) {
+                    if (Schema::hasColumn('courses', $c)) {
+                        $courseNameCol = $c;
+                        break;
+                    }
+                }
+
+                if ($courseNameCol) {
+                    $courses = DB::table('courses')
+                        ->where('teacher_id', $teacherId)
+                        ->select(['id', $courseNameCol . ' as name'])
+                        ->orderBy($courseNameCol)
+                        ->get();
                 }
             }
 
-            if ($courseNameCol === null || !Schema::hasColumn('users', 'name')) {
-                return view('teacher.students.index', ['rows' => $rows, 'courses' => $courses, 'filters' => $filters]);
+            // Get ALL students with Student role in the system
+            $studentsQuery = User::query();
+            $hasSpatieRoles = in_array('Spatie\Permission\Traits\HasRoles', class_uses_recursive(User::class), true);
+
+            if ($hasSpatieRoles) {
+                $studentsQuery->role('Student');
+            } elseif (Schema::hasColumn('users', 'role')) {
+                $studentsQuery->whereRaw('LOWER(role) = ?', ['student']);
             }
 
-            $courses = DB::table('courses')
-                ->where('teacher_id', $teacherId)
-                ->select(['id', $courseNameCol . ' as name'])
-                ->orderBy($courseNameCol)
-                ->get();
-
-            $select = [
-                'users.name as student_name',
-                'courses.' . $courseNameCol . ' as course_name',
-            ];
-
-            if (Schema::hasColumn('courses', 'semester')) {
-                $select[] = 'courses.semester as semester';
+            // Apply student name filter if provided
+            if ($filters['student']) {
+                $term = trim((string) $filters['student']);
+                if ($term !== '') {
+                    $studentsQuery->where('name', 'like', '%' . $term . '%');
+                }
             }
 
-            if (Schema::hasColumn('enrollments', 'enrolled_at')) {
-                $select[] = 'enrollments.enrolled_at as enrolled_at';
-            } elseif (Schema::hasColumn('enrollments', 'created_at')) {
-                $select[] = 'enrollments.created_at as enrolled_at';
-            }
+            // Get students with their enrolled courses (if any)
+            $students = $studentsQuery->orderBy('name')->limit(500)->get();
 
-            $rows = DB::table('enrollments')
-                ->join('courses', 'courses.id', '=', 'enrollments.course_id')
-                ->join('users', 'users.id', '=', 'enrollments.student_id')
-                ->where('courses.teacher_id', $teacherId)
-                ->when($filters['course_id'], function ($q) use ($filters) {
-                    $q->where('courses.id', (int) $filters['course_id']);
-                })
-                ->when($filters['student'], function ($q) use ($filters) {
-                    $term = trim((string) $filters['student']);
-                    if ($term !== '') {
-                        $q->where('users.name', 'like', '%' . $term . '%');
-                    }
-                })
-                ->select($select)
-                ->orderBy('users.name')
-                ->limit(500)
-                ->get();
-        } catch (\Throwable) {
+            // Build rows with student info and their courses
+            $rows = $students->map(function ($student) use ($courses, $filters) {
+                // Get student's enrolled courses
+                $enrolledCourses = [];
+                if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'student_id')) {
+                    $enrolledCourseIds = DB::table('enrollments')
+                        ->where('student_id', $student->id)
+                        ->pluck('course_id')
+                        ->toArray();
+
+                    $enrolledCourses = $courses->whereIn('id', $enrolledCourseIds)->pluck('name')->toArray();
+                }
+
+                return (object) [
+                    'student_name' => $student->name,
+                    'student_id' => $student->id,
+                    'student_email' => $student->email,
+                    'course_name' => !empty($enrolledCourses) ? implode(', ', $enrolledCourses) : 'Not enrolled in any course',
+                    'semester' => '—',
+                    'enrolled_at' => $student->created_at?->format('Y-m-d') ?? '—',
+                ];
+            });
+
+            // Filter by course if selected
+            if ($filters['course_id']) {
+                $courseId = (int) $filters['course_id'];
+                $rows = $rows->filter(function ($row) use ($courseId) {
+                    // Check if this student is enrolled in the selected course
+                    $isEnrolled = DB::table('enrollments')
+                        ->where('student_id', $row->student_id)
+                        ->where('course_id', $courseId)
+                        ->exists();
+                    return $isEnrolled;
+                })->values();
+            }
+        } catch (\Throwable $e) {
             $rows = collect();
             $courses = collect();
         }

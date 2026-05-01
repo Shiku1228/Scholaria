@@ -1,4 +1,7 @@
-@extends('layouts.admin')
+@extends('layouts.dashboard', [
+    'title' => 'Security Dashboard',
+    'sidebarPartial' => 'partials.sidebars.admin',
+])
 
 @section('title')
     Security Dashboard
@@ -32,7 +35,7 @@
 
     <!-- Security Metrics Overview -->
     <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div class="rounded-3xl p-6 text-white shadow-lg critical-events-card">
+        <div class="rounded-3xl p-6 text-white shadow-lg bg-gradient-to-br from-red-500 to-red-600">
             <div class="text-base text-red-100">Critical Events</div>
             <div class="mt-2 text-5xl font-extrabold">{{ number_format((int) ($metrics['critical_events'] ?? 0)) }}</div>
             <div class="mt-2 text-sm text-red-100">Last {{ $timeframe }}</div>

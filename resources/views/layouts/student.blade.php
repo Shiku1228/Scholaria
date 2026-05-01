@@ -201,12 +201,49 @@
             transform: rotate(180deg);
         }
 
-        .slms-hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        /* Enhanced Sidebar Scrolling with SCHOLARIA Brand Theme */
+        .custom-scrollbar {
+            scrollbar-width: thin !important;
+            scrollbar-color: #1e3a5f #f1f5f9 !important;
         }
-        .slms-hide-scrollbar::-webkit-scrollbar {
-            display: none;
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px !important;
+            display: block !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9 !important;
+            border-radius: 8px !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #1e3a5f 0%, #0f2440 100%) !important;
+            border-radius: 8px !important;
+            border: 1px solid #cbd5e1 !important;
+            transition: all 0.3s ease !important;
+            min-height: 24px !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #152542 0%, #0a1a2e 100%) !important;
+            border-color: #94a3b8 !important;
+            transform: scaleY(1.05) !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #0f1d32 0%, #061020 100%) !important;
+            transform: scaleY(0.95) !important;
+        }
+
+        #sidebar .slms-nav-item {
+            margin: 0.125rem 0;
+        }
+
+        /* Smooth scrolling for sidebar */
+        #sidebar .slms-sidebar-nav {
+            scroll-behavior: smooth;
         }
     </style>
 </head>
@@ -214,33 +251,43 @@
 <div class="min-h-screen flex">
     <div id="sidebarOverlay" class="fixed inset-0 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300 min-[992px]:hidden z-[1500]"></div>
 
-    <aside id="sidebar" class="fixed left-0 top-0 h-screen w-20 bg-white flex flex-col justify-between items-center py-6 shadow-md border-r border-gray-100 z-30">
-        <!-- Top Section -->
-        <div class="flex flex-col items-center space-y-6">
-            <div class="slms-brand-row flex items-center justify-center gap-3 px-4 w-full">
-                <div class="w-10 h-10 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+    <aside id="sidebar" class="fixed left-0 top-0 h-screen w-20 bg-white flex flex-col shadow-md border-r border-gray-100 z-30">
+        <!-- Logo Section -->
+        <div class="flex flex-col items-center py-4 border-b border-gray-100">
+            <div class="slms-brand-row flex items-center justify-center gap-3 px-3 w-full">
+                <div class="w-10 h-10 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
                     <img src="{{ asset('SCHOLORIA LOGO.png') }}" alt="SCHOLARIA" class="w-8 h-8 object-contain" />
                 </div>
                 <div class="slms-brand-text text-sm font-semibold text-gray-800">SCHOLARIA</div>
             </div>
+        </div>
 
-            <!-- Navigation Icons -->
-            <nav class="flex flex-col items-center space-y-6 mt-8">
+        <!-- Navigation Section - Scrollable -->
+        <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            <nav class="slms-sidebar-nav flex flex-col items-center py-3 space-y-2">
                 @include('partials.sidebars.student')
             </nav>
         </div>
 
         <!-- Bottom Section -->
-        <div class="flex flex-col items-center space-y-4">
-            <hr class="w-10 border-gray-300">
-            
-            <!-- Logout Button -->
-            <a href="{{ route('logout') }}" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+        <div class="flex flex-col items-center py-3 space-y-2 border-t border-gray-100">
+            @if(auth()->user()->google2fa_enabled)
+                <button onclick="open2FAModal()" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors" title="2FA Settings">
+                    <i data-lucide="shield-check" style="width:20px;height:20px;color:#10b981;"></i>
+                    <span class="sr-only">2FA Settings</span>
+                </button>
+            @else
+                <button onclick="open2FAModal()" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors" title="Setup 2FA">
+                    <i data-lucide="shield" style="width:20px;height:20px;"></i>
+                    <span class="sr-only">Setup 2FA</span>
+                </button>
+            @endif
+
+            <a href="{{ route('web.logout') }}" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
                 <i data-lucide="log-out" style="width:20px;height:20px;"></i>
                 <span class="sr-only">Logout</span>
             </a>
 
-            <!-- Toggle Button -->
             <button id="sidebarExpandToggle" type="button" aria-expanded="false" class="hidden min-[992px]:flex w-12 h-12 items-center justify-center rounded-full bg-white shadow-md border border-gray-200">
                 <i data-lucide="menu" style="width:18px;height:18px;"></i>
                 <span class="sr-only">Toggle sidebar</span>

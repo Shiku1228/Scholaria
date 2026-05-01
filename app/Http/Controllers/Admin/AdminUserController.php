@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
+use App\Models\Student;
+use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -33,21 +37,33 @@ class AdminUserController extends Controller
             $query->role($role);
         }
 
-        $hasStudentNumberColumn = Schema::hasColumn('users', 'student_number');
-
+        // Load profile relationships for search
         if ($search !== '') {
-            $query->where(function ($inner) use ($search, $hasStudentNumberColumn) {
-                $inner
-                    ->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%');
+            $query->where(function ($inner) use ($search) {
+                $inner->where('email', 'like', '%' . $search . '%');
 
-                if ($hasStudentNumberColumn) {
-                    $inner->orWhere('student_number', 'like', '%' . $search . '%');
-                }
+                // Search in profile tables if possible
+                $inner->orWhereHas('student', function ($q) use ($search) {
+                    $q->where('first_name', 'like', '%' . $search . '%')
+                      ->orWhere('last_name', 'like', '%' . $search . '%')
+                      ->orWhere('student_number', 'like', '%' . $search . '%');
+                });
+
+                $inner->orWhereHas('teacher', function ($q) use ($search) {
+                    $q->where('first_name', 'like', '%' . $search . '%')
+                      ->orWhere('last_name', 'like', '%' . $search . '%')
+                      ->orWhere('employee_id', 'like', '%' . $search . '%');
+                });
+
+                $inner->orWhereHas('admin', function ($q) use ($search) {
+                    $q->where('first_name', 'like', '%' . $search . '%')
+                      ->orWhere('last_name', 'like', '%' . $search . '%');
+                });
             });
         }
 
         $users = $query
+            ->with(['student', 'teacher', 'admin'])
             ->orderBy('id', 'desc')
             ->paginate(7)
             ->withQueryString();
@@ -69,10 +85,7 @@ class AdminUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $hasStudentNumberColumn = Schema::hasColumn('users', 'student_number');
-        $hasFirstNameColumn = Schema::hasColumn('users', 'first_name');
-        $hasMiddleNameColumn = Schema::hasColumn('users', 'middle_name');
-        $hasLastNameColumn = Schema::hasColumn('users', 'last_name');
+        $role = $request->input('role');
 
         $rules = [
             'first_name' => ['required', 'string', 'max:255'],
@@ -83,57 +96,100 @@ class AdminUserController extends Controller
             'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
         ];
 
-        if ($hasStudentNumberColumn) {
-            $rules['student_number'] = ['nullable', 'string', 'max:255', 'unique:users,student_number'];
+        // Add role-specific validation rules
+        if ($role === 'Student') {
+            $rules['student_number'] = ['required', 'string', 'max:255', 'unique:students,student_number'];
+            $rules['year_level'] = ['nullable', 'string', 'max:255'];
+            $rules['program'] = ['nullable', 'string', 'max:255'];
+            $rules['college'] = ['nullable', 'string', 'max:255'];
+        } elseif ($role === 'Teacher') {
+            $rules['employee_id'] = ['required', 'string', 'max:255', 'unique:teachers,employee_id'];
+            $rules['college'] = ['nullable', 'string', 'max:255'];
+            $rules['program'] = ['nullable', 'string', 'max:255'];
+            $rules['specialization'] = ['nullable', 'string', 'max:255'];
+        } elseif ($role === 'Admin') {
+            $rules['admin_level'] = ['nullable', 'string', 'max:255'];
+            $rules['access_scope'] = ['nullable', 'string', 'max:255'];
         }
+
+        // Temporary debug - dump all request data
+        // dd($request->all());
 
         $validated = $request->validate($rules);
 
-        if ($hasStudentNumberColumn && ($validated['role'] ?? '') === 'Student' && empty($validated['student_number'])) {
-            return back()->withErrors([
-                'student_number' => 'Student number is required for student accounts.',
-            ])->withInput();
-        }
+        // Debug: Log what data is being received
+        \Log::info('Creating user with data:', [
+            'role' => $role,
+            'program' => $validated['program'] ?? 'NOT SET',
+            'college' => $validated['college'] ?? 'NOT SET',
+            'all_data' => $validated,
+        ]);
 
-        $name = trim(implode(' ', array_filter([
-            $validated['first_name'] ?? '',
-            $validated['middle_name'] ?? '',
-            $validated['last_name'] ?? '',
-        ])));
+        DB::transaction(function () use ($validated, $role) {
+            // Create user (auth only)
+            $user = User::create([
+                'name' => trim("{$validated['first_name']} {$validated['middle_name']} {$validated['last_name']}"),
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+            ]);
 
-        $payload = [
-            'name' => $name,
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ];
+            // Assign role
+            if (method_exists($user, 'syncRoles')) {
+                $user->syncRoles([$role]);
+            }
 
-        if ($hasFirstNameColumn) {
-            $payload['first_name'] = $validated['first_name'];
-        }
-        if ($hasMiddleNameColumn) {
-            $payload['middle_name'] = $validated['middle_name'] ?? null;
-        }
-        if ($hasLastNameColumn) {
-            $payload['last_name'] = $validated['last_name'];
-        }
-        if ($hasStudentNumberColumn) {
-            $payload['student_number'] = ($validated['role'] ?? '') === 'Student' ? ($validated['student_number'] ?? null) : null;
-        }
+            // Create profile based on role
+            $profileData = [
+                'user_id' => $user->id,
+                'first_name' => $validated['first_name'],
+                'middle_name' => $validated['middle_name'] ?? null,
+                'last_name' => $validated['last_name'],
+            ];
 
-        $user = User::query()->create($payload);
+            switch ($role) {
+                case 'Student':
+                    $profile = Student::create(array_merge($profileData, [
+                        'student_number' => $validated['student_number'],
+                        'year_level' => $validated['year_level'] ?? null,
+                        'program' => $validated['program'] ?? null,
+                        'college' => $validated['college'] ?? null,
+                        'enrollment_date' => now(),
+                    ]));
+                    break;
 
-        if (method_exists($user, 'syncRoles')) {
-            $user->syncRoles([$validated['role']]);
-        }
+                case 'Teacher':
+                    $profile = Teacher::create(array_merge($profileData, [
+                        'employee_id' => $validated['employee_id'],
+                        'college' => $validated['college'] ?? null,
+                        'program' => $validated['program'] ?? null,
+                        'specialization' => $validated['specialization'] ?? null,
+                        'hire_date' => now(),
+                    ]));
+                    break;
 
-        $this->syncLegacyRoleColumn($user, $validated['role']);
+                case 'Admin':
+                    $profile = Admin::create(array_merge($profileData, [
+                        'admin_level' => $validated['admin_level'] ?? 'standard',
+                        'access_scope' => $validated['access_scope'] ?? 'all',
+                    ]));
+                    break;
+            }
 
-        return redirect()->route('admin.users.index');
+            // Update user with profile reference
+            $user->update([
+                'profile_type' => get_class($profile),
+                'profile_id' => $profile->id,
+            ]);
+        });
+
+        return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
     }
 
     public function edit($user): View
     {
-        $user = User::withTrashed()->findOrFail($user);
+        $user = User::withTrashed()
+            ->with(['student', 'teacher', 'admin'])
+            ->findOrFail($user);
 
         return view('admin.users.edit', [
             'user' => $user,
@@ -143,11 +199,7 @@ class AdminUserController extends Controller
     public function update(Request $request, $user): RedirectResponse
     {
         $user = User::withTrashed()->findOrFail($user);
-
-        $hasStudentNumberColumn = Schema::hasColumn('users', 'student_number');
-        $hasFirstNameColumn = Schema::hasColumn('users', 'first_name');
-        $hasMiddleNameColumn = Schema::hasColumn('users', 'middle_name');
-        $hasLastNameColumn = Schema::hasColumn('users', 'last_name');
+        $role = $request->input('role');
 
         $rules = [
             'first_name' => ['required', 'string', 'max:255'],
@@ -158,52 +210,136 @@ class AdminUserController extends Controller
             'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
         ];
 
-        if ($hasStudentNumberColumn) {
-            $rules['student_number'] = ['nullable', 'string', 'max:255', Rule::unique('users', 'student_number')->ignore($user->id)];
+        // Add role-specific validation rules
+        if ($role === 'Student') {
+            $rules['student_number'] = ['required', 'string', 'max:255', Rule::unique('students', 'student_number')->ignore($user->profile_id ?? null)];
+            $rules['year_level'] = ['nullable', 'string', 'max:255'];
+            $rules['program'] = ['nullable', 'string', 'max:255'];
+            $rules['college'] = ['nullable', 'string', 'max:255'];
+        } elseif ($role === 'Teacher') {
+            $rules['employee_id'] = ['required', 'string', 'max:255', Rule::unique('teachers', 'employee_id')->ignore($user->profile_id ?? null)];
+            $rules['college'] = ['nullable', 'string', 'max:255'];
+            $rules['program'] = ['nullable', 'string', 'max:255'];
+            $rules['specialization'] = ['nullable', 'string', 'max:255'];
+        } elseif ($role === 'Admin') {
+            $rules['admin_level'] = ['nullable', 'string', 'max:255'];
+            $rules['access_scope'] = ['nullable', 'string', 'max:255'];
         }
 
         $validated = $request->validate($rules);
 
-        if ($hasStudentNumberColumn && ($validated['role'] ?? '') === 'Student' && empty($validated['student_number'])) {
-            return back()->withErrors([
-                'student_number' => 'Student number is required for student accounts.',
-            ])->withInput();
-        }
+        DB::transaction(function () use ($user, $validated, $role) {
+            // Update user basic info
+            $user->update([
+                'name' => trim("{$validated['first_name']} {$validated['middle_name']} {$validated['last_name']}"),
+                'email' => $validated['email'],
+            ]);
 
-        $name = trim(implode(' ', array_filter([
-            $validated['first_name'] ?? '',
-            $validated['middle_name'] ?? '',
-            $validated['last_name'] ?? '',
-        ])));
+            if (!empty($validated['password'])) {
+                $user->password = Hash::make($validated['password']);
+                $user->save();
+            }
 
-        $user->name = $name;
-        if ($hasFirstNameColumn) {
-            $user->first_name = $validated['first_name'];
-        }
-        if ($hasMiddleNameColumn) {
-            $user->middle_name = $validated['middle_name'] ?? null;
-        }
-        if ($hasLastNameColumn) {
-            $user->last_name = $validated['last_name'];
-        }
-        if ($hasStudentNumberColumn) {
-            $user->student_number = ($validated['role'] ?? '') === 'Student' ? ($validated['student_number'] ?? null) : null;
-        }
-        $user->email = $validated['email'];
+            // Update role
+            if (method_exists($user, 'syncRoles')) {
+                $user->syncRoles([$role]);
+            }
 
-        if (!empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
+            // Update or create profile
+            $profileData = [
+                'first_name' => $validated['first_name'],
+                'middle_name' => $validated['middle_name'] ?? null,
+                'last_name' => $validated['last_name'],
+            ];
+
+            // Get current role and handle profile change if needed
+            $currentRole = $user->getRoleNames()->first();
+
+            if ($currentRole !== $role) {
+                // Role changed - delete old profile, create new one
+                $this->deleteOldProfile($user);
+
+                switch ($role) {
+                    case 'Student':
+                        $profile = Student::create(array_merge($profileData, [
+                            'user_id' => $user->id,
+                            'student_number' => $validated['student_number'],
+                            'year_level' => $validated['year_level'] ?? null,
+                            'program' => $validated['program'] ?? null,
+                            'college' => $validated['college'] ?? null,
+                            'enrollment_date' => now(),
+                        ]));
+                        break;
+
+                    case 'Teacher':
+                        $profile = Teacher::create(array_merge($profileData, [
+                            'user_id' => $user->id,
+                            'employee_id' => $validated['employee_id'],
+                            'college' => $validated['college'] ?? null,
+                            'program' => $validated['program'] ?? null,
+                            'specialization' => $validated['specialization'] ?? null,
+                            'hire_date' => now(),
+                        ]));
+                        break;
+
+                    case 'Admin':
+                        $profile = Admin::create(array_merge($profileData, [
+                            'user_id' => $user->id,
+                            'admin_level' => $validated['admin_level'] ?? 'standard',
+                            'access_scope' => $validated['access_scope'] ?? 'all',
+                        ]));
+                        break;
+                }
+
+                $user->update([
+                    'profile_type' => get_class($profile),
+                    'profile_id' => $profile->id,
+                ]);
+            } else {
+                // Same role - just update existing profile
+                $profile = $user->profile;
+                if ($profile) {
+                    switch ($role) {
+                        case 'Student':
+                            $profile->update(array_merge($profileData, [
+                                'student_number' => $validated['student_number'],
+                                'year_level' => $validated['year_level'] ?? $profile->year_level,
+                                'program' => $validated['program'] ?? $profile->program,
+                                'college' => $validated['college'] ?? $profile->college,
+                            ]));
+                            break;
+
+                        case 'Teacher':
+                            $profile->update(array_merge($profileData, [
+                                'employee_id' => $validated['employee_id'],
+                                'college' => $validated['college'] ?? $profile->college,
+                                'program' => $validated['program'] ?? $profile->program,
+                                'specialization' => $validated['specialization'] ?? $profile->specialization,
+                            ]));
+                            break;
+
+                        case 'Admin':
+                            $profile->update(array_merge($profileData, [
+                                'admin_level' => $validated['admin_level'] ?? $profile->admin_level,
+                                'access_scope' => $validated['access_scope'] ?? $profile->access_scope,
+                            ]));
+                            break;
+                    }
+                }
+            }
+        });
+
+        return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
+    }
+
+    private function deleteOldProfile(User $user): void
+    {
+        if ($user->profile) {
+            $user->profile->delete();
         }
-
-        $user->save();
-
-        if (method_exists($user, 'syncRoles')) {
-            $user->syncRoles([$validated['role']]);
-        }
-
-        $this->syncLegacyRoleColumn($user, $validated['role']);
-
-        return redirect()->route('admin.users.index');
+        $user->student()?->delete();
+        $user->teacher()?->delete();
+        $user->admin()?->delete();
     }
 
     private function syncLegacyRoleColumn(User $user, string $spatieRoleName): void

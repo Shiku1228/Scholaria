@@ -1,4 +1,7 @@
-﻿@extends('layouts.admin')
+﻿@extends('layouts.dashboard', [
+    'title' => 'Users',
+    'sidebarPartial' => 'partials.sidebars.admin',
+])
 
 @section('content')
     @php
@@ -8,7 +11,7 @@
         $total = $users->total();
         $from = $users->firstItem() ?? 0;
         $to = $users->lastItem() ?? 0;
-        $showStudentNumber = in_array($role, ['all', 'Student'], true);
+        $showRoleId = in_array($role, ['all', 'Student', 'Teacher'], true);
     @endphp
 
     <div class="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
@@ -58,10 +61,7 @@
                 <thead class="bg-slate-100">
                     <tr class="text-left text-xs font-semibold tracking-wide text-slate-500 uppercase border-b border-slate-200">
                         <th class="py-4 px-6">User</th>
-                        <th class="py-4 px-6">ID</th>
-                        @if ($showStudentNumber)
-                            <th class="py-4 px-6">Student #</th>
-                        @endif
+                        <th class="py-4 px-6">Role ID</th>
                         <th class="py-4 px-6">Role</th>
                         <th class="py-4 px-6">Status</th>
                         <th class="py-4 px-6">Joined Date</th>
@@ -76,7 +76,17 @@
                             $displayRole = $labelRole === 'Teacher' ? 'Instructor' : $labelRole;
                             $isDeleted = $user->trashed();
                             $statusLabel = $isDeleted ? 'Suspended' : 'Active';
-                            $initial = strtoupper(substr((string) $user->name, 0, 1));
+
+                            // Get profile data
+                            $profile = $user->profile;
+                            $fullName = $profile?->full_name ?? $user->name;
+                            $roleId = match($labelRole) {
+                                'Student' => $user->student?->student_number ?? '--',
+                                'Teacher' => $user->teacher?->employee_id ?? '--',
+                                'Admin' => 'ADM-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
+                                default => '--',
+                            };
+                            $initial = strtoupper(substr((string) $fullName, 0, 1));
                         @endphp
 
                         <tr class="text-slate-700 bg-slate-50/60 hover:bg-slate-100/60 transition-colors">
@@ -86,17 +96,12 @@
                                         {{ $initial !== '' ? $initial : 'U' }}
                                     </div>
                                     <div>
-                                        <div class="font-semibold text-slate-900 leading-tight">{{ $user->name }}</div>
+                                        <div class="font-semibold text-slate-900 leading-tight">{{ $fullName }}</div>
                                         <div class="text-xs text-slate-500">{{ $user->email }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-4 px-6 text-xs text-slate-500 font-medium">USR-{{ str_pad((string) $user->id, 3, '0', STR_PAD_LEFT) }}</td>
-                            @if ($showStudentNumber)
-                                <td class="py-4 px-6 text-xs text-slate-500 font-medium">
-                                    {{ $user->student_number ?: '--' }}
-                                </td>
-                            @endif
+                            <td class="py-4 px-6 text-xs text-slate-500 font-medium">{{ $roleId }}</td>
                             <td class="py-4 px-6">
                                 <span @class([
                                     'inline-flex items-center h-7 px-3 rounded-lg border text-xs font-medium',
@@ -151,7 +156,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $showStudentNumber ? '7' : '6' }}" class="py-10 px-6 text-center text-sm text-slate-500">No users found for this filter.</td>
+                            <td colspan="6" class="py-10 px-6 text-center text-sm text-slate-500">No users found for this filter.</td>
                         </tr>
                     @endforelse
                 </tbody>

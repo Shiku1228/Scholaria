@@ -75,7 +75,7 @@
                     </div>
 
                     <div class="text-center">
-                        <form method="POST" action="{{ route('logout') }}">
+                        <form method="POST" action="{{ route('web.logout') }}">
                             @csrf
                             <button type="submit" class="text-sm text-gray-600 hover:text-gray-900">
                                 Cancel and logout

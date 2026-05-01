@@ -1,11 +1,35 @@
-﻿@extends('layouts.admin')
+﻿@extends('layouts.dashboard', [
+    'title' => 'Edit User',
+    'sidebarPartial' => 'partials.sidebars.admin',
+])
 
 @section('content')
     @php
-        $nameParts = preg_split('/\s+/', trim((string) $user->name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        $fallbackFirst = $nameParts[0] ?? '';
-        $fallbackLast = count($nameParts) > 1 ? (string) end($nameParts) : '';
-        $fallbackMiddle = count($nameParts) > 2 ? implode(' ', array_slice($nameParts, 1, -1)) : '';
+        $roleName = method_exists($user, 'getRoleNames') ? ($user->getRoleNames()->first() ?? 'Student') : 'Student';
+
+        // Get profile data based on role
+        $profile = $user->profile;
+        $firstName = old('first_name', $profile?->first_name ?? '');
+        $middleName = old('middle_name', $profile?->middle_name ?? '');
+        $lastName = old('last_name', $profile?->last_name ?? '');
+
+        // If no profile data, fallback to name parsing
+        if (empty($firstName)) {
+            $nameParts = preg_split('/\s+/', trim((string) $user->name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $firstName = $nameParts[0] ?? '';
+            $lastName = count($nameParts) > 1 ? (string) end($nameParts) : '';
+            $middleName = count($nameParts) > 2 ? implode(' ', array_slice($nameParts, 1, -1)) : '';
+        }
+
+        // Role-specific profile data
+        $studentNumber = old('student_number', $user->student?->student_number ?? '');
+        $yearLevel = old('year_level', $user->student?->year_level ?? '');
+        $program = old('program', $user->student?->program ?? ($user->teacher?->program ?? ''));
+        $college = old('college', $user->student?->college ?? ($user->teacher?->college ?? ''));
+        $employeeId = old('employee_id', $user->teacher?->employee_id ?? '');
+        $specialization = old('specialization', $user->teacher?->specialization ?? '');
+        $adminLevel = old('admin_level', $user->admin?->admin_level ?? 'standard');
+        $accessScope = old('access_scope', $user->admin?->access_scope ?? 'all');
     @endphp
     <div>
         <div class="text-xl font-semibold">Edit User</div>
@@ -19,17 +43,17 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700" for="first_name">First Name</label>
-                <input id="first_name" name="first_name" type="text" value="{{ old('first_name', $user->first_name ?? $fallbackFirst) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
+                <input id="first_name" name="first_name" type="text" value="{{ $firstName }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
                 @error('first_name')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700" for="middle_name">Middle Name</label>
-                <input id="middle_name" name="middle_name" type="text" value="{{ old('middle_name', $user->middle_name ?? $fallbackMiddle) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
+                <input id="middle_name" name="middle_name" type="text" value="{{ $middleName }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
                 @error('middle_name')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700" for="last_name">Last Name</label>
-                <input id="last_name" name="last_name" type="text" value="{{ old('last_name', $user->last_name ?? $fallbackLast) }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
+                <input id="last_name" name="last_name" type="text" value="{{ $lastName }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
                 @error('last_name')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
             </div>
         </div>
@@ -42,21 +66,81 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700" for="role">Role</label>
-            @php
-                $currentRole = method_exists($user, 'getRoleNames') ? ($user->getRoleNames()->first() ?? 'Student') : 'Student';
-            @endphp
             <select id="role" name="role" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
-                <option value="Admin" {{ old('role', $currentRole) === 'Admin' ? 'selected' : '' }}>Admin</option>
-                <option value="Teacher" {{ old('role', $currentRole) === 'Teacher' ? 'selected' : '' }}>Teacher</option>
-                <option value="Student" {{ old('role', $currentRole) === 'Student' ? 'selected' : '' }}>Student</option>
+                <option value="Admin" {{ old('role', $roleName) === 'Admin' ? 'selected' : '' }}>Admin</option>
+                <option value="Teacher" {{ old('role', $roleName) === 'Teacher' ? 'selected' : '' }}>Teacher</option>
+                <option value="Student" {{ old('role', $roleName) === 'Student' ? 'selected' : '' }}>Student</option>
             </select>
             @error('role')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
 
-        <div id="studentNumberGroup">
-            <label class="block text-sm font-medium text-gray-700" for="student_number">Student Number</label>
-            <input id="student_number" name="student_number" type="text" value="{{ old('student_number', $user->student_number ?? '') }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. 2026-000123">
-            @error('student_number')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
+        <!-- Role-specific fields -->
+        <div id="roleSpecificFields">
+            <!-- Student Fields -->
+            <div id="studentFields" class="space-y-4 {{ $roleName !== 'Student' ? 'hidden' : '' }}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700" for="student_number">Student Number</label>
+                    <input id="student_number" name="student_number" type="text" value="{{ $studentNumber }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. 2026-000123" {{ $roleName === 'Student' ? 'required' : '' }}>
+                    @error('student_number')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="year_level">Year Level</label>
+                        <input id="year_level" name="year_level" type="text" value="{{ $yearLevel }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. 3rd Year">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="program">Program</label>
+                        <input id="program" name="program" type="text" value="{{ $program }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. BS Computer Science">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="college">College</label>
+                        <input id="college" name="college" type="text" value="{{ $college }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. College of Engineering">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Fields -->
+            <div id="teacherFields" class="space-y-4 {{ $roleName !== 'Teacher' ? 'hidden' : '' }}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700" for="employee_id">Employee ID</label>
+                    <input id="employee_id" name="employee_id" type="text" value="{{ $employeeId }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. EMP-2026-001" {{ $roleName === 'Teacher' ? 'required' : '' }}>
+                    @error('employee_id')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="teacher_college">College</label>
+                        <input id="teacher_college" name="college" type="text" value="{{ $college }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. College of Engineering">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="teacher_program">Program</label>
+                        <input id="teacher_program" name="program" type="text" value="{{ $program }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. Computer Science Dept">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="specialization">Specialization</label>
+                        <input id="specialization" name="specialization" type="text" value="{{ $specialization }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="e.g. Software Engineering">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Fields -->
+            <div id="adminFields" class="space-y-4 {{ $roleName !== 'Admin' ? 'hidden' : '' }}">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="admin_level">Admin Level</label>
+                        <select id="admin_level" name="admin_level" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
+                            <option value="standard" {{ $adminLevel === 'standard' ? 'selected' : '' }}>Standard</option>
+                            <option value="super" {{ $adminLevel === 'super' ? 'selected' : '' }}>Super Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="access_scope">Access Scope</label>
+                        <select id="access_scope" name="access_scope" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
+                            <option value="all" {{ $accessScope === 'all' ? 'selected' : '' }}>All</option>
+                            <option value="limited" {{ $accessScope === 'limited' ? 'selected' : '' }}>Limited</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div>
@@ -78,21 +162,48 @@
     <script>
         (function () {
             const roleEl = document.getElementById('role');
-            const studentGroup = document.getElementById('studentNumberGroup');
-            const studentInput = document.getElementById('student_number');
-            if (!roleEl || !studentGroup || !studentInput) return;
+            const studentFields = document.getElementById('studentFields');
+            const teacherFields = document.getElementById('teacherFields');
+            const adminFields = document.getElementById('adminFields');
+            const studentNumberInput = document.getElementById('student_number');
+            const employeeIdInput = document.getElementById('employee_id');
 
-            function toggleStudentNumber() {
-                const isStudent = roleEl.value === 'Student';
-                studentGroup.style.display = isStudent ? '' : 'none';
-                studentInput.required = isStudent;
-                if (!isStudent) {
-                    studentInput.value = '';
+            // Get all inputs from each field group
+            const studentInputs = studentFields?.querySelectorAll('input, select') || [];
+            const teacherInputs = teacherFields?.querySelectorAll('input, select') || [];
+            const adminInputs = adminFields?.querySelectorAll('input, select') || [];
+
+            if (!roleEl) return;
+
+            function toggleRoleFields() {
+                const role = roleEl.value;
+
+                // Hide and disable all first
+                studentFields?.classList.add('hidden');
+                teacherFields?.classList.add('hidden');
+                adminFields?.classList.add('hidden');
+
+                studentInputs.forEach(input => input.disabled = true);
+                teacherInputs.forEach(input => input.disabled = true);
+                adminInputs.forEach(input => input.disabled = true);
+
+                // Show and enable relevant fields
+                if (role === 'Student') {
+                    studentFields?.classList.remove('hidden');
+                    studentInputs.forEach(input => input.disabled = false);
+                    if (studentNumberInput) studentNumberInput.required = true;
+                } else if (role === 'Teacher') {
+                    teacherFields?.classList.remove('hidden');
+                    teacherInputs.forEach(input => input.disabled = false);
+                    if (employeeIdInput) employeeIdInput.required = true;
+                } else if (role === 'Admin') {
+                    adminFields?.classList.remove('hidden');
+                    adminInputs.forEach(input => input.disabled = false);
                 }
             }
 
-            roleEl.addEventListener('change', toggleStudentNumber);
-            toggleStudentNumber();
+            roleEl.addEventListener('change', toggleRoleFields);
+            toggleRoleFields();
         })();
     </script>
 @endsection

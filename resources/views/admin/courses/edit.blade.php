@@ -1,4 +1,7 @@
-﻿@extends('layouts.admin')
+﻿@extends('layouts.dashboard', [
+    'title' => 'Edit Course',
+    'sidebarPartial' => 'partials.sidebars.admin',
+])
 
 @section('content')
     <div>

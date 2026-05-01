@@ -7,6 +7,7 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminCourseController;
 use App\Http\Controllers\Admin\AdminEnrollmentController;
+use App\Http\Controllers\Admin\AdminRecordsController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -61,7 +62,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
 });
 
-Route::match(['GET', 'POST'], '/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+Route::match(['GET', 'POST'], '/logout', [AuthenticatedSessionController::class, 'destroy'])->name('web.logout');
 
 Route::middleware(['auth'])->prefix('2fa')->name('2fa.')->group(function () {
     Route::get('/setup', [TwoFactorAuthController::class, 'showSetup'])->name('setup');
@@ -103,6 +104,9 @@ Route::prefix('admin')
         Route::resource('/courses', AdminCourseController::class)->except(['show']);
 
         Route::resource('/enrollments', AdminEnrollmentController::class)->except(['show']);
+
+        // Records Management
+        Route::get('/records', [AdminRecordsController::class, 'index'])->name('records.index');
     });
 
 Route::middleware(['auth', 'session.tracking'])->prefix('messages')->name('messages.')->group(function () {

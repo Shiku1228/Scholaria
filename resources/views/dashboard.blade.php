@@ -17,7 +17,7 @@
                 Go to Admin Dashboard
             </a>
 
-            <a href="{{ route('logout') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            <a href="{{ route('web.logout') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">
                 Logout
             </a>
         </div>

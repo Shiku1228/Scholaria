@@ -1,4 +1,7 @@
-﻿@extends('layouts.admin')
+﻿@extends('layouts.dashboard', [
+    'title' => 'Enrollments',
+    'sidebarPartial' => 'partials.sidebars.admin',
+])
 
 @section('content')
     @php

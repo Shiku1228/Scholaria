@@ -34,6 +34,8 @@ class User extends Authenticatable implements JWTSubject
         'provider',
         'provider_id',
         'provider_token',
+        'profile_type',
+        'profile_id',
     ];
 
     /**
@@ -151,6 +153,89 @@ class User extends Authenticatable implements JWTSubject
     public function chatMessages(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ChatMessage::class, 'user_id');
+    }
+
+    /**
+     * Polymorphic profile relationship.
+     * Can be Student, Teacher, or Admin.
+     */
+    public function profile(): \Illuminate\Database\Eloquent\Relations\MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /**
+     * Get the student profile if this user is a student.
+     */
+    public function student(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    /**
+     * Get the teacher profile if this user is a teacher.
+     */
+    public function teacher(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Teacher::class);
+    }
+
+    /**
+     * Get the admin profile if this user is an admin.
+     */
+    public function admin(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Admin::class);
+    }
+
+    /**
+     * Get the full name from profile or fallback to name field.
+     */
+    public function getFullNameAttribute(): string
+    {
+        if ($this->profile) {
+            return $this->profile->full_name ?? $this->name;
+        }
+        return $this->name;
+    }
+
+    /**
+     * Get the role-specific ID (student_number or employee_id).
+     */
+    public function getRoleIdAttribute(): ?string
+    {
+        if ($this->profile) {
+            return $this->profile->student_number ?? $this->profile->employee_id ?? null;
+        }
+        return $this->student_number ?? null;
+    }
+
+    /**
+     * Check if user has a profile.
+     */
+    public function hasProfile(): bool
+    {
+        return $this->profile !== null;
+    }
+
+    /**
+     * Create profile based on role.
+     */
+    public function createProfile(array $data): Model
+    {
+        $profile = match ($this->getRoleNames()->first()) {
+            'Student' => $this->student()->create($data),
+            'Teacher' => $this->teacher()->create($data),
+            'Admin' => $this->admin()->create($data),
+            default => throw new \InvalidArgumentException('Unknown role'),
+        };
+
+        $this->update([
+            'profile_type' => $profile->getMorphClass(),
+            'profile_id' => $profile->id,
+        ]);
+
+        return $profile;
     }
 
     /**

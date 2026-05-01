@@ -47,3 +47,17 @@
         <span class="sr-only">Manage Users</span>
     </a>
 @endrole
+
+@php
+    $isRecordsActive = request()->routeIs('admin.records.*');
+@endphp
+
+@role('Admin')
+    <a href="{{ route('admin.records.index') }}"
+       title="Records"
+       class="slms-nav-item w-12 h-12 flex items-center justify-center rounded-xl transition-colors {{ $isRecordsActive ? 'bg-[#0b2d6b] text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100' }}">
+        <i data-lucide="file-text" style="width:20px;height:20px;"></i>
+        <span class="slms-nav-label ml-3">Records</span>
+        <span class="sr-only">Records</span>
+    </a>
+@endrole

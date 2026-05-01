@@ -4,9 +4,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\JwtAuthController;
 
 Route::middleware('api')->group(function () {
-    Route::post('/login', [JwtAuthController::class, 'login'])->name('login');
+    Route::post('/login', [JwtAuthController::class, 'login'])->name('api.login');
+    Route::get('/login', [JwtAuthController::class, 'login'])->name('api.login.get');
+    Route::post('/logout', [JwtAuthController::class, 'logout'])->name('api.logout');
+    Route::get('/logout', [JwtAuthController::class, 'logout'])->name('logout.get');
     Route::post('/refresh', [JwtAuthController::class, 'refresh'])->name('refresh');
-    Route::post('/logout', [JwtAuthController::class, 'logout'])->name('logout');
     
     Route::middleware('jwt')->group(function () {
         Route::get('/me', [JwtAuthController::class, 'me'])->name('me');

@@ -100,17 +100,54 @@ class JwtAuthController extends Controller
     public function logout()
     {
         try {
-            JWTAuth::invalidate(JWTAuth::getToken());
+            // Get the current token from the request header
+            $token = request()->bearerToken();
             
-            return response()->json([
-                'success' => true,
-                'message' => 'Successfully logged out'
-            ]);
+            if (!$token) {
+                // If no token is found, user is already logged out
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Successfully logged out'
+                ]);
+            }
+            
+            // Try to invalidate the token if it exists
+            try {
+                JWTAuth::invalidate($token);
+            } catch (\Exception $e) {
+                // If token invalidation fails, still return success
+                // User might be using an expired or invalid token
+                if (request()->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Successfully logged out'
+                    ]);
+                } else {
+                    // For web requests, redirect to login page
+                    return redirect()->route('login');
+                }
+            }
+            
+            // Check if request expects JSON (API) or HTML (web)
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Successfully logged out'
+                ]);
+            } else {
+                // For web requests, redirect to login page
+                return redirect()->route('login');
+            }
         } catch (JWTException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Could not log out'
-            ], 500);
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not log out: ' . $e->getMessage()
+                ], 500);
+            } else {
+                // For web requests, still redirect to login even on error
+                return redirect()->route('login');
+            }
         }
     }
 

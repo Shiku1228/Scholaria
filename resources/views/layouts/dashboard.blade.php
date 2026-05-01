@@ -7,6 +7,24 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* Enhanced Responsive Design */
+        @media (max-width: 640px) {
+            .slms-main {
+                margin-left: 0 !important;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            header {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            
+            main {
+                padding: 1rem !important;
+            }
+        }
+        
         @media (max-width: 991.98px) {
             #sidebar {
                 position: fixed;
@@ -81,6 +99,63 @@
 
         #sidebar .slms-nav-label {
             display: none;
+        }
+
+        /* Enhanced Sidebar Scrolling with SCHOLARIA Brand Theme */
+        .custom-scrollbar {
+            scrollbar-width: thin !important;
+            scrollbar-color: #1e3a5f #f1f5f9 !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px !important;
+            display: block !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9 !important;
+            border-radius: 8px !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #1e3a5f 0%, #0f2440 100%) !important;
+            border-radius: 8px !important;
+            border: 1px solid #cbd5e1 !important;
+            transition: all 0.3s ease !important;
+            min-height: 24px !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #152542 0%, #0a1a2e 100%) !important;
+            border-color: #94a3b8 !important;
+            transform: scaleY(1.05) !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #0f1d32 0%, #061020 100%) !important;
+            transform: scaleY(0.95) !important;
+        }
+
+        #sidebar .slms-nav-item {
+            margin: 0.125rem 0;
+        }
+
+        /* Smooth scrolling for sidebar */
+        #sidebar .slms-sidebar-nav {
+            scroll-behavior: smooth;
+        }
+
+        /* Enhanced Firefox scrollbar styling */
+        @supports (scrollbar-width: thin) {
+            .custom-scrollbar {
+                scrollbar-width: thin !important;
+                scrollbar-color: #1e3a5f #f1f5f9 !important;
+            }
+            
+            .custom-scrollbar:hover {
+                scrollbar-color: #152542 #e2e8f0 !important;
+            }
         }
 
         .slms-main {
@@ -254,9 +329,9 @@
     </div>
 
     <div class="slms-main flex-1 flex flex-col min-w-0">
-        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6">
-            <div class="flex items-center gap-3">
-                <button id="sidebarToggle" type="button" class="min-[992px]:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0b2d6b]">
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-3 min-w-0">
+                <button id="sidebarToggle" type="button" class="min-[992px]:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0b2d6b] flex-shrink-0">
                     <span class="sr-only">Open sidebar</span>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6 text-gray-700">
                         <path fill-rule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75Zm0 5.25c0-.414.336-.75.75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25c0-.414.336-.75.75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
@@ -264,14 +339,14 @@
                 </button>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 min-w-0">
                 @php
                     $isStudent = auth()->check() && method_exists(auth()->user(), 'hasRole') && auth()->user()->hasRole('Student');
                     $isTeacher = auth()->check() && method_exists(auth()->user(), 'hasRole') && auth()->user()->hasRole('Teacher');
                     $markAllRoute = $isStudent ? 'student.notifications.read-all' : ($isTeacher ? 'teacher.notifications.read-all' : null);
                     $openRoute = $isStudent ? 'student.notifications.open' : ($isTeacher ? 'teacher.notifications.open' : null);
                 @endphp
-                <div class="relative">
+                <div class="relative flex-shrink-0">
                     <button id="sharedNotificationToggle" type="button" class="h-10 w-10 rounded-full bg-white text-gray-600 border border-gray-200 flex items-center justify-center hover:bg-gray-50 relative" aria-label="Notifications">
                         <i data-lucide="bell" style="width:18px;height:18px;"></i>
                         @if (($headerUnreadNotificationCount ?? 0) > 0)
@@ -309,17 +384,17 @@
                         </div>
                     </div>
                 </div>
-                <div class="h-10 w-10 rounded-full bg-[#eaf0fb] text-[#0b2d6b] flex items-center justify-center border border-[#c9d7f2]">
+                <div class="h-10 w-10 rounded-full bg-[#eaf0fb] text-[#0b2d6b] flex items-center justify-center border border-[#c9d7f2] flex-shrink-0">
                     <i data-lucide="user" style="width:18px;height:18px;"></i>
                 </div>
-                <div class="hidden sm:block leading-tight">
-                    <div class="text-xs text-gray-500">Profile</div>
-                    <div class="text-sm font-medium text-gray-800">{{ auth()->user()->name }}</div>
+                <div class="hidden sm:block leading-tight min-w-0">
+                    <div class="text-xs text-gray-500 truncate">Profile</div>
+                    <div class="text-sm font-medium text-gray-800 truncate">{{ auth()->user()->name }}</div>
                 </div>
             </div>
         </header>
 
-        <main class="flex-1 p-4 sm:p-6">
+        <main class="flex-1 p-4 sm:p-6 lg:p-8">
             @yield('content')
         </main>
     </div>
