@@ -41,15 +41,19 @@
                 <button type="button" data-tab-btn="overview" class="tab-btn text-[#4f46e5] border-b-2 border-[#4f46e5] pb-2">Overview</button>
                 <button type="button" data-tab-btn="resources" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Resources</button>
                 <button type="button" data-tab-btn="discussion" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Discussion</button>
+                <button type="button" data-tab-btn="tasks" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Tasks</button>
                 <button type="button" data-tab-btn="students" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Students</button>
-                <a href="{{ route('teacher.assignments.index', $course) }}" class="text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Assignments</a>
-                <a href="{{ route('teacher.announcements.index', $course) }}" class="text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Announcements</a>
+                <button type="button" data-tab-btn="announcements" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Announcements</button>
             </div>
         </div>
 
         <div data-tab-panel="overview" class="p-4 sm:p-6">
-            <div class="text-lg font-semibold text-slate-900">Course Overview</div>
-            <div class="text-sm text-slate-500">Visible to enrolled students.</div>
+            <div class="flex items-start justify-between gap-4 mb-6">
+                <div>
+                    <div class="text-lg font-semibold text-slate-900">Course Overview</div>
+                    <div class="text-sm text-slate-500">Visible to enrolled students.</div>
+                </div>
+                            </div>
             @if (!empty($canEditOverview))
                 @if (!empty((string) ($course->overview ?? '')) && !old('overview'))
                     <div id="overviewReadOnly" class="mt-4">
@@ -260,6 +264,64 @@
                 </table>
             </div>
         </div>
+
+        <div data-tab-panel="tasks" class="p-4 sm:p-6 hidden">
+            @include('teacher.tasks.course-tasks')
+        </div>
+
+        <div data-tab-panel="announcements" class="p-4 sm:p-6 hidden">
+            <div class="flex items-center justify-between gap-2 mb-6">
+                <div>
+                    <div class="text-lg font-semibold text-slate-900">Announcements</div>
+                    <div class="text-sm text-slate-500">Manage course announcements.</div>
+                </div>
+                <a href="{{ route('teacher.announcements.create', $course) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">
+                    <i data-lucide="plus" class="h-4 w-4 mr-2"></i>
+                    Create Announcement
+                </a>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50">
+                        <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-200">
+                            <th class="py-3 px-4">Title</th>
+                            <th class="py-3 px-4">Date Posted</th>
+                            <th class="py-3 px-4">Priority</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse ($announcements ?? collect() as $announcement)
+                        <tr class="text-slate-700">
+                            <td class="py-3 px-4 font-medium text-slate-900">{{ $announcement->title }}</td>
+                            <td class="py-3 px-4 text-slate-600">{{ $announcement->created_at?->format('M d, Y') }}</td>
+                            <td class="py-3 px-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $announcement->priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
+                                    {{ $announcement->priority ?? 'normal' }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                    Published
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ route('teacher.announcements.show', [$course, $announcement]) }}" class="text-blue-600 hover:text-blue-800 text-sm">View</a>
+                                    <a href="{{ route('teacher.announcements.edit', [$course, $announcement]) }}" class="text-gray-600 hover:text-gray-800 text-sm">Edit</a>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="py-10 px-4 text-center text-sm text-slate-500">No announcements created yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
     <script>
         (function () {
@@ -292,7 +354,7 @@
             });
 
             const initial = (location.hash || '').replace('#', '');
-            const allowed = ['overview', 'resources', 'discussion', 'students'];
+            const allowed = ['overview', 'resources', 'discussion', 'tasks', 'students', 'announcements'];
             activate(allowed.includes(initial) ? initial : 'overview');
 
             const editBtn = document.getElementById('editOverviewToggle');

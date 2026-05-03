@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Submission;
 use App\Models\User;
 use App\Notifications\CourseEventNotification;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -39,26 +40,14 @@ class TeacherAssignmentController extends Controller
         ]);
     }
 
-    public function index(Request $request, Course $course): View
+    public function index(Request $request, Course $course): RedirectResponse
     {
         if ((int) $course->teacher_id !== (int) $request->user()->id) {
             abort(403);
         }
 
-        $assignments = collect();
-
-        try {
-            if (Schema::hasTable('assignments')) {
-                $assignments = $course->assignments()->withCount('submissions')->orderByDesc('id')->paginate(15);
-            }
-        } catch (\Throwable) {
-            $assignments = collect();
-        }
-
-        return view('teacher.assignments.index', [
-            'course' => $course,
-            'assignments' => $assignments,
-        ]);
+        // Redirect to course Tasks tab - redundant page, unified in course view
+        return redirect()->route('teacher.courses.show', ['course' => $course, 'tab' => 'tasks']);
     }
 
     public function create(Request $request, Course $course): View
@@ -83,6 +72,7 @@ class TeacherAssignmentController extends Controller
             'description' => ['nullable', 'string'],
             'due_date' => ['nullable', 'date'],
             'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'type' => ['nullable', 'in:assignment,quiz,exam'],
         ]);
 
         $assignment = Assignment::create([
@@ -91,6 +81,7 @@ class TeacherAssignmentController extends Controller
             'description' => $validated['description'] ?? null,
             'due_date' => $validated['due_date'] ?? null,
             'max_score' => (int) ($validated['max_score'] ?? 100),
+            'type' => $validated['type'] ?? 'assignment',
         ]);
 
         $studentIdsQuery = DB::table('enrollments')->where('course_id', (int) $course->id);
@@ -175,6 +166,7 @@ class TeacherAssignmentController extends Controller
             'description' => ['nullable', 'string'],
             'due_date' => ['nullable', 'date'],
             'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'type' => ['nullable', 'in:assignment,quiz,exam'],
         ]);
 
         $assignment->update([
@@ -182,6 +174,7 @@ class TeacherAssignmentController extends Controller
             'description' => $validated['description'] ?? null,
             'due_date' => $validated['due_date'] ?? null,
             'max_score' => (int) ($validated['max_score'] ?? $assignment->max_score ?? 100),
+            'type' => $validated['type'] ?? $assignment->type ?? 'assignment',
         ]);
 
         return redirect()->route('teacher.assignments.show', [$course, $assignment])->with('success', 'Assignment updated.');

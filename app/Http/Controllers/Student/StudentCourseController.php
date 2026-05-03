@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseDiscussion;
 use App\Models\CourseResource;
+use App\Models\Quiz;
 use App\Models\User;
 use App\Notifications\CourseEventNotification;
 use Illuminate\Http\Request;
@@ -154,21 +155,31 @@ class StudentCourseController extends Controller
             abort(403);
         }
 
+        // Initialize collections
         $resources = collect();
         $discussions = collect();
         $assignments = collect();
         $completedAssignments = 0;
+        $exams = collect();
+        $quizzes = collect();
 
-        try {
-            if (Schema::hasTable('course_resources')) {
+        // Load resources (separate try-catch)
+        if (Schema::hasTable('course_resources')) {
+            try {
                 $resources = CourseResource::query()
                     ->where('course_id', $courseId)
                     ->latest('id')
                     ->limit(200)
                     ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Error loading resources: ' . $e->getMessage());
+                $resources = collect();
             }
+        }
 
-            if (Schema::hasTable('course_discussions')) {
+        // Load discussions (separate try-catch)
+        if (Schema::hasTable('course_discussions')) {
+            try {
                 $discussions = CourseDiscussion::query()
                     ->with([
                         'user:id,name',
@@ -179,9 +190,15 @@ class StudentCourseController extends Controller
                     ->latest('created_at')
                     ->limit(200)
                     ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Error loading discussions: ' . $e->getMessage());
+                $discussions = collect();
             }
+        }
 
-            if (Schema::hasTable('assignments') && Schema::hasColumn('assignments', 'course_id')) {
+        // Load assignments (separate try-catch)
+        if (Schema::hasTable('assignments') && Schema::hasColumn('assignments', 'course_id')) {
+            try {
                 $query = DB::table('assignments')->where('course_id', $courseId);
                 $hasSubmissions = Schema::hasTable('submissions')
                     && Schema::hasColumn('submissions', 'assignment_id')
@@ -210,12 +227,46 @@ class StudentCourseController extends Controller
 
                 $assignments = $query->select($select)->limit(300)->get();
                 $completedAssignments = (int) $assignments->filter(fn ($a) => !empty($a->submission_id))->count();
+            } catch (\Throwable $e) {
+                \Log::error('Error loading assignments: ' . $e->getMessage());
+                $assignments = collect();
+                $completedAssignments = 0;
             }
-        } catch (\Throwable) {
-            $resources = collect();
-            $discussions = collect();
-            $assignments = collect();
-            $completedAssignments = 0;
+        }
+
+        // Load published online exams (separate try-catch)
+        if (Schema::hasTable('exams')) {
+            try {
+                $exams = $course->exams()
+                    ->where('is_published', true)
+                    ->where('exam_type', 'online')
+                    ->orderBy('exam_date', 'asc')
+                    ->get();
+                
+                // Load attempts separately
+                foreach ($exams as $exam) {
+                    $exam->attempts = \App\Models\StudentExamAttempt::where('exam_id', $exam->id)
+                        ->where('student_id', $studentId)
+                        ->get();
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Error loading exams: ' . $e->getMessage());
+                $exams = collect();
+            }
+        }
+
+        // Load published quizzes (separate try-catch)
+        if (Schema::hasTable('quizzes')) {
+            try {
+                $quizzes = $course->quizzes()
+                    ->where('is_published', true)
+                    ->with(['attempts' => fn ($q) => $q->where('student_id', $studentId)])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Error loading quizzes: ' . $e->getMessage());
+                $quizzes = collect();
+            }
         }
 
         return view('student.courses.show', [
@@ -224,6 +275,8 @@ class StudentCourseController extends Controller
             'discussions' => $discussions,
             'assignments' => $assignments,
             'completedAssignments' => $completedAssignments,
+            'exams' => $exams,
+            'quizzes' => $quizzes,
         ]);
     }
 

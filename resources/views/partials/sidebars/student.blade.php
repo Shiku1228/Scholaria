@@ -2,7 +2,7 @@
     $nav = [
         ['label' => 'Dashboard', 'route' => 'student.dashboard', 'href' => route('student.dashboard')],
         ['label' => 'Courses', 'route' => 'student.courses.index', 'href' => route('student.courses.index')],
-        ['label' => 'Assignments', 'route' => 'student.assignments.index', 'href' => route('student.assignments.index')],
+        ['label' => 'Tasks', 'route' => 'student.tasks.index', 'href' => route('student.tasks.index')],
         ['label' => 'Grades', 'route' => 'student.grades.index', 'href' => route('student.grades.index')],
         ['label' => 'Messages', 'route' => 'student.messages', 'href' => route('student.messages')],
     ];
@@ -10,7 +10,7 @@
     $icons = [
         'Dashboard' => 'layout-dashboard',
         'Courses' => 'book-open',
-        'Assignments' => 'clipboard-list',
+        'Tasks' => 'clipboard-list',
         'Grades' => 'graduation-cap',
         'Messages' => 'message-circle',
     ];

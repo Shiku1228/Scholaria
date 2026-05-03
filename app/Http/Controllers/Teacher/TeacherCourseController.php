@@ -123,43 +123,91 @@ class TeacherCourseController extends Controller
 
         $students = collect();
         $assignments = collect();
+        $quizzes = collect();
+        $exams = collect();
         $announcements = collect();
         $resources = collect();
         $discussions = collect();
 
-        try {
-            if (Schema::hasTable('enrollments')) {
-                $students = $course->enrollments()
-                    ->with(['student'])
-                    ->orderByDesc('enrolled_at')
-                    ->limit(200)
-                    ->get();
-            }
-
-            if (Schema::hasTable('assignments')) {
+        // Load assignments separately to ensure they appear
+        if (Schema::hasTable('assignments')) {
+            try {
                 $assignments = $course->assignments()
                     ->withCount('submissions')
                     ->orderByDesc('id')
                     ->limit(50)
                     ->get();
+            } catch (\Throwable $e) {
+                $assignments = collect();
             }
+        }
 
-            if (Schema::hasTable('announcements')) {
+        // Load each data source independently so one failure doesn't break others
+        if (Schema::hasTable('enrollments')) {
+            try {
+                $students = $course->enrollments()
+                    ->with(['student'])
+                    ->orderByDesc('enrolled_at')
+                    ->limit(200)
+                    ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Failed to load students: ' . $e->getMessage());
+                $students = collect();
+            }
+        }
+
+        if (Schema::hasTable('quizzes')) {
+            try {
+                $quizzes = $course->quizzes()
+                    ->withCount('questions')
+                    ->orderByDesc('id')
+                    ->limit(50)
+                    ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Failed to load quizzes: ' . $e->getMessage());
+                $quizzes = collect();
+            }
+        }
+
+        if (Schema::hasTable('exams')) {
+            try {
+                $exams = $course->exams()
+                    ->orderByDesc('id')
+                    ->limit(50)
+                    ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Failed to load exams: ' . $e->getMessage());
+                $exams = collect();
+            }
+        }
+
+        if (Schema::hasTable('announcements')) {
+            try {
                 $announcements = $course->announcements()
                     ->orderByDesc('id')
                     ->limit(50)
                     ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Failed to load announcements: ' . $e->getMessage());
+                $announcements = collect();
             }
+        }
 
-            if (Schema::hasTable('course_resources')) {
+        if (Schema::hasTable('course_resources')) {
+            try {
                 $resources = CourseResource::query()
                     ->where('course_id', (int) $course->id)
                     ->latest('id')
                     ->limit(200)
                     ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Failed to load resources: ' . $e->getMessage());
+                $resources = collect();
             }
+        }
 
-            if (Schema::hasTable('course_discussions')) {
+        if (Schema::hasTable('course_discussions')) {
+            try {
                 $discussions = CourseDiscussion::query()
                     ->with([
                         'user:id,name',
@@ -170,19 +218,18 @@ class TeacherCourseController extends Controller
                     ->latest('created_at')
                     ->limit(200)
                     ->get();
+            } catch (\Throwable $e) {
+                \Log::error('Failed to load discussions: ' . $e->getMessage());
+                $discussions = collect();
             }
-        } catch (\Throwable) {
-            $students = collect();
-            $assignments = collect();
-            $announcements = collect();
-            $resources = collect();
-            $discussions = collect();
         }
 
         return view('teacher.courses.show', [
             'course' => $course,
             'students' => $students,
             'assignments' => $assignments,
+            'quizzes' => $quizzes,
+            'exams' => $exams,
             'announcements' => $announcements,
             'resources' => $resources,
             'discussions' => $discussions,

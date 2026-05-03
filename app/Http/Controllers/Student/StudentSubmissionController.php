@@ -52,29 +52,73 @@ class StudentSubmissionController extends Controller
         } catch (\Throwable) {
         }
 
-        $validated = $request->validate([
-            'file' => ['required', 'file', 'max:10240'],
-        ]);
-
         if (!Schema::hasTable('submissions')) {
-            return back()->withErrors(['file' => 'Submissions are not available yet.']);
+            return back()->withErrors(['submission' => 'Submissions are not available yet.']);
         }
 
-        $path = $validated['file']->storeAs(
-            'submissions',
-            now()->format('Ymd_His') . '_' . Str::random(10) . '_' . $validated['file']->getClientOriginalName(),
-            'public'
-        );
+        $submissionType = $request->input('submission_type', 'file');
+        
+        // Validate based on submission type
+        $rules = [
+            'submission_type' => ['required', 'in:text,file,link'],
+        ];
+
+        switch ($submissionType) {
+            case 'text':
+                $rules['text_content'] = ['required', 'string', 'min:10'];
+                break;
+            case 'file':
+                $rules['file'] = ['required', 'file', 'max:10240'];
+                break;
+            case 'link':
+                $rules['link_content'] = ['required', 'url', 'max:500'];
+                break;
+        }
+
+        $validated = $request->validate($rules);
 
         $submission = Submission::query()->firstOrNew([
             'assignment_id' => (int) $assignment->id,
             'student_id' => $studentId,
         ]);
 
-        $submission->file_path = $path;
+        $submission->submission_type = $submissionType;
         $submission->submitted_at = now();
+
+        // Handle different submission types
+        switch ($submissionType) {
+            case 'text':
+                // Clean HTML content but preserve formatting
+                $cleanContent = strip_tags($validated['text_content'], '<p><br><strong><em><u><ul><ol><li><a><code><pre><h1><h2><h3><h4><h5><h6>');
+                $submission->content = $cleanContent;
+                $submission->file_path = null;
+                break;
+            case 'file':
+                $path = $validated['file']->storeAs(
+                    'submissions',
+                    now()->format('Ymd_His') . '_' . Str::random(10) . '_' . $validated['file']->getClientOriginalName(),
+                    'public'
+                );
+                $submission->file_path = $path;
+                $submission->content = null;
+                break;
+            case 'link':
+                $submission->content = $validated['link_content'];
+                $submission->file_path = null;
+                break;
+        }
+
         $submission->save();
 
-        return redirect()->route('student.dashboard')->with('success', 'Assignment submitted.');
+        $message = 'Assignment submitted successfully.';
+        if ($submissionType === 'text') {
+            $message = 'Text submission saved successfully.';
+        } elseif ($submissionType === 'file') {
+            $message = 'File uploaded successfully.';
+        } elseif ($submissionType === 'link') {
+            $message = 'Link submitted successfully.';
+        }
+
+        return redirect()->route('student.dashboard')->with('success', $message);
     }
 }

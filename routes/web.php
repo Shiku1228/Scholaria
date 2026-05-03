@@ -16,14 +16,20 @@ use App\Http\Controllers\Teacher\TeacherCourseController;
 use App\Http\Controllers\Teacher\TeacherStudentController;
 use App\Http\Controllers\Teacher\TeacherEnrollmentController;
 use App\Http\Controllers\Teacher\TeacherAssignmentController;
+use App\Http\Controllers\Teacher\TeacherTaskController;
 use App\Http\Controllers\Teacher\TeacherAnnouncementController;
 use App\Http\Controllers\Teacher\TeacherSubmissionController;
 use App\Http\Controllers\Teacher\TeacherNotificationController;
+use App\Http\Controllers\Teacher\TeacherQuizController;
+use App\Http\Controllers\Teacher\TeacherExamController;
 use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentSubmissionController;
 use App\Http\Controllers\Student\StudentCourseController;
 use App\Http\Controllers\Student\StudentAssignmentController;
+use App\Http\Controllers\Student\StudentTaskController;
 use App\Http\Controllers\Student\StudentGradeController;
+use App\Http\Controllers\Student\StudentExamController;
+use App\Http\Controllers\Student\StudentQuizController;
 use App\Http\Controllers\Student\StudentAnnouncementController;
 use App\Http\Controllers\Student\StudentNotificationController;
 use App\Http\Controllers\TwoFactorAuthController;
@@ -131,7 +137,43 @@ Route::prefix('teacher')
     ->group(function () {
         Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
 
-        Route::get('/assignments', [TeacherAssignmentController::class, 'overview'])->name('assignments.overview');
+        Route::get('/tasks', [TeacherTaskController::class, 'overview'])->name('tasks.overview');
+        Route::get('/assignments', [TeacherAssignmentController::class, 'overview'])->name('assignments.overview'); // Keep for backward compatibility
+        
+        // Quiz routes - same pattern as exams
+        Route::get('/quizzes', [TeacherQuizController::class, 'index'])->name('quizzes.index');
+        Route::get('/courses/{course}/quizzes/create', [TeacherQuizController::class, 'create'])->name('quizzes.create');
+        Route::post('/courses/{course}/quizzes', [TeacherQuizController::class, 'store'])->name('quizzes.store');
+        Route::get('/quizzes/{quiz}', [TeacherQuizController::class, 'show'])->name('quizzes.show');
+        Route::get('/quizzes/{quiz}/edit', [TeacherQuizController::class, 'edit'])->name('quizzes.edit');
+        Route::put('/quizzes/{quiz}', [TeacherQuizController::class, 'update'])->name('quizzes.update');
+        Route::delete('/quizzes/{quiz}', [TeacherQuizController::class, 'destroy'])->name('quizzes.destroy');
+
+        // Online Quiz Question Management (same as exams)
+        Route::get('/quizzes/{quiz}/questions', [TeacherQuizController::class, 'questions'])->name('quizzes.questions');
+        Route::post('/quizzes/{quiz}/questions', [TeacherQuizController::class, 'addQuestion'])->name('quizzes.questions.add');
+        Route::delete('/quizzes/{quiz}/questions/{question}', [TeacherQuizController::class, 'removeQuestion'])->name('quizzes.questions.remove');
+
+        // Quiz Publish/Unpublish
+        Route::post('/quizzes/{quiz}/publish', [TeacherQuizController::class, 'publish'])->name('quizzes.publish');
+
+        // Exam routes
+        Route::get('/exams', [TeacherExamController::class, 'index'])->name('exams.index');
+        Route::get('/courses/{course}/exams/create', [TeacherExamController::class, 'create'])->name('exams.create');
+        Route::post('/courses/{course}/exams', [TeacherExamController::class, 'store'])->name('exams.store');
+        Route::get('/exams/{exam}', [TeacherExamController::class, 'show'])->name('exams.show');
+        Route::get('/exams/{exam}/edit', [TeacherExamController::class, 'edit'])->name('exams.edit');
+        Route::put('/exams/{exam}', [TeacherExamController::class, 'update'])->name('exams.update');
+        Route::delete('/exams/{exam}', [TeacherExamController::class, 'destroy'])->name('exams.destroy');
+
+        // Online Exam Question Management
+        Route::get('/exams/{exam}/questions', [TeacherExamController::class, 'questions'])->name('exams.questions');
+        Route::post('/exams/{exam}/questions', [TeacherExamController::class, 'addQuestion'])->name('exams.questions.add');
+        Route::delete('/exams/{exam}/questions/{question}', [TeacherExamController::class, 'removeQuestion'])->name('exams.questions.remove');
+
+        // Exam Publish/Unpublish
+        Route::post('/exams/{exam}/publish', [TeacherExamController::class, 'publish'])->name('exams.publish');
+        Route::post('/exams/{exam}/unpublish', [TeacherExamController::class, 'unpublish'])->name('exams.unpublish');
 
         Route::get('/courses', [TeacherCourseController::class, 'index'])->name('courses.index');
         Route::get('/courses/{course}', [TeacherCourseController::class, 'show'])->name('courses.show');
@@ -175,12 +217,26 @@ Route::prefix('student')
         Route::post('/courses/{course}/discussions', [StudentCourseController::class, 'storeDiscussion'])->name('courses.discussions.store');
         Route::patch('/courses/{course}/discussions/{discussion}', [StudentCourseController::class, 'updateDiscussion'])->name('courses.discussions.update');
         Route::delete('/courses/{course}/discussions/{discussion}', [StudentCourseController::class, 'destroyDiscussion'])->name('courses.discussions.destroy');
-        Route::get('/assignments', [StudentAssignmentController::class, 'index'])->name('assignments.index');
+        Route::get('/tasks', [StudentTaskController::class, 'index'])->name('tasks.index');
+        Route::get('/assignments', [StudentAssignmentController::class, 'index'])->name('assignments.index'); // Keep for backward compatibility
         Route::get('/announcements', [StudentAnnouncementController::class, 'index'])->name('announcements.index');
         Route::get('/grades', [StudentGradeController::class, 'index'])->name('grades.index');
 
         Route::get('/assignments/{assignment}/submit', [StudentSubmissionController::class, 'create'])->name('assignments.submit');
         Route::post('/assignments/{assignment}/submit', [StudentSubmissionController::class, 'store'])->name('assignments.submit.store');
+        
+        // Student Exam Routes
+        Route::get('/exams', [StudentExamController::class, 'index'])->name('exams.index');
+        Route::get('/exams/{exam}', [StudentExamController::class, 'show'])->name('exams.show');
+        Route::post('/exams/{exam}/start', [StudentExamController::class, 'start'])->name('exams.start');
+        Route::post('/exams/{exam}/submit', [StudentExamController::class, 'submit'])->name('exams.submit');
+
+        // Student Quiz Routes
+        Route::get('/quizzes', [StudentQuizController::class, 'index'])->name('quizzes.index');
+        Route::get('/quizzes/{quiz}', [StudentQuizController::class, 'show'])->name('quizzes.show');
+        Route::post('/quizzes/{quiz}/start', [StudentQuizController::class, 'start'])->name('quizzes.start');
+        Route::post('/quizzes/{quiz}/submit', [StudentQuizController::class, 'submit'])->name('quizzes.submit');
+
         Route::post('/notifications/read-all', [StudentNotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::get('/notifications/{notification}/open', [StudentNotificationController::class, 'open'])->name('notifications.open');
         Route::redirect('/messages', '/messages')->name('messages');

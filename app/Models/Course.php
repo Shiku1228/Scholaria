@@ -46,6 +46,16 @@ class Course extends Model
         return $this->hasMany(Assignment::class, 'course_id');
     }
 
+    public function quizzes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Quiz::class, 'course_id');
+    }
+
+    public function exams(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Exam::class, 'course_id');
+    }
+
     public function announcements(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Announcement::class, 'course_id');

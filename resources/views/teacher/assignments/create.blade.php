@@ -1,54 +1,122 @@
 ﻿@extends('layouts.teacher')
 
 @section('content')
-    <div class="flex items-start justify-between gap-4">
+    {{-- Header --}}
+    <div class="flex items-start justify-between gap-4 mb-6">
         <div>
-            <div class="text-xl font-semibold">Create Assignment</div>
-            <div class="text-sm text-gray-500">{{ $course->course_number ?? $course->title ?? ('Course #' . $course->id) }}</div>
+            <div class="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+                <i data-lucide="plus-circle" class="h-6 w-6 text-[#0b2d6b]"></i>
+                <span>Create Assignment</span>
+            </div>
+            <div class="mt-1 text-sm text-slate-500">{{ $course->course_number ?? $course->title ?? ('Course #' . $course->id) }}</div>
         </div>
-        <a href="{{ route('teacher.assignments.index', $course) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">Back</a>
+        <a href="{{ route('teacher.courses.show', ['course' => $course, 'tab' => 'tasks']) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            <i data-lucide="arrow-left" class="h-4 w-4 mr-2"></i>Back
+        </a>
     </div>
 
-    <form method="POST" action="{{ route('teacher.assignments.store', $course) }}" class="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
+    <form method="POST" action="{{ route('teacher.assignments.store', $course) }}">
         @csrf
 
-        <div>
-            <div class="text-sm font-semibold text-gray-700">Title</div>
-            <input name="title" value="{{ old('title') }}" class="mt-2 w-full rounded-xl border-gray-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
-            @error('title')
-                <div class="text-xs text-red-600 mt-1">{{ $message }}</div>
-            @enderror
-        </div>
-
-        <div>
-            <div class="text-sm font-semibold text-gray-700">Description</div>
-            <textarea name="description" rows="4" class="mt-2 w-full rounded-xl border-gray-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">{{ old('description') }}</textarea>
-            @error('description')
-                <div class="text-xs text-red-600 mt-1">{{ $message }}</div>
-            @enderror
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <div class="text-sm font-semibold text-gray-700">Due Date</div>
-                <input type="datetime-local" name="due_date" value="{{ old('due_date') }}" class="mt-2 w-full rounded-xl border-gray-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
-                @error('due_date')
-                    <div class="text-xs text-red-600 mt-1">{{ $message }}</div>
-                @enderror
+        {{-- Assignment Details Card --}}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+            <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
+                <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <i data-lucide="file-text" class="h-4 w-4 text-slate-500"></i>
+                    Assignment Details
+                </div>
             </div>
+            <div class="p-5 space-y-5">
+                {{-- Title --}}
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="type" class="h-4 w-4 text-slate-400"></i>
+                            Title
+                        </span>
+                    </label>
+                    <input type="text" name="title" value="{{ old('title') }}" placeholder="Enter assignment title" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
+                    @error('title')
+                        <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
+                            <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
+                        </p>
+                    @enderror
+                </div>
 
-            <div>
-                <div class="text-sm font-semibold text-gray-700">Max Score</div>
-                <input type="number" name="max_score" value="{{ old('max_score', 100) }}" class="mt-2 w-full rounded-xl border-gray-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
-                @error('max_score')
-                    <div class="text-xs text-red-600 mt-1">{{ $message }}</div>
-                @enderror
+                {{-- Description --}}
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="align-left" class="h-4 w-4 text-slate-400"></i>
+                            Description
+                        </span>
+                    </label>
+                    <textarea name="description" rows="5" placeholder="Describe the assignment, instructions, requirements..." class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] resize-none">{{ old('description') }}</textarea>
+                    @error('description')
+                        <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
+                            <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
+                        </p>
+                    @enderror
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-2">
-            <a href="{{ route('teacher.assignments.index', $course) }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</a>
-            <button type="submit" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">Create</button>
+        {{-- Settings Card --}}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+            <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
+                <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <i data-lucide="settings-2" class="h-4 w-4 text-slate-500"></i>
+                    Settings
+                </div>
+            </div>
+            <div class="p-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {{-- Due Date --}}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            <span class="flex items-center gap-2">
+                                <i data-lucide="calendar-clock" class="h-4 w-4 text-amber-500"></i>
+                                Due Date & Time
+                            </span>
+                        </label>
+                        <input type="datetime-local" name="due_date" value="{{ old('due_date') }}" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
+                        @error('due_date')
+                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+
+                    {{-- Max Score --}}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">
+                            <span class="flex items-center gap-2">
+                                <i data-lucide="target" class="h-4 w-4 text-emerald-500"></i>
+                                Maximum Score
+                            </span>
+                        </label>
+                        <div class="relative">
+                            <input type="number" name="max_score" value="{{ old('max_score', 100) }}" min="0" max="999" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] pl-3 pr-12" />
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">pts</span>
+                        </div>
+                        @error('max_score')
+                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
+                            </p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Action Buttons --}}
+        <div class="flex items-center justify-end gap-3">
+            <a href="{{ route('teacher.courses.show', ['course' => $course, 'tab' => 'tasks']) }}" class="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                <i data-lucide="x" class="h-4 w-4 mr-2"></i>Cancel
+            </a>
+            <button type="submit" class="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c] transition-colors shadow-sm">
+                <i data-lucide="plus" class="h-4 w-4 mr-2"></i>Create Assignment
+            </button>
         </div>
     </form>
 @endsection

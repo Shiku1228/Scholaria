@@ -1,0 +1,326 @@
+<?php
+
+namespace App\Http\Controllers\Teacher;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\Quiz;
+use App\Models\User;
+use App\Notifications\CourseEventNotification;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\View\View;
+
+class TeacherQuizController extends Controller
+{
+    public function index(Request $request): View
+    {
+        $teacherId = (int) $request->user()->id;
+        $courseId = (int) $request->query('course_id', 0);
+
+        $quizzes = collect();
+        $courses = collect();
+
+        try {
+            // Get teacher's courses
+            if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'teacher_id')) {
+                $courses = DB::table('courses')
+                    ->where('teacher_id', $teacherId)
+                    ->select('id', 'title', 'course_number')
+                    ->orderBy('title')
+                    ->get();
+            }
+
+            // Get quizzes
+            if (Schema::hasTable('quizzes')) {
+                $quizzesQuery = Quiz::query()
+                    ->whereHas('course', fn ($q) => $q->where('teacher_id', $teacherId))
+                    ->with(['course']);
+
+                if ($courseId > 0) {
+                    $quizzesQuery->where('course_id', $courseId);
+                }
+
+                $quizzes = $quizzesQuery
+                    ->orderByDesc('id')
+                    ->paginate(20);
+            }
+        } catch (\Throwable) {
+            $quizzes = collect();
+            $courses = collect();
+        }
+
+        return view('teacher.quizzes.index', [
+            'quizzes' => $quizzes,
+            'courses' => $courses,
+            'filters' => ['course_id' => $courseId],
+        ]);
+    }
+
+    public function create(Request $request, Course $course): View
+    {
+        if ((int) $course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        return view('teacher.quizzes.create', [
+            'course' => $course,
+        ]);
+    }
+
+    public function store(Request $request, Course $course)
+    {
+        if ((int) $course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'due_date' => ['nullable', 'date'],
+            'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'time_limit' => ['nullable', 'integer', 'min:1', 'max:480'],
+            'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'shuffle_questions' => ['nullable', 'boolean'],
+            'show_results' => ['nullable', 'boolean'],
+        ]);
+
+        $quiz = Quiz::create([
+            'course_id' => (int) $course->id,
+            'title' => (string) $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'due_date' => $validated['due_date'] ?? null,
+            'max_score' => (int) ($validated['max_score'] ?? 100),
+            'time_limit' => (int) ($validated['time_limit'] ?? 60),
+            'attempts_allowed' => (int) ($validated['attempts_allowed'] ?? 1),
+            'shuffle_questions' => (bool) ($validated['shuffle_questions'] ?? false),
+            'show_results' => (bool) ($validated['show_results'] ?? true),
+        ]);
+
+        // Notify students
+        $studentIdsQuery = DB::table('enrollments')->where('course_id', (int) $course->id);
+        if (Schema::hasColumn('enrollments', 'status')) {
+            $studentIdsQuery->whereRaw('LOWER(status) = ?', ['active']);
+        }
+        $studentIds = $studentIdsQuery->pluck('student_id')->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
+        
+        if (!empty($studentIds)) {
+            $students = User::query()->whereIn('id', $studentIds)->get();
+            foreach ($students as $student) {
+                $student->notify(new CourseEventNotification(
+                    'New Quiz Posted',
+                    'New quiz "' . (string) $quiz->title . '" was posted in ' . ((string) ($course->title ?: $course->course_number ?: 'your course')) . '.',
+                    route('student.quizzes.show', ['quiz' => (int) $quiz->id])
+                ));
+            }
+        }
+
+        return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz created successfully.');
+    }
+
+    public function show(Request $request, Quiz $quiz): View
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $attempts = collect();
+        
+        try {
+            if (Schema::hasTable('quiz_attempts')) {
+                $attempts = $quiz->attempts()
+                    ->with('student')
+                    ->orderByDesc('started_at')
+                    ->paginate(20);
+            }
+        } catch (\Throwable) {
+            $attempts = collect();
+        }
+
+        return view('teacher.quizzes.show', [
+            'quiz' => $quiz,
+            'attempts' => $attempts,
+        ]);
+    }
+
+    public function edit(Request $request, Quiz $quiz): View
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        return view('teacher.quizzes.edit', [
+            'quiz' => $quiz,
+        ]);
+    }
+
+    public function update(Request $request, Quiz $quiz)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'due_date' => ['nullable', 'date'],
+            'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'time_limit' => ['nullable', 'integer', 'min:1', 'max:480'],
+            'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'shuffle_questions' => ['nullable', 'boolean'],
+            'show_results' => ['nullable', 'boolean'],
+        ]);
+
+        $quiz->update([
+            'title' => (string) $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'due_date' => $validated['due_date'] ?? null,
+            'max_score' => (int) ($validated['max_score'] ?? $quiz->max_score ?? 100),
+            'time_limit' => (int) ($validated['time_limit'] ?? $quiz->time_limit ?? 60),
+            'attempts_allowed' => (int) ($validated['attempts_allowed'] ?? $quiz->attempts_allowed ?? 1),
+            'shuffle_questions' => (bool) ($validated['shuffle_questions'] ?? $quiz->shuffle_questions ?? false),
+            'show_results' => (bool) ($validated['show_results'] ?? $quiz->show_results ?? true),
+        ]);
+
+        return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz updated successfully.');
+    }
+
+    public function destroy(Request $request, Quiz $quiz)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        // Delete related questions and attempts first
+        $quiz->questions()->delete();
+        $quiz->attempts()->delete();
+
+        $quiz->delete();
+
+        return redirect()->route('teacher.quizzes.index')->with('success', 'Quiz deleted successfully.');
+    }
+
+    /**
+     * Show quiz questions management page.
+     */
+    public function questions(Request $request, Quiz $quiz): View
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $questions = $quiz->questions()->orderBy('order')->get();
+
+        return view('teacher.quizzes.questions', [
+            'quiz' => $quiz,
+            'questions' => $questions,
+        ]);
+    }
+
+    /**
+     * Add a new question to the quiz.
+     */
+    public function addQuestion(Request $request, Quiz $quiz)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'question_text' => ['required', 'string'],
+            'question_type' => ['required', 'in:multiple_choice,true_false,short_answer'],
+            'points' => ['required', 'integer', 'min:1', 'max:100'],
+            'options' => ['nullable', 'array'],
+            'correct_answer' => ['nullable', 'string'],
+        ]);
+
+        // Build options array for multiple choice
+        $options = null;
+        if ($validated['question_type'] === 'multiple_choice' && !empty($validated['options'])) {
+            $optionArray = [];
+            foreach ($validated['options'] as $index => $value) {
+                if (!empty($value)) {
+                    $letter = chr(65 + $index); // A, B, C, D
+                    $optionArray[$letter] = $value;
+                }
+            }
+            $options = !empty($optionArray) ? $optionArray : null;
+        }
+
+        // Get the next order
+        $maxOrder = $quiz->questions()->max('order') ?? 0;
+
+        $quiz->questions()->create([
+            'question_text' => $validated['question_text'],
+            'question_type' => $validated['question_type'],
+            'options' => $options,
+            'correct_answer' => $validated['correct_answer'] ?? null,
+            'points' => $validated['points'],
+            'order' => $maxOrder + 1,
+        ]);
+
+        // Update quiz total points
+        $this->updateQuizPoints($quiz);
+
+        return redirect()->route('teacher.quizzes.questions', $quiz)->with('success', 'Question added successfully.');
+    }
+
+    /**
+     * Remove a question from the quiz.
+     */
+    public function removeQuestion(Request $request, Quiz $quiz, QuizQuestion $question)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        // Verify the question belongs to this quiz
+        if ((int) $question->quiz_id !== (int) $quiz->id) {
+            abort(404);
+        }
+
+        $question->delete();
+
+        // Reorder remaining questions
+        $quiz->questions()->orderBy('order')->get()->each(function ($q, $index) {
+            $q->update(['order' => $index + 1]);
+        });
+
+        // Update quiz total points
+        $this->updateQuizPoints($quiz);
+
+        return redirect()->route('teacher.quizzes.questions', $quiz)->with('success', 'Question removed successfully.');
+    }
+
+    /**
+     * Publish the quiz.
+     */
+    public function publish(Request $request, Quiz $quiz)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        // Check if quiz has questions
+        if ($quiz->questions()->count() === 0) {
+            return redirect()->route('teacher.quizzes.questions', $quiz)->with('error', 'Cannot publish a quiz without questions.');
+        }
+
+        $quiz->update(['is_published' => true]);
+
+        return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz published successfully.');
+    }
+
+    /**
+     * Update quiz total points based on questions.
+     */
+    private function updateQuizPoints(Quiz $quiz): void
+    {
+        $totalPoints = $quiz->questions()->sum('points');
+        $quiz->update([
+            'points' => $totalPoints,
+            'max_score' => $totalPoints > 0 ? $totalPoints : $quiz->max_score,
+        ]);
+    }
+}

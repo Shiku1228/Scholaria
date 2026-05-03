@@ -45,6 +45,15 @@
                 <div class="p-4 sm:p-5 border-b border-gray-100">
                     <div class="flex items-center gap-6 text-sm font-semibold">
                         <button type="button" data-tab-btn="overview" class="tab-btn text-[#4f46e5] border-b-2 border-[#4f46e5] pb-2">Overview</button>
+                        <button type="button" data-tab-btn="tasks" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">
+                            Tasks
+                            @php
+                                $totalTasks = $assignments->count() + $exams->count() + $quizzes->count();
+                            @endphp
+                            @if($totalTasks > 0)
+                                <span class="ml-1.5 px-1.5 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full">{{ $totalTasks }}</span>
+                            @endif
+                        </button>
                         <button type="button" data-tab-btn="resources" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Resources</button>
                         <button type="button" data-tab-btn="discussion" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Discussion</button>
                     </div>
@@ -56,6 +65,195 @@
                         <div class="mt-3 text-sm text-slate-700 whitespace-pre-line">{{ $course->overview }}</div>
                     @else
                         <div class="mt-3 text-sm text-slate-500">No overview available yet.</div>
+                    @endif
+                </div>
+
+                {{-- Tasks Tab - Clean List Layout --}}
+                <div data-tab-panel="tasks" class="hidden p-4 sm:p-6 space-y-6">
+                    {{-- Tasks Header --}}
+                    <div class="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                        <i data-lucide="clipboard-list" class="h-5 w-5 text-[#0b2d6b]"></i>
+                        <span>Course Tasks</span>
+                    </div>
+
+                    {{-- Assignments --}}
+                    @if($assignments->count() > 0)
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white flex items-center justify-between">
+                                <div>
+                                    <div class="text-lg font-extrabold text-slate-900">Assignments</div>
+                                    <div class="text-sm text-slate-600 font-medium">{{ $assignments->filter(fn($a) => empty($a->submission_id))->count() }} pending</div>
+                                </div>
+                                <span class="px-3 py-1.5 text-sm font-bold bg-blue-100 text-blue-700 rounded-full">{{ $assignments->count() }}</span>
+                            </div>
+                            <div class="divide-y divide-slate-100">
+                                @foreach($assignments as $assignment)
+                                    @php $done = !empty($assignment->submission_id); @endphp
+                                    <a href="{{ route('student.assignments.submit', (int) $assignment->assignment_id) }}" class="group flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
+                                        <div class="h-10 w-10 rounded-full {{ $done ? 'bg-emerald-100' : 'bg-blue-50' }} flex items-center justify-center flex-shrink-0 border-2 {{ $done ? 'border-emerald-200' : 'border-blue-100' }}">
+                                            @if($done)
+                                                <i data-lucide="check" class="h-5 w-5 text-emerald-600"></i>
+                                            @else
+                                                <i data-lucide="file-text" class="h-5 w-5 text-blue-600"></i>
+                                            @endif
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-semibold {{ $done ? 'text-emerald-700' : 'text-slate-900' }}">{{ $assignment->title }}</div>
+                                            <div class="text-xs text-slate-500 mt-0.5">
+                                                @if(!empty($assignment->due_date))
+                                                    <span class="flex items-center gap-1">
+                                                        <i data-lucide="calendar" class="h-3 w-3"></i>
+                                                        Due {{ \Carbon\Carbon::parse((string) $assignment->due_date)->format('M d, Y') }}
+                                                    </span>
+                                                @else
+                                                    No due date
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            @if($done)
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                                    <i data-lucide="check-circle" class="h-3 w-3 mr-1"></i>
+                                                    Done
+                                                </span>
+                                            @elseif(!empty($assignment->due_date) && now()->isAfter($assignment->due_date))
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                                    <i data-lucide="alert-circle" class="h-3 w-3 mr-1"></i>
+                                                    Overdue
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-slate-400">View →</span>
+                                            @endif
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Exams --}}
+                    @if($exams->count() > 0)
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white flex items-center justify-between">
+                                <div>
+                                    <div class="text-lg font-extrabold text-slate-900">Exams</div>
+                                    <div class="text-sm text-slate-600 font-medium">{{ $exams->filter(fn($e) => !$e->attempts->first() || !$e->attempts->first()->isSubmitted())->count() }} upcoming</div>
+                                </div>
+                                <span class="px-3 py-1.5 text-sm font-bold bg-purple-100 text-purple-700 rounded-full">{{ $exams->count() }}</span>
+                            </div>
+                            <div class="divide-y divide-slate-100">
+                                @foreach($exams as $exam)
+                                    @php
+                                        $attempt = $exam->attempts->first();
+                                        $isCompleted = $attempt && $attempt->isSubmitted();
+                                        $isUpcoming = $exam->exam_date && $exam->exam_date->isFuture();
+                                    @endphp
+                                    <a href="{{ route('student.exams.show', $exam) }}" class="group flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
+                                        <div class="h-10 w-10 rounded-full {{ $isCompleted ? 'bg-emerald-100' : ($isUpcoming ? 'bg-slate-100' : 'bg-purple-50') }} flex items-center justify-center flex-shrink-0 border-2 {{ $isCompleted ? 'border-emerald-200' : ($isUpcoming ? 'border-slate-200' : 'border-purple-200') }}">
+                                            @if($isCompleted)
+                                                <i data-lucide="check" class="h-5 w-5 text-emerald-600"></i>
+                                            @else
+                                                <i data-lucide="laptop" class="h-5 w-5 {{ $isUpcoming ? 'text-slate-500' : 'text-purple-600' }}"></i>
+                                            @endif
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-semibold {{ $isCompleted ? 'text-emerald-700' : 'text-slate-900' }}">{{ $exam->title }}</div>
+                                            <div class="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                                                @if($exam->exam_date)
+                                                    <span class="flex items-center gap-1">
+                                                        <i data-lucide="calendar" class="h-3 w-3"></i>
+                                                        {{ $exam->exam_date->format('M d, Y') }}
+                                                    </span>
+                                                @endif
+                                                @if($exam->duration)
+                                                    <span class="flex items-center gap-1">
+                                                        <i data-lucide="clock" class="h-3 w-3"></i>
+                                                        {{ $exam->duration }} min
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            @if($isCompleted)
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                                    <i data-lucide="check-circle" class="h-3 w-3 mr-1"></i>
+                                                    {{ $attempt->score ?? 0 }}/{{ $exam->max_score }}
+                                                </span>
+                                            @elseif($isUpcoming)
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                                                    <i data-lucide="clock" class="h-3 w-3 mr-1"></i>
+                                                    Upcoming
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0b2d6b] text-white shadow-sm">
+                                                    Take Exam →
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Quizzes --}}
+                    @if($quizzes->count() > 0)
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-white flex items-center justify-between">
+                                <div>
+                                    <div class="text-lg font-extrabold text-slate-900">Quizzes</div>
+                                    <div class="text-sm text-slate-600 font-medium">{{ $quizzes->filter(fn($q) => !$q->attempts->first() || $q->attempts->first()->status !== 'submitted')->count() }} available</div>
+                                </div>
+                                <span class="px-3 py-1.5 text-sm font-bold bg-amber-100 text-amber-700 rounded-full">{{ $quizzes->count() }}</span>
+                            </div>
+                            <div class="divide-y divide-slate-100">
+                                @foreach($quizzes as $quiz)
+                                    @php
+                                        $quizAttempt = $quiz->attempts->first();
+                                        $quizCompleted = $quizAttempt && $quizAttempt->status === 'submitted';
+                                    @endphp
+                                    <a href="{{ route('student.quizzes.show', $quiz) }}" class="group flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
+                                        <div class="h-10 w-10 rounded-full {{ $quizCompleted ? 'bg-emerald-100' : 'bg-amber-50' }} flex items-center justify-center flex-shrink-0 border-2 {{ $quizCompleted ? 'border-emerald-200' : 'border-amber-200' }}">
+                                            @if($quizCompleted)
+                                                <i data-lucide="check" class="h-5 w-5 text-emerald-600"></i>
+                                            @else
+                                                <i data-lucide="help-circle" class="h-5 w-5 text-amber-600"></i>
+                                            @endif
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-semibold {{ $quizCompleted ? 'text-emerald-700' : 'text-slate-900' }}">{{ $quiz->title }}</div>
+                                            <div class="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                                                <span>{{ $quiz->questions->count() }} questions</span>
+                                                <span>•</span>
+                                                <span>{{ $quiz->time_limit }} min</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            @if($quizCompleted)
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                                    <i data-lucide="check-circle" class="h-3 w-3 mr-1"></i>
+                                                    {{ $quizAttempt->score ?? 0 }}/{{ $quiz->points }}
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0b2d6b] text-white shadow-sm">
+                                                    Take Quiz →
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Empty State --}}
+                    @if($assignments->count() === 0 && $exams->count() === 0 && $quizzes->count() === 0)
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+                            <div class="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                                <i data-lucide="clipboard-list" class="h-8 w-8 text-slate-400"></i>
+                            </div>
+                            <p class="text-sm text-slate-500">No tasks available yet</p>
+                        </div>
                     @endif
                 </div>
 
@@ -190,26 +388,74 @@
             </div>
         </div>
 
-        <div class="xl:col-span-4">
+        <div class="xl:col-span-4 space-y-4">
+            {{-- Tasks Summary --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
+                <div class="p-4 border-b border-gray-100">
+                    <div class="text-lg font-bold text-slate-900">Tasks Overview</div>
+                </div>
+                <div class="p-4 space-y-3">
+                    {{-- Assignments Count --}}
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <i data-lucide="file-text" class="h-4 w-4 text-blue-600"></i>
+                            </div>
+                            <span class="text-sm text-slate-700">Assignments</span>
+                        </div>
+                        <span class="text-sm font-medium text-slate-900">{{ $doneAssignments }}/{{ $totalAssignments }}</span>
+                    </div>
+                    {{-- Exams Count --}}
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                                <i data-lucide="laptop" class="h-4 w-4 text-purple-600"></i>
+                            </div>
+                            <span class="text-sm text-slate-700">Exams</span>
+                        </div>
+                        @php
+                            $completedExams = $exams->filter(fn($e) => $e->attempts->first() && $e->attempts->first()->isSubmitted())->count();
+                        @endphp
+                        <span class="text-sm font-medium text-slate-900">{{ $completedExams }}/{{ $exams->count() }}</span>
+                    </div>
+                    {{-- Quizzes Count --}}
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                                <i data-lucide="help-circle" class="h-4 w-4 text-amber-600"></i>
+                            </div>
+                            <span class="text-sm text-slate-700">Quizzes</span>
+                        </div>
+                        <span class="text-sm font-medium text-slate-900">{{ $quizzes->count() }}</span>
+                    </div>
+                </div>
+                <div class="p-3 border-t border-gray-100">
+                    <button type="button" onclick="activateTab('tasks')" class="w-full py-2 text-center text-sm text-[#4f46e5] hover:text-[#0b2d6b] font-medium rounded-lg hover:bg-indigo-50 transition-colors">
+                        View All Tasks →
+                    </button>
+                </div>
+            </div>
+
+            {{-- Quick Assignments List --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 sticky top-6">
                 <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-                    <div class="text-3xl font-bold text-slate-900">Assignments</div>
-                    <div class="text-sm font-semibold text-slate-500">{{ $doneAssignments }}/{{ $totalAssignments }} Completed</div>
+                    <div class="text-sm font-bold text-slate-900">Upcoming Assignments</div>
+                    <div class="text-xs font-semibold text-slate-500">{{ $doneAssignments }}/{{ $totalAssignments }}</div>
                 </div>
-                <div class="p-3 space-y-2 max-h-[760px] overflow-y-auto">
-                    @forelse ($assignments as $assignment)
+                <div class="p-3 space-y-2 max-h-[400px] overflow-y-auto">
+                    @forelse ($assignments->take(5) as $assignment)
                         @php $done = !empty($assignment->submission_id); @endphp
-                        <a href="{{ route('student.assignments.submit', (int) $assignment->assignment_id) }}" class="block rounded-xl border {{ $done ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200 bg-white' }} px-3 py-3 hover:border-[#4f46e5]">
-                            <div class="flex items-start gap-3">
-                                <div class="mt-1 h-5 w-5 rounded-full {{ $done ? 'bg-emerald-500' : 'bg-slate-300' }}"></div>
+                        <a href="{{ route('student.assignments.submit', (int) $assignment->assignment_id) }}" class="block rounded-xl border {{ $done ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200 bg-white' }} px-3 py-2 hover:border-[#4f46e5]">
+                            <div class="flex items-start gap-2">
+                                <div class="mt-0.5 h-4 w-4 rounded-full {{ $done ? 'bg-emerald-500' : 'bg-slate-300' }}"></div>
                                 <div class="min-w-0">
-                                    <div class="text-base font-semibold {{ $done ? 'text-emerald-700' : 'text-slate-900' }} truncate">{{ $assignment->title }}</div>
-                                    <div class="text-sm text-slate-500">{{ !empty($assignment->due_date) ? ('Due: ' . \Carbon\Carbon::parse((string) $assignment->due_date)->format('M d, Y h:i A')) : 'No due date' }}</div>
+                                    <div class="text-xs font-semibold {{ $done ? 'text-emerald-700' : 'text-slate-900' }} truncate">{{ $assignment->title }}</div>
+                                    <div class="text-xs text-slate-500">{{ !empty($assignment->due_date) ? ('Due: ' . \Carbon\Carbon::parse((string) $assignment->due_date)->format('M d')) : 'No due' }}</div>
                                 </div>
                             </div>
                         </a>
                     @empty
-                        <div class="rounded-xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">
+                        <div class="rounded-xl border border-dashed border-slate-300 p-4 text-xs text-slate-500 text-center">
                             No assignments yet.
                         </div>
                     @endforelse
@@ -235,6 +481,10 @@
                 panels.forEach((panel) => {
                     panel.classList.toggle('hidden', panel.getAttribute('data-tab-panel') !== tab);
                 });
+                // Re-initialize Lucide icons when switching to tasks tab
+                if (tab === 'tasks' && window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
             }
 
             buttons.forEach((btn) => {
@@ -248,8 +498,44 @@
             });
 
             const initial = (location.hash || '').replace('#', '');
-            const allowed = ['overview', 'resources', 'discussion'];
-            activate(allowed.includes(initial) ? initial : 'overview');
+            const allowed = ['overview', 'tasks', 'resources', 'discussion'];
+            const initialTab = allowed.includes(initial) ? initial : 'overview';
+            activate(initialTab);
+
+            // Initialize icons if tasks is the initial tab
+            if (initialTab === 'tasks' && window.lucide && typeof window.lucide.createIcons === 'function') {
+                setTimeout(() => window.lucide.createIcons(), 0);
+            }
+
+            // Make activateTab globally available
+            window.activateTab = function(tab) {
+                activate(tab);
+                if (tab === 'tasks' && window.lucide && typeof window.lucide.createIcons === 'function') {
+                    setTimeout(() => window.lucide.createIcons(), 0);
+                }
+            };
+
+            // Task section tabs
+            document.querySelectorAll('.task-section-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    
+                    // Update button styles
+                    document.querySelectorAll('.task-section-btn').forEach(function(b) {
+                        const isActive = b.getAttribute('data-section') === section;
+                        b.classList.toggle('border-[#4f46e5]', isActive);
+                        b.classList.toggle('text-[#4f46e5]', isActive);
+                        b.classList.toggle('border-transparent', !isActive);
+                        b.classList.toggle('text-slate-500', !isActive);
+                        b.classList.toggle('active', isActive);
+                    });
+                    
+                    // Show/hide sections
+                    document.querySelectorAll('.task-section').forEach(function(s) {
+                        s.classList.toggle('hidden', s.id !== 'task-section-' + section);
+                    });
+                });
+            });
 
             document.querySelectorAll('.reply-toggle').forEach(function (btn) {
                 btn.addEventListener('click', function () {
