@@ -7,6 +7,7 @@ use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\User;
+use App\Notifications\CourseEventNotification;
 use App\Services\CourseChatGroupService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -72,6 +73,7 @@ class AdminCourseController extends Controller
         ]);
 
         $chatService->syncCourseMembers($course);
+        $this->notifyAssignedTeacher($course);
 
         return redirect()->route('admin.courses.edit', $course)->with('success', 'Course created.');
     }
@@ -90,6 +92,8 @@ class AdminCourseController extends Controller
     {
         $validated = $request->validated();
 
+        $oldTeacherId = (int) $course->teacher_id;
+
         $course->update([
             'course_number' => $validated['course_number'],
             'title' => $validated['course_title'],
@@ -104,7 +108,12 @@ class AdminCourseController extends Controller
             'teacher_id' => $validated['teacher_id'],
         ]);
 
-        $chatService->syncCourseMembers($course->fresh());
+        $course = $course->fresh();
+        $chatService->syncCourseMembers($course);
+
+        if ($oldTeacherId !== (int) $course->teacher_id) {
+            $this->notifyAssignedTeacher($course);
+        }
 
         return redirect()->route('admin.courses.edit', $course)->with('success', 'Course updated.');
     }
@@ -147,5 +156,33 @@ class AdminCourseController extends Controller
             })
             ->orderBy('name')
             ->get();
+    }
+
+    private function notifyAssignedTeacher(Course $course): void
+    {
+        $teacher = User::query()->find((int) $course->teacher_id);
+        if (!$teacher) {
+            return;
+        }
+
+        $courseName = $this->courseDisplayName($course);
+
+        $teacher->notify(new CourseEventNotification(
+            'New Course Assigned',
+            'You have been assigned to ' . $courseName . '.',
+            route('teacher.courses.show', $course)
+        ));
+    }
+
+    private function courseDisplayName(Course $course): string
+    {
+        $number = trim((string) ($course->course_number ?? ''));
+        $title = trim((string) ($course->title ?? ''));
+
+        if ($number !== '' && $title !== '') {
+            return $number . ' - ' . $title;
+        }
+
+        return $title !== '' ? $title : ($number !== '' ? $number : 'your course');
     }
 }

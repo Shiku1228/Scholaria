@@ -8,8 +8,10 @@ use App\Http\Requests\UpdateEnrollmentRequest;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Notifications\CourseEventNotification;
 use App\Services\CourseChatGroupService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AdminEnrollmentController extends Controller
@@ -93,6 +95,7 @@ class AdminEnrollmentController extends Controller
         ]);
 
         $chatService->syncCourseMembers($course);
+        $this->notifyStudentEnrollment($enrollment->student, $course, (string) $enrollment->status, true);
 
         return redirect()->route('admin.enrollments.edit', $enrollment)->with('success', 'Enrollment created.');
     }
@@ -114,6 +117,8 @@ class AdminEnrollmentController extends Controller
     public function update(UpdateEnrollmentRequest $request, Enrollment $enrollment, CourseChatGroupService $chatService)
     {
         $oldCourseId = (int) $enrollment->course_id;
+        $oldStudentId = (int) $enrollment->student_id;
+        $oldStatus = (string) $enrollment->status;
         $validated = $request->validated();
 
         $course = Course::query()->with('teacher')->findOrFail((int) $validated['course_id']);
@@ -137,6 +142,15 @@ class AdminEnrollmentController extends Controller
         }
         $chatService->syncCourseMembers($course);
 
+        $enrollment->load('student');
+        $hasEnrollmentChanged = $oldCourseId !== (int) $enrollment->course_id
+            || $oldStudentId !== (int) $enrollment->student_id
+            || $oldStatus !== (string) $enrollment->status;
+
+        if ($hasEnrollmentChanged) {
+            $this->notifyStudentEnrollment($enrollment->student, $course, (string) $enrollment->status, $oldStudentId !== (int) $enrollment->student_id || $oldCourseId !== (int) $enrollment->course_id);
+        }
+
         return redirect()->route('admin.enrollments.edit', $enrollment)->with('success', 'Enrollment updated.');
     }
 
@@ -149,5 +163,38 @@ class AdminEnrollmentController extends Controller
         }
 
         return redirect()->route('admin.enrollments.index')->with('success', 'Enrollment deleted.');
+    }
+
+    private function notifyStudentEnrollment(?User $student, Course $course, string $status, bool $isNewEnrollment): void
+    {
+        if (!$student) {
+            return;
+        }
+
+        $courseName = $this->courseDisplayName($course);
+        $status = Str::lower(trim($status));
+        $statusLabel = $status !== '' ? $status : 'active';
+        $url = $statusLabel === 'active'
+            ? route('student.courses.show', $course)
+            : route('student.courses.index');
+
+        $title = $isNewEnrollment ? 'Course Enrollment Added' : 'Course Enrollment Updated';
+        $message = $isNewEnrollment
+            ? 'You have been added to ' . $courseName . ' with ' . $statusLabel . ' status.'
+            : 'Your enrollment in ' . $courseName . ' is now ' . $statusLabel . '.';
+
+        $student->notify(new CourseEventNotification($title, $message, $url));
+    }
+
+    private function courseDisplayName(Course $course): string
+    {
+        $number = trim((string) ($course->course_number ?? ''));
+        $title = trim((string) ($course->title ?? ''));
+
+        if ($number !== '' && $title !== '') {
+            return $number . ' - ' . $title;
+        }
+
+        return $title !== '' ? $title : ($number !== '' ? $number : 'your course');
     }
 }

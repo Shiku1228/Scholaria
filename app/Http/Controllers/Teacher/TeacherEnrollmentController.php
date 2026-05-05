@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Notifications\CourseEventNotification;
 use App\Services\CourseChatGroupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -181,11 +182,40 @@ class TeacherEnrollmentController extends Controller
             $payload['enrolled_at'] = $validated['enrolled_at'] ?? now();
         }
 
-        Enrollment::query()->create($payload);
+        $enrollment = Enrollment::query()->create($payload);
         $chatService->syncCourseMembers($course);
+        $this->notifyStudentEnrollment($student, $course, (string) ($enrollment->status ?? $validated['status']));
 
         return redirect()
             ->route('teacher.enrollments.index')
             ->with('success', 'Student enrollment added successfully.');
+    }
+
+    private function notifyStudentEnrollment(User $student, Course $course, string $status): void
+    {
+        $courseName = $this->courseDisplayName($course);
+        $status = Str::lower(trim($status));
+        $statusLabel = $status !== '' ? $status : 'active';
+        $url = $statusLabel === 'active'
+            ? route('student.courses.show', $course)
+            : route('student.courses.index');
+
+        $student->notify(new CourseEventNotification(
+            'Course Enrollment Updated',
+            'You have been added to ' . $courseName . ' with ' . $statusLabel . ' status.',
+            $url
+        ));
+    }
+
+    private function courseDisplayName(Course $course): string
+    {
+        $number = trim((string) ($course->course_number ?? ''));
+        $title = trim((string) ($course->title ?? ''));
+
+        if ($number !== '' && $title !== '') {
+            return $number . ' - ' . $title;
+        }
+
+        return $title !== '' ? $title : ($number !== '' ? $number : 'your course');
     }
 }
