@@ -538,7 +538,25 @@ class SecurityAlertService
         $alerts = Cache::get('security_alerts', []);
         
         if (empty($alerts)) {
-            return [];
+            return SecurityAudit::query()
+                ->where('is_resolved', false)
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get()
+                ->map(function (SecurityAudit $audit) {
+                    return [
+                        'id' => $audit->id,
+                        'type' => $audit->event_type,
+                        'severity' => $audit->severity,
+                        'message' => $audit->description,
+                        'created_at' => $audit->created_at,
+                        'data' => array_merge($audit->event_data ?? [], [
+                            'ip_address' => $audit->ip_address,
+                            'audit_id' => $audit->id,
+                        ]),
+                    ];
+                })
+                ->all();
         }
         
         // Get the most recent alerts

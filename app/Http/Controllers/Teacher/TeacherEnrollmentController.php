@@ -23,16 +23,17 @@ class TeacherEnrollmentController extends Controller
         $teacherId = (int) $request->user()->id;
 
         $rows = collect();
+        $unenrolledRows = collect();
         $students = collect();
         $courses = collect();
 
         try {
             if (!Schema::hasTable('courses') || !Schema::hasTable('enrollments') || !Schema::hasTable('users')) {
-                return view('teacher.enrollments.index', ['rows' => $rows, 'students' => $students, 'courses' => $courses]);
+                return view('teacher.enrollments.index', ['rows' => $rows, 'unenrolledRows' => $unenrolledRows, 'students' => $students, 'courses' => $courses]);
             }
 
             if (!Schema::hasColumn('courses', 'teacher_id') || !Schema::hasColumn('enrollments', 'course_id') || !Schema::hasColumn('enrollments', 'student_id')) {
-                return view('teacher.enrollments.index', ['rows' => $rows, 'students' => $students, 'courses' => $courses]);
+                return view('teacher.enrollments.index', ['rows' => $rows, 'unenrolledRows' => $unenrolledRows, 'students' => $students, 'courses' => $courses]);
             }
 
             $courseNameCol = null;
@@ -44,10 +45,11 @@ class TeacherEnrollmentController extends Controller
             }
 
             if ($courseNameCol === null || !Schema::hasColumn('users', 'name')) {
-                return view('teacher.enrollments.index', ['rows' => $rows, 'students' => $students, 'courses' => $courses]);
+                return view('teacher.enrollments.index', ['rows' => $rows, 'unenrolledRows' => $unenrolledRows, 'students' => $students, 'courses' => $courses]);
             }
 
             $select = [
+                'enrollments.id as enrollment_id',
                 'users.name as student_name',
                 'courses.' . $courseNameCol . ' as course_name',
             ];
@@ -62,14 +64,30 @@ class TeacherEnrollmentController extends Controller
                 $select[] = 'enrollments.created_at as enrolled_at';
             }
 
-            $rows = DB::table('enrollments')
+            if (Schema::hasColumn('enrollments', 'updated_at')) {
+                $select[] = 'enrollments.updated_at as unenrolled_at';
+            }
+
+            $baseQuery = DB::table('enrollments')
                 ->join('courses', 'courses.id', '=', 'enrollments.course_id')
                 ->join('users', 'users.id', '=', 'enrollments.student_id')
                 ->where('courses.teacher_id', $teacherId)
-                ->select($select)
+                ->select($select);
+
+            $rows = (clone $baseQuery)
+                ->when(Schema::hasColumn('enrollments', 'status'), fn ($query) => $query->where('enrollments.status', '!=', 'dropped'))
                 ->orderByDesc(Schema::hasColumn('enrollments', 'enrolled_at') ? 'enrollments.enrolled_at' : 'enrollments.created_at')
                 ->limit(500)
                 ->get();
+
+            $unenrolledRows = collect();
+            if (Schema::hasColumn('enrollments', 'status')) {
+                $unenrolledRows = (clone $baseQuery)
+                    ->where('enrollments.status', 'dropped')
+                    ->orderByDesc(Schema::hasColumn('enrollments', 'updated_at') ? 'enrollments.updated_at' : 'enrollments.created_at')
+                ->limit(500)
+                ->get();
+            }
 
             $studentsQuery = User::query();
             $hasSpatieRoles = in_array('Spatie\Permission\Traits\HasRoles', class_uses_recursive(User::class), true);
@@ -99,6 +117,7 @@ class TeacherEnrollmentController extends Controller
 
         return view('teacher.enrollments.index', [
             'rows' => $rows,
+            'unenrolledRows' => $unenrolledRows,
             'students' => $students,
             'courses' => $courses,
         ]);
@@ -156,15 +175,30 @@ class TeacherEnrollmentController extends Controller
             }
         }
 
-        $exists = Enrollment::query()
+        $existingEnrollment = Enrollment::query()
             ->where('student_id', (int) $validated['student_id'])
             ->where('course_id', (int) $validated['course_id'])
-            ->exists();
+            ->first();
 
-        if ($exists) {
+        if ($existingEnrollment) {
+            if ((string) $existingEnrollment->status !== 'dropped') {
+                return redirect()
+                    ->route('teacher.enrollments.index')
+                    ->with('error', 'This student is already enrolled in the selected course.');
+            }
+
+            $existingEnrollment->update([
+                'teacher_id' => Schema::hasColumn('enrollments', 'teacher_id') ? $teacherId : $existingEnrollment->teacher_id,
+                'status' => (string) $validated['status'],
+                'enrolled_at' => Schema::hasColumn('enrollments', 'enrolled_at') ? ($validated['enrolled_at'] ?? now()) : $existingEnrollment->enrolled_at,
+            ]);
+
+            $chatService->syncCourseMembers($course);
+            $this->notifyStudentEnrollment($student, $course, (string) $existingEnrollment->fresh()->status);
+
             return redirect()
                 ->route('teacher.enrollments.index')
-                ->with('error', 'This student is already enrolled in the selected course.');
+                ->with('success', 'Student enrollment restored successfully.');
         }
 
         $payload = [
@@ -189,6 +223,95 @@ class TeacherEnrollmentController extends Controller
         return redirect()
             ->route('teacher.enrollments.index')
             ->with('success', 'Student enrollment added successfully.');
+    }
+
+    public function unenroll(Request $request, Enrollment $enrollment, CourseChatGroupService $chatService): RedirectResponse
+    {
+        $teacherId = (int) $request->user()->id;
+
+        $course = Course::query()
+            ->where('id', (int) $enrollment->course_id)
+            ->where('teacher_id', $teacherId)
+            ->first();
+
+        if (!$course) {
+            return redirect()
+                ->route('teacher.enrollments.index')
+                ->with('error', 'You can only unenroll students from courses assigned to you.');
+        }
+
+        $enrollment->update(['status' => 'dropped']);
+        $chatService->syncCourseMembers($course);
+
+        return redirect()
+            ->route('teacher.enrollments.index')
+            ->with('success', 'Student unenrolled successfully.');
+    }
+
+    public function destroy(Request $request, Enrollment $enrollment, CourseChatGroupService $chatService): RedirectResponse
+    {
+        $teacherId = (int) $request->user()->id;
+
+        $course = Course::query()
+            ->where('id', (int) $enrollment->course_id)
+            ->where('teacher_id', $teacherId)
+            ->first();
+
+        if (!$course) {
+            return redirect()
+                ->route('teacher.enrollments.index')
+                ->with('error', 'You can only delete unenrolled records from courses assigned to you.');
+        }
+
+        if ((string) $enrollment->status !== 'dropped') {
+            return redirect()
+                ->route('teacher.enrollments.index')
+                ->with('error', 'Only unenrolled records can be deleted.');
+        }
+
+        $enrollment->delete();
+        $chatService->syncCourseMembers($course);
+
+        return redirect()
+            ->route('teacher.enrollments.index')
+            ->with('success', 'Unenrolled student record deleted successfully.');
+    }
+
+    public function reenroll(Request $request, Enrollment $enrollment, CourseChatGroupService $chatService): RedirectResponse
+    {
+        $teacherId = (int) $request->user()->id;
+
+        $course = Course::query()
+            ->where('id', (int) $enrollment->course_id)
+            ->where('teacher_id', $teacherId)
+            ->first();
+
+        if (!$course) {
+            return redirect()
+                ->route('teacher.enrollments.index')
+                ->with('error', 'You can only re-enroll students to courses assigned to you.');
+        }
+
+        if ((string) $enrollment->status !== 'dropped') {
+            return redirect()
+                ->route('teacher.enrollments.index')
+                ->with('error', 'Only unenrolled records can be re-enrolled.');
+        }
+
+        $enrollment->update([
+            'status' => 'active',
+            'enrolled_at' => Schema::hasColumn('enrollments', 'enrolled_at') ? now() : $enrollment->enrolled_at,
+        ]);
+
+        $chatService->syncCourseMembers($course);
+
+        if ($enrollment->student) {
+            $this->notifyStudentEnrollment($enrollment->student, $course, 'active');
+        }
+
+        return redirect()
+            ->route('teacher.enrollments.index')
+            ->with('success', 'Student re-enrolled successfully.');
     }
 
     private function notifyStudentEnrollment(User $student, Course $course, string $status): void

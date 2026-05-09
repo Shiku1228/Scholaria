@@ -76,6 +76,7 @@
                 <th class="py-3 px-4">Course</th>
                 <th class="py-3 px-4">Status</th>
                 <th class="py-3 px-4">Enrollment Date</th>
+                <th class="py-3 px-4 text-right">Actions</th>
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -85,10 +86,69 @@
                     <td class="py-3 px-4">{{ $row->course_name ?? '--' }}</td>
                     <td class="py-3 px-4">{{ $row->status ?? '--' }}</td>
                     <td class="py-3 px-4">{{ $row->enrolled_at ?? '--' }}</td>
+                    <td class="py-3 px-4">
+                        <form method="POST" action="{{ route('teacher.enrollments.unenroll', $row->enrollment_id) }}" class="flex justify-end" onsubmit="return confirm('Move this student to the unenrolled list?');">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100">
+                                Unenroll
+                            </button>
+                        </form>
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4" class="py-10 px-4 text-center text-sm text-gray-500">No enrollments found.</td>
+                    <td colspan="5" class="py-10 px-4 text-center text-sm text-gray-500">No enrollments found.</td>
+                </tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+        <div class="p-4 sm:p-5 border-b border-gray-100">
+            <div class="text-sm font-semibold">Unenrolled Students</div>
+            <div class="text-xs text-gray-500">Students removed from your courses. Delete only removes this unenrolled record.</div>
+        </div>
+        <table class="min-w-full text-sm">
+            <thead>
+            <tr class="text-left text-xs text-gray-500 border-b border-gray-100">
+                <th class="py-3 px-4">Student</th>
+                <th class="py-3 px-4">Course</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Unenrolled Date</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            @forelse ($unenrolledRows as $row)
+                <tr class="text-gray-700">
+                    <td class="py-3 px-4 font-medium text-gray-900">{{ $row->student_name ?? '--' }}</td>
+                    <td class="py-3 px-4">{{ $row->course_name ?? '--' }}</td>
+                    <td class="py-3 px-4">{{ $row->status ?? 'dropped' }}</td>
+                    <td class="py-3 px-4">{{ $row->unenrolled_at ?? $row->enrolled_at ?? '--' }}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex justify-end gap-2">
+                            <form method="POST" action="{{ route('teacher.enrollments.reenroll', $row->enrollment_id) }}" onsubmit="return confirm('Re-enroll this student to the course?');">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+                                    Re-enroll
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('teacher.enrollments.destroy', $row->enrollment_id) }}" onsubmit="return confirm('Permanently delete this unenrolled record?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5" class="py-10 px-4 text-center text-sm text-gray-500">No unenrolled students found.</td>
                 </tr>
             @endforelse
             </tbody>

@@ -327,7 +327,7 @@ function refreshAlerts() {
     fetch(`{{ route('admin.security-dashboard.alerts') }}?limit=20`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            if (Array.isArray(data) || data.success) {
                 location.reload();
             }
         })

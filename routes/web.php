@@ -198,6 +198,9 @@ Route::prefix('teacher')
         Route::get('/students', [TeacherStudentController::class, 'index'])->name('students.index');
         Route::get('/enrollments', [TeacherEnrollmentController::class, 'index'])->name('enrollments.index');
         Route::post('/enrollments', [TeacherEnrollmentController::class, 'store'])->name('enrollments.store');
+        Route::patch('/enrollments/{enrollment}/unenroll', [TeacherEnrollmentController::class, 'unenroll'])->name('enrollments.unenroll');
+        Route::patch('/enrollments/{enrollment}/reenroll', [TeacherEnrollmentController::class, 'reenroll'])->name('enrollments.reenroll');
+        Route::delete('/enrollments/{enrollment}', [TeacherEnrollmentController::class, 'destroy'])->name('enrollments.destroy');
 
         Route::get('/announcements', [TeacherAnnouncementController::class, 'overview'])->name('announcements');
         Route::redirect('/messages', '/messages')->name('messages');
