@@ -1,0 +1,130 @@
+{
+  "info": {
+    "name": "Scholaria Security API Test",
+    "description": "Test collection for Scholaria security features",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "JWT Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8001/api/login",
+              "protocol": "http",
+              "host": ["127.0.0.1"],
+              "port": "8001",
+              "path": ["api", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.token) {",
+                  "        pm.globals.set('jwt_token', response.token);",
+                  "        console.log('JWT Token saved to environment');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://127.0.0.1:8001/api/validate",
+              "protocol": "http",
+              "host": ["127.0.0.1"],
+              "port": "8001",
+              "path": ["api", "validate"]
+            }
+          }
+        },
+        {
+          "name": "Get User Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://127.0.0.1:8001/api/me",
+              "protocol": "http",
+              "host": ["127.0.0.1"],
+              "port": "8001",
+              "path": ["api", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth Testing",
+      "item": [
+        {
+          "name": "Google Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8001/auth/google/redirect",
+              "protocol": "http",
+              "host": ["127.0.0.1"],
+              "port": "8001",
+              "path": ["auth", "google", "redirect"]
+            }
+          }
+        },
+        {
+          "name": "GitHub Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8001/auth/github/redirect",
+              "protocol": "http",
+              "host": ["127.0.0.1"],
+              "port": "8001",
+              "path": ["auth", "github", "redirect"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "jwt_token",
+      "value": ""
+    }
+  ]
+}
