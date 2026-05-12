@@ -15,6 +15,8 @@ class Admin extends Model
         'first_name',
         'middle_name',
         'last_name',
+        'admin_level',
+        'access_scope',
     ];
 
     public function user(): BelongsTo

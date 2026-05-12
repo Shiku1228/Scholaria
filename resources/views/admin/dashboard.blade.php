@@ -69,24 +69,14 @@
             </div>
         </section>
 
-        @if (in_array('courses.create', $userPermissions) || in_array('users.create', $userPermissions) || in_array('courses.edit', $userPermissions))
         <section class="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                @if (in_array('courses.create', $userPermissions))
-                    <a href="{{ route('admin.courses.create') }}" class="inline-flex w-full items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">Create Course</a>
-                @endif
-                
-                @if (in_array('users.create', $userPermissions))
-                    <a href="{{ route('admin.users.create', ['role' => 'Teacher']) }}" class="inline-flex w-full items-center justify-center h-11 px-5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">Add Teacher</a>
-                    <a href="{{ route('admin.users.create', ['role' => 'Student']) }}" class="inline-flex w-full items-center justify-center h-11 px-5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">Add Student</a>
-                @endif
-                
-                @if (in_array('courses.edit', $userPermissions))
-                    <a href="{{ route('admin.enrollments.create') }}" class="inline-flex w-full items-center justify-center h-11 px-5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">Create Enrollment</a>
-                @endif
+                <a href="{{ route('admin.courses.create') }}" class="inline-flex w-full items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">Create Course</a>
+                <a href="{{ route('admin.users.create', ['role' => 'Teacher']) }}" class="inline-flex w-full items-center justify-center h-11 px-5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">Add Teacher</a>
+                <a href="{{ route('admin.users.create', ['role' => 'Student']) }}" class="inline-flex w-full items-center justify-center h-11 px-5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">Add Student</a>
+                <a href="{{ route('admin.enrollments.create') }}" class="inline-flex w-full items-center justify-center h-11 px-5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">Create Enrollment</a>
             </div>
         </section>
-        @endif
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200">

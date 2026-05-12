@@ -12,14 +12,6 @@ class AdminDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $user = auth()->user();
-        $userPermissions = [];
-        
-        // Get user permissions for dynamic content display
-        if (method_exists($user, 'getAllPermissions')) {
-            $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
-        }
-
         $rangeAllowed = ['7d', '30d', '12m'];
 
         $range = $request->query('range', '7d');
@@ -34,15 +26,14 @@ class AdminDashboardController extends Controller
             default => 7,
         };
 
-        // Build data based on user permissions
-        $stats = $this->buildStats($rangeDays, $userPermissions);
-        $overview = in_array('courses.view', $userPermissions) ? $this->buildOverviewSeries($range) : [];
-        $bestSellingCourse = in_array('courses.view', $userPermissions) ? $this->buildBestSellingCourse() : [];
-        $bestSellingCourses = in_array('courses.view', $userPermissions) ? $this->buildBestSellingCourses(10) : [];
-        $recentEnrollments = in_array('courses.view', $userPermissions) ? $this->buildRecentEnrollments() : [];
-        $systemOverview = in_array('users.view', $userPermissions) ? $this->buildSystemOverview() : [];
-        $recentActivity = in_array('courses.view', $userPermissions) ? $this->buildRecentActivity() : [];
-        $analytics = in_array('courses.view', $userPermissions) ? $this->buildAnalyticsSeries() : [];
+        $stats = $this->buildStats($rangeDays);
+        $overview = $this->buildOverviewSeries($range);
+        $bestSellingCourse = $this->buildBestSellingCourse();
+        $bestSellingCourses = $this->buildBestSellingCourses(10);
+        $recentEnrollments = $this->buildRecentEnrollments();
+        $systemOverview = $this->buildSystemOverview();
+        $recentActivity = $this->buildRecentActivity();
+        $analytics = $this->buildAnalyticsSeries();
 
         return view('admin.dashboard', [
             'filters' => [
@@ -56,25 +47,23 @@ class AdminDashboardController extends Controller
             'systemOverview' => $systemOverview,
             'recentActivity' => $recentActivity,
             'analytics' => $analytics,
-            'userPermissions' => $userPermissions,
-            'userRole' => $user->getRoleNames()->first(),
         ]);
     }
 
-    private function buildStats(int $rangeDays, array $userPermissions = []): array
+    private function buildStats(int $rangeDays): array
     {
-        $coursesCount = in_array('courses.view', $userPermissions) ? $this->countTable('courses') : 0;
-        $enrollmentsCount = in_array('courses.view', $userPermissions) ? $this->countTable('enrollments') : 0;
-        $studentsCount = in_array('users.view', $userPermissions) ? $this->countTable('students') : 0;
-        $teachersCount = in_array('users.view', $userPermissions) ? $this->countTable('teachers') : 0;
+        $coursesCount = $this->countTable('courses');
+        $enrollmentsCount = $this->countTable('enrollments');
+        $studentsCount = $this->countTable('students');
+        $teachersCount = $this->countTable('teachers');
 
-        if ($teachersCount === 0 && in_array('users.view', $userPermissions)) {
+        if ($teachersCount < 0) {
             $teachersCount = (int) User::role('Teacher')->count();
         }
 
-        if ($studentsCount === 0 && in_array('users.view', $userPermissions)) {
+        if ($studentsCount < 0) {
             $studentsCount = (int) User::role('Student')->count();
-            if ($studentsCount === 0) {
+            if ($studentsCount < 0) {
                 $studentsCount = $this->countTable('users');
             }
         }
@@ -90,7 +79,7 @@ class AdminDashboardController extends Controller
     private function buildOverviewSeries(string $range): array
     {
         try {
-            if ($range === '12m') {
+            if ($range == '12m') {
                 $labels = [];
                 $courses = [];
                 $enroll = [];
@@ -166,7 +155,7 @@ class AdminDashboardController extends Controller
                 ];
             }
 
-            $days = $range === '30d' ? 30 : 7;
+            $days = $range == '30d' ? 30 : 7;
             $labels = [];
             $keys = [];
             $courses = [];

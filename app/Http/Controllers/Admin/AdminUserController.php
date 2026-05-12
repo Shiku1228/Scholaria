@@ -80,8 +80,7 @@ class AdminUserController extends Controller
 
     public function create(): View
     {
-        $adminRoles = \Spatie\Permission\Models\Role::whereNotIn('name', ['Student', 'Teacher', 'Admin'])->get();
-        return view('admin.users.create', compact('adminRoles'));
+        return view('admin.users.create');
     }
 
     public function store(Request $request): RedirectResponse
@@ -111,7 +110,6 @@ class AdminUserController extends Controller
         } elseif ($role === 'Admin') {
             $rules['admin_level'] = ['nullable', 'string', 'max:255'];
             $rules['access_scope'] = ['nullable', 'string', 'max:255'];
-            $rules['admin_role'] = ['required', 'string', 'exists:roles,name'];
         }
 
         // Temporary debug - dump all request data
@@ -137,11 +135,7 @@ class AdminUserController extends Controller
 
             // Assign role
             if (method_exists($user, 'syncRoles')) {
-                if ($role === 'Admin' && !empty($validated['admin_role'])) {
-                    $user->syncRoles([$role, $validated['admin_role']]);
-                } else {
-                    $user->syncRoles([$role]);
-                }
+                $user->syncRoles([$role]);
             }
 
             // Create profile based on role
@@ -174,7 +168,10 @@ class AdminUserController extends Controller
                     break;
 
                 case 'Admin':
-                    $profile = Admin::create($profileData);
+                    $profile = Admin::create(array_merge($profileData, [
+                        'admin_level' => $validated['admin_level'] ?? 'standard',
+                        'access_scope' => $validated['access_scope'] ?? 'all',
+                    ]));
                     break;
             }
 
@@ -188,31 +185,14 @@ class AdminUserController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
     }
 
-    public function show($user): View
-    {
-        $user = User::withTrashed()
-            ->with(['student', 'teacher', 'admin'])
-            ->findOrFail($user);
-
-        $adminRoles = \Spatie\Permission\Models\Role::whereNotIn('name', ['Student', 'Teacher', 'Admin'])->get();
-
-        return view('admin.users.show', [
-            'user' => $user,
-            'adminRoles' => $adminRoles,
-        ]);
-    }
-
     public function edit($user): View
     {
         $user = User::withTrashed()
             ->with(['student', 'teacher', 'admin'])
             ->findOrFail($user);
 
-        $adminRoles = \Spatie\Permission\Models\Role::whereNotIn('name', ['Student', 'Teacher', 'Admin'])->get();
-
         return view('admin.users.edit', [
             'user' => $user,
-            'adminRoles' => $adminRoles,
         ]);
     }
 
@@ -244,7 +224,6 @@ class AdminUserController extends Controller
         } elseif ($role === 'Admin') {
             $rules['admin_level'] = ['nullable', 'string', 'max:255'];
             $rules['access_scope'] = ['nullable', 'string', 'max:255'];
-            $rules['admin_role'] = ['required', 'string', 'exists:roles,name'];
         }
 
         $validated = $request->validate($rules);
@@ -263,11 +242,7 @@ class AdminUserController extends Controller
 
             // Update role
             if (method_exists($user, 'syncRoles')) {
-                if ($role === 'Admin' && !empty($validated['admin_role'])) {
-                    $user->syncRoles([$role, $validated['admin_role']]);
-                } else {
-                    $user->syncRoles([$role]);
-                }
+                $user->syncRoles([$role]);
             }
 
             // Update or create profile
@@ -310,6 +285,8 @@ class AdminUserController extends Controller
                     case 'Admin':
                         $profile = Admin::create(array_merge($profileData, [
                             'user_id' => $user->id,
+                            'admin_level' => $validated['admin_level'] ?? 'standard',
+                            'access_scope' => $validated['access_scope'] ?? 'all',
                         ]));
                         break;
                 }
@@ -342,7 +319,10 @@ class AdminUserController extends Controller
                             break;
 
                         case 'Admin':
-                            $profile->update($profileData);
+                            $profile->update(array_merge($profileData, [
+                                'admin_level' => $validated['admin_level'] ?? $profile->admin_level,
+                                'access_scope' => $validated['access_scope'] ?? $profile->access_scope,
+                            ]));
                             break;
                     }
                 }

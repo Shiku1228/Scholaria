@@ -1,4 +1,4 @@
-@extends('layouts.dashboard', [
+﻿@extends('layouts.dashboard', [
     'title' => 'Edit User',
     'sidebarPartial' => 'partials.sidebars.admin',
 ])
@@ -120,8 +120,6 @@
             'Nursing' => 'Nursing Department',
             'Agriculture' => 'Agriculture Department',
         ];
-
-        $userGranularRole = method_exists($user, 'roles') ? $user->roles->whereNotIn('name', ['Admin', 'Teacher', 'Student'])->first()?->name : null;
     @endphp
     <div>
         <div class="text-xl font-semibold">Edit User</div>
@@ -271,16 +269,6 @@
             <!-- Admin Fields -->
             <div id="adminFields" class="space-y-4 {{ $roleName !== 'Admin' ? 'hidden' : '' }}">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700" for="admin_role">Admin Role</label>
-                        <select id="admin_role" name="admin_role" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
-                            <option value="" disabled {{ !$userGranularRole ? 'selected' : '' }}>Select Specific Role</option>
-                            @foreach($adminRoles as $roleOption)
-                                <option value="{{ $roleOption->name }}" {{ old('admin_role', $userGranularRole) === $roleOption->name ? 'selected' : '' }}>{{ $roleOption->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('admin_role')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
-                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="admin_level">Admin Level</label>
                         <select id="admin_level" name="admin_level" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">

@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Schedule;
 use App\Jobs\SessionCleanupJob;
 use App\Jobs\AnomalyDetectionJob;
 use App\Console\Commands\SecurityCleanup;
-use App\Console\Commands\DebugAdminRoles;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -144,10 +143,6 @@ Artisan::command('db:cleanup {--execute : Actually delete rows (otherwise dry-ru
 Artisan::command('security:cleanup', function () {
     return app(SecurityCleanup::class)->handle();
 })->purpose('Run security cleanup tasks including session and log cleanup');
-
-Artisan::command('debug:admin-roles {email}', function ($email) {
-    return app(DebugAdminRoles::class)->handle($email);
-})->purpose('Debug admin user roles');
 
 // Schedule anomaly detection job every 30 minutes
 Schedule::job(new AnomalyDetectionJob())

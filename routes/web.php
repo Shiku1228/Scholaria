@@ -37,7 +37,6 @@ use App\Http\Controllers\Messaging\CourseMessagingController;
 use App\Http\Controllers\JwtAuthController;
 use App\Http\Controllers\JwtTestController;
 use App\Http\Controllers\SocialAuthController;
-use App\Http\Controllers\Admin\RoleManagementController;
 
 Route::get('/jwt-test', [JwtTestController::class, 'index'])->name('jwt.test');
 
@@ -48,16 +47,12 @@ Route::get('/', function () {
 
     $user = auth()->user();
 
-    if (method_exists($user, 'hasRole') && ($user->hasRole('Admin') || $user->hasRole('Super Admin'))) {
+    if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
         return redirect()->route('admin.dashboard');
     }
 
     if (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {
         return redirect()->route('teacher.dashboard');
-    }
-
-    if (method_exists($user, 'hasRole') && $user->hasRole('Super Admin')) {
-        return redirect()->route('admin.dashboard');
     }
 
     return redirect()->route('student.dashboard');
@@ -86,112 +81,14 @@ Route::middleware(['auth'])->prefix('2fa')->name('2fa.')->group(function () {
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'role:Super Admin|Content Admin|User Admin|Report Admin|Settings Admin', 'session.tracking'])
+    ->middleware(['auth', 'role:Admin', 'session.tracking'])
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::post('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');
+        Route::resource('/users', AdminUserController::class);
 
-        // User Management - Requires users.view permission
-        Route::middleware(['check.permission:users.view'])->group(function () {
-            Route::post('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');
-            Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
-            Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
-        });
-
-        // User Creation - Requires users.create permission
-        Route::middleware(['check.permission:users.create'])->group(function () {
-            Route::get('/users/create', [AdminUserController::class, 'create'])->name('users.create');
-            Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
-        });
-
-        // User Editing - Requires users.edit permission
-        Route::middleware(['check.permission:users.edit'])->group(function () {
-            Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
-            Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
-        });
-
-        // User Deletion - Requires users.delete permission
-        Route::middleware(['check.permission:users.delete'])->group(function () {
-            Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
-        });
-
-        // Course Management - Requires courses.view permission
-        Route::middleware(['check.permission:courses.view'])->group(function () {
-            Route::get('/courses/check-number', [AdminCourseController::class, 'checkNumber'])->name('courses.check-number');
-            Route::get('/courses', [AdminCourseController::class, 'index'])->name('courses.index');
-            Route::get('/courses/{course}', [AdminCourseController::class, 'show'])->name('courses.show');
-        });
-
-        // Course Creation - Requires courses.create permission
-        Route::middleware(['check.permission:courses.create'])->group(function () {
-            Route::get('/courses/create', [AdminCourseController::class, 'create'])->name('courses.create');
-            Route::post('/courses', [AdminCourseController::class, 'store'])->name('courses.store');
-        });
-
-        // Course Editing - Requires courses.edit permission
-        Route::middleware(['check.permission:courses.edit'])->group(function () {
-            Route::get('/courses/{course}/edit', [AdminCourseController::class, 'edit'])->name('courses.edit');
-            Route::put('/courses/{course}', [AdminCourseController::class, 'update'])->name('courses.update');
-        });
-
-        // Course Deletion - Requires courses.delete permission
-        Route::middleware(['check.permission:courses.delete'])->group(function () {
-            Route::delete('/courses/{course}', [AdminCourseController::class, 'destroy'])->name('courses.destroy');
-        });
-
-        // Enrollment Management - Requires courses.view permission
-        Route::middleware(['check.permission:courses.view'])->group(function () {
-            Route::get('/enrollments', [AdminEnrollmentController::class, 'index'])->name('enrollments.index');
-            Route::get('/enrollments/{enrollment}', [AdminEnrollmentController::class, 'show'])->name('enrollments.show');
-        });
-
-        // Enrollment Creation - Requires courses.edit permission
-        Route::middleware(['check.permission:courses.edit'])->group(function () {
-            Route::get('/enrollments/create', [AdminEnrollmentController::class, 'create'])->name('enrollments.create');
-            Route::post('/enrollments', [AdminEnrollmentController::class, 'store'])->name('enrollments.store');
-        });
-
-        // Enrollment Management - Requires courses.edit permission
-        Route::middleware(['check.permission:courses.edit'])->group(function () {
-            Route::patch('/enrollments/{enrollment}/unenroll', [AdminEnrollmentController::class, 'unenroll'])->name('enrollments.unenroll');
-            Route::patch('/enrollments/{enrollment}/reenroll', [AdminEnrollmentController::class, 'reenroll'])->name('enrollments.reenroll');
-            Route::delete('/enrollments/{enrollment}', [AdminEnrollmentController::class, 'destroy'])->name('enrollments.destroy');
-        });
-
-        // Records Management - Requires users.view permission
-        Route::middleware(['check.permission:users.view'])->group(function () {
-            Route::get('/records', [AdminRecordsController::class, 'index'])->name('records.index');
-        });
-
-        // Reports - Requires reports.view permission
-        Route::middleware(['check.permission:reports.view'])->group(function () {
-            Route::get('/reports', [AdminDashboardController::class, 'reports'])->name('reports.index');
-            Route::get('/reports/export', [AdminDashboardController::class, 'exportReports'])->name('reports.export');
-        });
-
-        // Settings - Requires settings.view permission
-        Route::middleware(['check.permission:settings.view'])->group(function () {
-            Route::get('/settings', [AdminDashboardController::class, 'settings'])->name('settings.index');
-        });
-
-        // Settings Editing - Requires settings.edit permission
-        Route::middleware(['check.permission:settings.edit'])->group(function () {
-            Route::put('/settings', [AdminDashboardController::class, 'updateSettings'])->name('settings.update');
-        });
-
-        // Role Management - Requires roles.manage permission
-        Route::middleware(['check.permission:roles.manage'])->prefix('roles')->name('roles.')->group(function () {
-            Route::get('/', [RoleManagementController::class, 'index'])->name('index');
-            Route::get('/create', [RoleManagementController::class, 'create'])->name('create');
-            Route::post('/', [RoleManagementController::class, 'store'])->name('store');
-            Route::get('/{role}/edit', [RoleManagementController::class, 'edit'])->name('edit');
-            Route::put('/{role}', [RoleManagementController::class, 'update'])->name('update');
-            Route::delete('/{role}', [RoleManagementController::class, 'destroy'])->name('destroy');
-            Route::post('/assign', [RoleManagementController::class, 'assignRole'])->name('assign');
-            Route::post('/{user}/revoke', [RoleManagementController::class, 'revokeRole'])->name('revoke');
-        });
-
-        // Security Dashboard - Super Admin only
-        Route::middleware(['role:Super Admin'])->prefix('security-dashboard')->name('security-dashboard.')->group(function () {
+        // Security Dashboard Routes
+        Route::prefix('security-dashboard')->name('security-dashboard.')->group(function () {
             Route::get('/', [SecurityDashboardController::class, 'index'])->name('index');
             Route::get('/metrics', [SecurityDashboardController::class, 'metrics'])->name('metrics');
             Route::get('/alerts', [SecurityDashboardController::class, 'alerts'])->name('alerts');
@@ -208,6 +105,14 @@ Route::prefix('admin')
             // Test alert endpoint
             Route::post('/test-alert', [SecurityDashboardController::class, 'testAlert'])->name('test-alert');
         });
+
+        Route::get('/courses/check-number', [AdminCourseController::class, 'checkNumber'])->name('courses.check-number');
+        Route::resource('/courses', AdminCourseController::class)->except(['show']);
+
+        Route::resource('/enrollments', AdminEnrollmentController::class)->except(['show']);
+
+        // Records Management
+        Route::get('/records', [AdminRecordsController::class, 'index'])->name('records.index');
     });
 
 Route::middleware(['auth', 'session.tracking'])->prefix('messages')->name('messages.')->group(function () {

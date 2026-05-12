@@ -49,13 +49,11 @@
                     </div>
                 </form>
             </div>
-            @if (auth()->user()->can('users.create'))
             <div class="mt-4">
                 <a href="{{ route('admin.users.create') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">
                     Add User
                 </a>
             </div>
-            @endif
         </div>
 
         <div class="overflow-x-auto">
@@ -64,7 +62,7 @@
                     <tr class="text-left text-xs font-semibold tracking-wide text-slate-500 uppercase border-b border-slate-200">
                         <th class="py-4 px-6">User</th>
                         <th class="py-4 px-6">Role ID</th>
-                        <th scope="col" class="py-4 px-6 text-center">ACTIONS</th>
+                        <th class="py-4 px-6">Role</th>
                         <th class="py-4 px-6">Status</th>
                         <th class="py-4 px-6">Joined Date</th>
                         <th class="py-4 px-6 text-center">Actions</th>
@@ -129,23 +127,32 @@
                                 </span>
                             </td>
                             <td class="py-4 px-6 text-slate-500">{{ optional($user->created_at)->format('Y-m-d') }}</td>
-                            @if (auth()->user()->can('users.edit'))
-                                <td class="py-4 px-6">
-                                    <div class="flex items-center justify-center gap-3">
-                                        <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[#c9d7f2] bg-[#eaf0fb] text-[#0b2d6b] hover:bg-[#dce7fb]" title="Edit">
-                                            <i data-lucide="pencil" class="h-4 w-4"></i>
-                                        </a>
-                                        @if (auth()->user()->can('users.delete'))
-                                            <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Delete this user?');">
+                            <td class="py-4 px-6">
+                                <div class="flex items-center justify-center gap-3">
+                                    <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[#c9d7f2] bg-[#eaf0fb] text-[#0b2d6b] hover:bg-[#dce7fb]" title="Edit">
+                                        <i data-lucide="pencil" class="h-4 w-4"></i>
+                                    </a>
+
+                                    @if (!(method_exists($user, 'hasRole') && $user->hasRole('Admin')))
+                                        @if ($isDeleted)
+                                            <form method="POST" action="{{ route('admin.users.restore', $user) }}" onsubmit="return confirm('Restore this user?');">
                                                 @csrf
-                                                <button type="submit" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100" title="Delete">
+                                                <button type="submit" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" title="Restore">
+                                                    <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
+                                                </button>
+                                            </form>
+                                        @else
+                                            <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Suspend this user?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100" title="Suspend">
                                                     <i data-lucide="trash-2" class="h-4 w-4"></i>
                                                 </button>
                                             </form>
                                         @endif
-                                    </div>
-                                </td>
-                            @endif
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>

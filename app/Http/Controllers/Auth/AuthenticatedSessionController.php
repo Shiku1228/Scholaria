@@ -52,74 +52,39 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('2fa.verify.show');
         }
 
-        // Check for ALL admin roles first - ABSOLUTE PRIORITY
-        $adminRoles = ['Admin', 'Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'];
-        
-        // Debug: Log role detection attempt
-        Log::info('Login redirect check for user ' . $user->id . ' with email: ' . $user->email);
-        
-        if (method_exists($user, 'hasRole')) {
-            Log::info('User has hasRole method, checking admin roles...');
-            
-            // Check if user has ANY admin role - IMMEDIATE RETURN
-            foreach ($adminRoles as $adminRole) {
-                if ($user->hasRole($adminRole)) {
-                    Log::info("✅ Admin role '$adminRole' detected, redirecting to admin dashboard");
-                    return redirect()->route('admin.dashboard');
-                }
+        $roleDefaultRedirect = route('student.dashboard');
+
+        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
+            $roleDefaultRedirect = route('admin.dashboard');
+        } elseif (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {
+            $roleDefaultRedirect = route('teacher.dashboard');
+        } elseif (method_exists($user, 'hasRole') && $user->hasRole('Student')) {
+            $roleDefaultRedirect = route('student.dashboard');
+        } elseif (method_exists($user, 'getRoleNames') && $user->getRoleNames()->isEmpty()) {
+            $legacyRole = (string) data_get($user, 'role', '');
+            if ($legacyRole === 'admin') {
+                $roleDefaultRedirect = route('admin.dashboard');
+            } elseif ($legacyRole === 'teacher') {
+                $roleDefaultRedirect = route('teacher.dashboard');
+            } elseif ($legacyRole === 'student') {
+                $roleDefaultRedirect = route('student.dashboard');
             }
-            
-            Log::info('No admin roles found, checking other roles...');
-        } else {
-            Log::error('❌ User does not have hasRole method!');
         }
-        
-        // Check for Teacher role if no admin role found
-        if (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {
-            Log::info('Teacher role detected, redirecting to teacher dashboard');
-            return redirect()->route('teacher.dashboard');
+
+        $intended = $request->session()->pull('url.intended');
+        if (is_string($intended) && $this->intendedMatchesRole($intended, $user)) {
+            return redirect()->to($intended);
         }
-        
-        // Check for Student role if no other role found
-        if (method_exists($user, 'hasRole') && $user->hasRole('Student')) {
-            Log::info('Student role detected, redirecting to student dashboard');
-            return redirect()->route('student.dashboard');
-        }
-        
-        // Fallback to legacy role check
-        Log::info('No modern roles found, checking legacy role field...');
-        $legacyRole = (string) data_get($user, 'role', '');
-        Log::info("Legacy role field: '$legacyRole'");
-        
-        if ($legacyRole === 'admin') {
-            Log::info('Legacy admin role found, redirecting to admin dashboard');
-            return redirect()->route('admin.dashboard');
-        } elseif ($legacyRole === 'teacher') {
-            Log::info('Legacy teacher role found, redirecting to teacher dashboard');
-            return redirect()->route('teacher.dashboard');
-        } elseif ($legacyRole === 'student') {
-            Log::info('Legacy student role found, redirecting to student dashboard');
-            return redirect()->route('student.dashboard');
-        }
-        
-        // Final fallback to student dashboard
-        Log::warning('No role detected, defaulting to student dashboard for user ' . $user->id);
-        return redirect()->route('student.dashboard');
+
+        return redirect()->to($roleDefaultRedirect);
     }
 
     private function intendedMatchesRole(string $url, $user): bool
     {
         $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
 
-        // Check for ALL admin roles
-        $adminRoles = ['Admin', 'Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'];
-        
-        if (method_exists($user, 'hasRole')) {
-            foreach ($adminRoles as $adminRole) {
-                if ($user->hasRole($adminRole)) {
-                    return str_starts_with($path, '/admin');
-                }
-            }
+        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
+            return str_starts_with($path, '/admin');
         }
 
         if (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {

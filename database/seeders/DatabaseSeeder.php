@@ -42,11 +42,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $this->call([
-            RolesAndPermissionsSeeder::class,
-            GranularAdminRolesAndPermissionsSeeder::class,
-            SampleUsersSeeder::class,
-        ]);
+        $this->call(RolesAndPermissionsSeeder::class);
 
         if (method_exists($admin, 'syncRoles')) {
             $admin->syncRoles(['Admin']);
