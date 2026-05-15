@@ -54,13 +54,19 @@ class AuthenticatedSessionController extends Controller
 
         $roleDefaultRedirect = route('student.dashboard');
 
-        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
-            $roleDefaultRedirect = route('admin.dashboard');
-        } elseif (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {
-            $roleDefaultRedirect = route('teacher.dashboard');
-        } elseif (method_exists($user, 'hasRole') && $user->hasRole('Student')) {
-            $roleDefaultRedirect = route('student.dashboard');
-        } elseif (method_exists($user, 'getRoleNames') && $user->getRoleNames()->isEmpty()) {
+        if (method_exists($user, 'hasRole')) {
+            if ($user->hasRole('Admin') || $user->hasRole('Super Admin') ||
+                $user->hasRole('Content Admin') || $user->hasRole('User Admin') ||
+                $user->hasRole('Report Admin') || $user->hasRole('Settings Admin')) {
+                $roleDefaultRedirect = route('admin.dashboard');
+            } elseif ($user->hasRole('Teacher')) {
+                $roleDefaultRedirect = route('teacher.dashboard');
+            } elseif ($user->hasRole('Student')) {
+                $roleDefaultRedirect = route('student.dashboard');
+            }
+        }
+
+        if (method_exists($user, 'getRoleNames') && $user->getRoleNames()->isEmpty()) {
             $legacyRole = (string) data_get($user, 'role', '');
             if ($legacyRole === 'admin') {
                 $roleDefaultRedirect = route('admin.dashboard');
@@ -83,16 +89,20 @@ class AuthenticatedSessionController extends Controller
     {
         $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
 
-        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
-            return str_starts_with($path, '/admin');
-        }
+        if (method_exists($user, 'hasRole')) {
+            if ($user->hasRole('Admin') || $user->hasRole('Super Admin') || 
+                $user->hasRole('Content Admin') || $user->hasRole('User Admin') || 
+                $user->hasRole('Report Admin') || $user->hasRole('Settings Admin')) {
+                return str_starts_with($path, '/admin');
+            }
 
-        if (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {
-            return str_starts_with($path, '/teacher');
-        }
+            if ($user->hasRole('Teacher')) {
+                return str_starts_with($path, '/teacher');
+            }
 
-        if (method_exists($user, 'hasRole') && $user->hasRole('Student')) {
-            return str_starts_with($path, '/student');
+            if ($user->hasRole('Student')) {
+                return str_starts_with($path, '/student');
+            }
         }
 
         if (method_exists($user, 'getRoleNames') && $user->getRoleNames()->isEmpty()) {

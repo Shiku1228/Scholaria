@@ -47,12 +47,16 @@ Route::get('/', function () {
 
     $user = auth()->user();
 
-    if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
-        return redirect()->route('admin.dashboard');
-    }
+    if (method_exists($user, 'hasRole')) {
+        if ($user->hasRole('Admin') || $user->hasRole('Super Admin') || 
+            $user->hasRole('Content Admin') || $user->hasRole('User Admin') || 
+            $user->hasRole('Report Admin') || $user->hasRole('Settings Admin')) {
+            return redirect()->route('admin.dashboard');
+        }
 
-    if (method_exists($user, 'hasRole') && $user->hasRole('Teacher')) {
-        return redirect()->route('teacher.dashboard');
+        if ($user->hasRole('Teacher')) {
+            return redirect()->route('teacher.dashboard');
+        }
     }
 
     return redirect()->route('student.dashboard');
@@ -81,7 +85,7 @@ Route::middleware(['auth'])->prefix('2fa')->name('2fa.')->group(function () {
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'role:Admin', 'session.tracking'])
+    ->middleware(['auth', 'role:Admin|Super Admin|Content Admin|User Admin|Report Admin|Settings Admin', 'session.tracking'])
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::post('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');

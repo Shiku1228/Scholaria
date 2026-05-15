@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -166,10 +167,11 @@ class GranularAdminRolesAndPermissionsSeeder extends Seeder
         // Get new role IDs
         $newRoleIds = DB::table('roles')
             ->whereIn('name', ['Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'])
-            ->pluck('id', 'name');
-            
+            ->pluck('id', 'name')
+            ->toArray();
+
         echo "Restoring user-role assignments...\n";
-        
+
         foreach ($backupUsers as $backup) {
             // Map old role ID to new role ID based on role name
             $role = DB::table('roles')->where('id', $backup->role_id)->first();
@@ -180,6 +182,97 @@ class GranularAdminRolesAndPermissionsSeeder extends Seeder
                     'role_id' => $newRoleIds[$role->name],
                 ]);
                 echo "Restored user {$backup->model_id} to role {$role->name}\n";
+            }
+        }
+
+        // Assign roles to users based on legacy role column if they don't have Spatie roles
+        $this->assignRolesFromLegacyColumn($newRoleIds);
+    }
+
+    private function assignRolesFromLegacyColumn(array $newRoleIds): void
+    {
+        echo "Assigning roles from legacy role column...\n";
+
+        // Check if legacy role column exists
+        $hasLegacyColumn = Schema::hasColumn('users', 'role');
+
+        if ($hasLegacyColumn) {
+            // Get users who don't have any Spatie roles but have a legacy role
+            $usersWithLegacyRole = DB::table('users')
+                ->whereNotNull('role')
+                ->where('role', '!=', '')
+                ->whereNotIn('id', function($query) {
+                    $query->select('model_id')
+                        ->from('model_has_roles')
+                        ->where('model_type', 'App\Models\User');
+                })
+                ->get();
+
+            foreach ($usersWithLegacyRole as $user) {
+                $legacyRole = strtolower($user->role);
+                $roleName = null;
+
+                // Map legacy role to new granular role
+                if ($legacyRole === 'admin') {
+                    $roleName = 'Super Admin'; // Legacy admin becomes Super Admin
+                } elseif ($legacyRole === 'teacher') {
+                    // Teacher is not in the admin roles, skip
+                    continue;
+                } elseif ($legacyRole === 'student') {
+                    // Student is not in the admin roles, skip
+                    continue;
+                }
+
+                if ($roleName && isset($newRoleIds[$roleName])) {
+                    DB::table('model_has_roles')->insert([
+                        'model_id' => $user->id,
+                        'model_type' => 'App\Models\User',
+                        'role_id' => $newRoleIds[$roleName],
+                    ]);
+                    echo "Assigned {$roleName} to user {$user->id} (legacy role: {$user->role})\n";
+                }
+            }
+        }
+
+        // Assign roles based on email patterns for users without any roles
+        $this->assignRolesByEmailPattern($newRoleIds);
+    }
+
+    private function assignRolesByEmailPattern(array $newRoleIds): void
+    {
+        echo "Assigning roles based on email patterns...\n";
+
+        // Email pattern to role mapping
+        $emailRoleMap = [
+            'superadmin@' => 'Super Admin',
+            'contentadmin@' => 'Content Admin',
+            'useradmin@' => 'User Admin',
+            'reportadmin@' => 'Report Admin',
+            'settingsadmin@' => 'Settings Admin',
+        ];
+
+        foreach ($emailRoleMap as $emailPattern => $roleName) {
+            if (!isset($newRoleIds[$roleName])) {
+                continue;
+            }
+
+            // Get users matching the email pattern who don't have any roles
+            $users = DB::table('users')
+                ->where('email', 'like', $emailPattern . '%')
+                ->whereNotIn('id', function($query) {
+                    $query->select('model_id')
+                        ->from('model_has_roles')
+                        ->where('model_type', 'App\Models\User');
+                })
+                ->get();
+
+            foreach ($users as $user) {
+                DB::table('model_has_roles')->insert([
+                    'model_id' => $user->id,
+                    'model_type' => 'App\Models\User',
+                    'role_id' => $newRoleIds[$roleName],
+                ]);
+                echo "Assigned {$roleName} to user {$user->id} (email: {$user->email})\n";
             }
         }
     }
