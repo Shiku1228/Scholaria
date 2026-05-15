@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminCourseController;
 use App\Http\Controllers\Admin\AdminEnrollmentController;
 use App\Http\Controllers\Admin\AdminRecordsController;
+use App\Http\Controllers\Admin\RoleManagementController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -117,6 +118,18 @@ Route::prefix('admin')
 
         // Records Management
         Route::get('/records', [AdminRecordsController::class, 'index'])->name('records.index');
+
+        // Role Management Routes
+        Route::prefix('roles')->name('roles.')->group(function () {
+            Route::get('/', [RoleManagementController::class, 'index'])->name('index');
+            Route::get('/create', [RoleManagementController::class, 'create'])->name('create');
+            Route::post('/', [RoleManagementController::class, 'store'])->name('store');
+            Route::get('/{role}/edit', [RoleManagementController::class, 'edit'])->name('edit');
+            Route::put('/{role}', [RoleManagementController::class, 'update'])->name('update');
+            Route::delete('/{role}', [RoleManagementController::class, 'destroy'])->name('destroy');
+            Route::post('/assign', [RoleManagementController::class, 'assignRole'])->name('assign');
+            Route::post('/{user}/revoke', [RoleManagementController::class, 'revokeRole'])->name('revoke');
+        });
     });
 
 Route::middleware(['auth', 'session.tracking'])->prefix('messages')->name('messages.')->group(function () {

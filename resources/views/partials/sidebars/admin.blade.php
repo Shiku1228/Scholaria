@@ -2,8 +2,11 @@
     $icons = [
         'Dashboard' => 'layout-dashboard',
         'Security' => 'shield',
+        'Role Management' => 'shield-check',
         'Enrollment' => 'clipboard-check',
         'Course' => 'book-open',
+        'Lessons' => 'book',
+        'Announcements' => 'megaphone',
         'Message' => 'message-circle',
         'Support Forum' => 'help-circle',
         'Settings' => 'settings',
@@ -38,6 +41,19 @@
     </a>
 @endcan
 
+{{-- Role Management - Super Admin only (roles.manage permission) --}}
+@can('roles.manage')
+    @php
+        $isRoleManagementActive = request()->routeIs('admin.roles.*');
+    @endphp
+    <a href="{{ route('admin.roles.index') }}"
+       title="Role Management"
+       class="slms-nav-item w-12 h-12 flex items-center justify-center rounded-xl transition-colors {{ $isRoleManagementActive ? 'bg-[#0b2d6b] text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100' }}">
+        <i data-lucide="{{ $icons['Role Management'] }}" style="width:20px;height:20px;"></i>
+        <span class="slms-nav-label ml-3">Role Management</span>
+        <span class="sr-only">Role Management</span>
+    </a>
+@endcan
 {{-- Enrollment - needs users.view permission (all admins except Content Admin) --}}
 @can('users.view')
     @php
@@ -66,6 +82,19 @@
     </a>
 @endcan
 
+{{-- Lessons - needs lessons.view permission (Super Admin, Content Admin) --}}
+@can('lessons.view')
+    @php
+        $isLessonsActive = request()->routeIs('admin.lessons.*');
+    @endphp
+    <a href="{{ route('admin.courses.index') }}"
+       title="Lessons"
+       class="slms-nav-item w-12 h-12 flex items-center justify-center rounded-xl transition-colors {{ $isLessonsActive ? 'bg-[#0b2d6b] text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100' }}">
+        <i data-lucide="{{ $icons['Lessons'] }}" style="width:20px;height:20px;"></i>
+        <span class="slms-nav-label ml-3">Lessons</span>
+        <span class="sr-only">Lessons</span>
+    </a>
+@endcan
 {{-- Settings - needs settings.view permission (Super Admin, Settings Admin) --}}
 @can('settings.view')
     @php

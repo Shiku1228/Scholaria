@@ -59,7 +59,9 @@ class RoleManagementController extends Controller
             'guard_name' => 'web',
         ]);
 
-        $role->syncPermissions($request->permissions);
+        // Convert permission IDs to permission names
+        $permissionNames = Permission::whereIn('id', $request->permissions)->pluck('name')->toArray();
+        $role->syncPermissions($permissionNames);
 
         return redirect()->route('admin.roles.index')
             ->with('success', "Role '{$role->name}' created successfully.");
@@ -96,7 +98,6 @@ class RoleManagementController extends Controller
         // Additional validation to ensure all permission IDs actually exist
         $validPermissionIds = Permission::whereIn('id', $request->permissions)->pluck('id')->toArray();
         $invalidPermissions = array_diff($request->permissions, $validPermissionIds);
-        
         if (!empty($invalidPermissions)) {
             return redirect()->back()
                 ->with('error', 'Invalid permission IDs: ' . implode(', ', $invalidPermissions))
@@ -107,7 +108,9 @@ class RoleManagementController extends Controller
             'name' => $request->name,
         ]);
 
-        $role->syncPermissions($request->permissions);
+        // Convert permission IDs to permission names
+        $permissionNames = Permission::whereIn('id', $request->permissions)->pluck('name')->toArray();
+        $role->syncPermissions($permissionNames);
 
         return redirect()->route('admin.roles.index')
             ->with('success', "Role '{$role->name}' updated successfully.");
