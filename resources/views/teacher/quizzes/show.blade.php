@@ -115,7 +115,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <i data-lucide="rotate-ccw" class="h-4 w-4 text-slate-400"></i>
-                                <span class="text-slate-600">Attempts:</span>
+                                <span class="text-slate-600">Attempts Allowed:</span>
                                 <span class="font-medium text-slate-900">{{ $quiz->attempts_allowed ?? 1 }}</span>
                             </div>
                             <div class="flex items-center gap-2">
@@ -222,7 +222,7 @@
                         <div>
                             <div class="text-sm font-medium text-amber-900">Quiz Not Published</div>
                             <p class="text-xs text-amber-700 mt-1">Students cannot see this quiz until you publish it.</p>
-                            <form method="POST" action="{{ route('teacher.quizzes.publish', $quiz) }}" class="mt-3">
+                            <form method="POST" action="{{ route('teacher.quizzes.publish', $quiz) }}" class="mt-3" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<i data-lucide=\'loader-2\' class=\'h-3 w-3 mr-1 animate-spin\'></i>Publishing...';">
                                 @csrf
                                 <button type="submit" class="inline-flex items-center justify-center h-8 px-4 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700" {{ $quiz->questions()->count() === 0 ? 'disabled' : '' }}>
                                     <i data-lucide="upload" class="h-3 w-3 mr-1"></i>Publish Quiz

@@ -7,11 +7,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class GranularAdminRolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
+        // Clear Spatie permission cache to ensure fresh state
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         // Backup existing user-role assignments before clearing
         $backupUsers = DB::table('model_has_roles')
             ->whereIn('role_id', function($query) {
@@ -21,18 +25,19 @@ class GranularAdminRolesAndPermissionsSeeder extends Seeder
             ->get(['model_id', 'model_type', 'role_id']);
             
         echo "Backed up " . count($backupUsers) . " user-role assignments\n";
-
-        // Clear role-permission relationships for admin roles
-        $adminRoleIds = DB::table('roles')
-            ->whereIn('name', ['Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'])
-            ->pluck('id');
-            
-        DB::table('role_has_permissions')->whereIn('role_id', $adminRoleIds)->delete();
         
-        // Delete the roles
-        DB::table('roles')->whereIn('name', ['Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'])->delete();
+        // Get admin role IDs first (before deleting).
+        // We include 'Admin' to clear legacy permissions that might cause leakage.
+        $adminRoleIds = DB::table('roles')
+            ->whereIn('name', ['Admin', 'Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'])
+            ->pluck('id')
+            ->toArray();
 
-        // Create granular admin roles
+        // Only delete role-permission relationships (keep roles intact for now)
+        if (!empty($adminRoleIds)) {
+            DB::table('role_has_permissions')->whereIn('role_id', $adminRoleIds)->delete();
+            echo "Cleared " . count($adminRoleIds) . " role permissions\n";
+        }
         $roles = [
             'Super Admin' => 'Full system access with all permissions',
             'Content Admin' => 'Manage courses, lessons, and basic user operations',
@@ -42,22 +47,26 @@ class GranularAdminRolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($roles as $roleName => $description) {
-            DB::table('roles')->insert([
-                'name' => $roleName,
-                'guard_name' => 'web',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $exists = DB::table('roles')->where('name', $roleName)->exists();
+            if (!$exists) {
+                DB::table('roles')->insert([
+                    'name' => $roleName,
+                    'guard_name' => 'web',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                echo "Created role: $roleName\n";
+            }
         }
 
         // Create granular permissions (only if they don't exist)
         $newPermissions = [
-            'users.view', 'users.create', 'users.edit', 'users.delete', 'users.suspend',
+            'users.view', 'users.create', 'users.edit', 'users.update', 'users.delete', 'users.suspend',
             'roles.manage', 'permissions.manage', 
             'settings.view', 'settings.edit', 
             'reports.view', 'reports.export',
-            'courses.view', 'courses.create', 'courses.update', 'courses.delete',
-            'lessons.view', 'lessons.create', 'lessons.update', 'lessons.delete'
+            'courses.view', 'courses.create', 'courses.edit', 'courses.update', 'courses.delete',
+            'lessons.view', 'lessons.create', 'lessons.edit', 'lessons.update', 'lessons.delete'
         ];
 
         foreach ($newPermissions as $permissionName) {
@@ -69,6 +78,7 @@ class GranularAdminRolesAndPermissionsSeeder extends Seeder
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+                echo "Created permission: $permissionName\n";
             }
         }
 
@@ -77,6 +87,8 @@ class GranularAdminRolesAndPermissionsSeeder extends Seeder
         
         // Restore user-role assignments
         $this->restoreUserRoleAssignments($backupUsers);
+
+        echo "Seeder completed successfully!\n";
     }
 
     private function assignPermissionsToRoles(): void
@@ -84,80 +96,84 @@ class GranularAdminRolesAndPermissionsSeeder extends Seeder
         // Get role IDs
         $roleIds = DB::table('roles')
             ->whereIn('name', ['Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'])
-            ->pluck('id', 'name');
-            
-        $superAdminRoleId = $roleIds['Super Admin'];
-        $contentAdminRoleId = $roleIds['Content Admin'];
-        $userAdminRoleId = $roleIds['User Admin'];
-        $reportAdminRoleId = $roleIds['Report Admin'];
-        $settingsAdminRoleId = $roleIds['Settings Admin'];
+            ->pluck('id', 'name')
+            ->toArray();
 
-        // Get all permission IDs
-        $permissionIds = DB::table('permissions')->pluck('id', 'name');
+        // Get all permission IDs keyed by name
+        $permissionIds = DB::table('permissions')->pluck('id', 'name')->toArray();
 
-        // Super Admin - All permissions
-        foreach ($permissionIds as $permissionId) {
-            DB::table('role_has_permissions')->insert([
-                'role_id' => $superAdminRoleId,
-                'permission_id' => $permissionId,
-            ]);
-        }
+        // Define granular permissions per role with all sidebar tabs they need
+        $rolePermissionMap = [
+            // Super Admin: Full system access - all permissions
+            'Super Admin' => [
+                // User Management
+                'users.view', 'users.create', 'users.edit', 'users.update', 'users.delete', 'users.suspend',
+                // Role & Permission Management
+                'roles.manage', 'permissions.manage',
+                // Content Management
+                'courses.view', 'courses.create', 'courses.edit', 'courses.update', 'courses.delete',
+                'lessons.view', 'lessons.create', 'lessons.edit', 'lessons.update', 'lessons.delete',
+                // Reports & Settings
+                'reports.view', 'reports.export',
+                'settings.view', 'settings.edit',
+            ],
 
-        // Content Admin - Content and basic user permissions
-        $contentAdminPermissions = [
-            'users.view', 'users.edit',
-            'courses.view', 'courses.create', 'courses.update', 'courses.delete',
-            'lessons.view', 'lessons.create', 'lessons.update', 'lessons.delete',
+            // Content Admin: Manage courses, lessons, and view/edit users only
+            'Content Admin' => [
+                // User Management (view & edit only)
+                'users.view', 'users.edit', 'users.update',
+                // Content Management (full access)
+                'courses.view', 'courses.create', 'courses.edit', 'courses.update', 'courses.delete',
+                'lessons.view', 'lessons.create', 'lessons.edit', 'lessons.update', 'lessons.delete',
+            ],
+
+            // User Admin: Full user management only
+            'User Admin' => [
+                // User Management (full access)
+                'users.view', 'users.create', 'users.edit', 'users.update', 'users.delete', 'users.suspend',
+            ],
+
+            // Report Admin: View reports and user data only (read-only)
+            'Report Admin' => [
+                // User Management (view only)
+                'users.view',
+                // Reports & Analytics (view & export)
+                'reports.view', 'reports.export',
+            ],
+
+            // Settings Admin: Manage system settings and view users
+            'Settings Admin' => [
+                // User Management (view only)
+                'users.view',
+                // Settings (full access)
+                'settings.view', 'settings.edit',
+            ],
         ];
-        
-        foreach ($contentAdminPermissions as $permissionName) {
-            if (isset($permissionIds[$permissionName])) {
-                DB::table('role_has_permissions')->insert([
-                    'role_id' => $contentAdminRoleId,
-                    'permission_id' => $permissionIds[$permissionName],
-                ]);
+
+        foreach ($rolePermissionMap as $roleName => $permNames) {
+            if (!isset($roleIds[$roleName])) {
+                continue;
             }
-        }
 
-        // User Admin - User management permissions
-        $userAdminPermissions = [
-            'users.view', 'users.create', 'users.edit', 'users.delete', 'users.suspend',
-        ];
-        
-        foreach ($userAdminPermissions as $permissionName) {
-            if (isset($permissionIds[$permissionName])) {
-                DB::table('role_has_permissions')->insert([
-                    'role_id' => $userAdminRoleId,
-                    'permission_id' => $permissionIds[$permissionName],
-                ]);
-            }
-        }
+            $roleId = $roleIds[$roleName];
 
-        // Report Admin - Reports and viewing permissions (read-only user access)
-        $reportAdminPermissions = [
-            'reports.view', 'reports.export', 'users.view',
-        ];
-        
-        foreach ($reportAdminPermissions as $permissionName) {
-            if (isset($permissionIds[$permissionName])) {
-                DB::table('role_has_permissions')->insert([
-                    'role_id' => $reportAdminRoleId,
-                    'permission_id' => $permissionIds[$permissionName],
-                ]);
-            }
-        }
+            // Only insert permissions that don't already exist for this role
+            foreach ($permNames as $permName) {
+                if (!isset($permissionIds[$permName])) {
+                    continue;
+                }
 
-        // Settings Admin - Settings and viewing permissions
-        $settingsAdminPermissions = [
-            'settings.view', 'settings.edit', 'users.view',
-        ];
-        
-        foreach ($settingsAdminPermissions as $permissionName) {
-            if (isset($permissionIds[$permissionName])) {
-                DB::table('role_has_permissions')->insert([
-                    'role_id' => $settingsAdminRoleId,
-                    'permission_id' => $permissionIds[$permissionName],
-                ]);
+                $exists = DB::table('role_has_permissions')
+                    ->where('role_id', $roleId)
+                    ->where('permission_id', $permissionIds[$permName])
+                    ->exists();
+
+                if (!$exists) {
+                    DB::table('role_has_permissions')->insert([
+                        'role_id' => $roleId,
+                        'permission_id' => $permissionIds[$permName],
+                    ]);
+                }
             }
         }
     }
@@ -176,12 +192,25 @@ class GranularAdminRolesAndPermissionsSeeder extends Seeder
             // Map old role ID to new role ID based on role name
             $role = DB::table('roles')->where('id', $backup->role_id)->first();
             if ($role && isset($newRoleIds[$role->name])) {
-                DB::table('model_has_roles')->insert([
-                    'model_id' => $backup->model_id,
-                    'model_type' => $backup->model_type,
-                    'role_id' => $newRoleIds[$role->name],
-                ]);
-                echo "Restored user {$backup->model_id} to role {$role->name}\n";
+                $newRoleId = $newRoleIds[$role->name];
+                
+                // Check if this assignment already exists to avoid duplicates
+                $exists = DB::table('model_has_roles')
+                    ->where('model_id', $backup->model_id)
+                    ->where('model_type', $backup->model_type)
+                    ->where('role_id', $newRoleId)
+                    ->exists();
+                
+                if (!$exists) {
+                    DB::table('model_has_roles')->insert([
+                        'model_id' => $backup->model_id,
+                        'model_type' => $backup->model_type,
+                        'role_id' => $newRoleId,
+                    ]);
+                    echo "Restored user {$backup->model_id} to role {$role->name}\n";
+                } else {
+                    echo "User {$backup->model_id} already has role {$role->name}, skipping...\n";
+                }
             }
         }
 

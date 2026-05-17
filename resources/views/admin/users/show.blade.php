@@ -200,17 +200,21 @@
 
         <!-- Action Buttons -->
         <div class="mt-8 flex items-center gap-3">
-            <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">
-                Edit User
-            </a>
+            @can('users.edit')
+                <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">
+                    Edit User
+                </a>
+            @endcan
             
             @if($user->trashed())
-                <form method="POST" action="{{ route('admin.users.restore', $user) }}" class="inline">
-                    @csrf
-                    <button type="submit" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700">
-                        Restore User
-                    </button>
-                </form>
+                @can('users.delete')
+                    <form method="POST" action="{{ route('admin.users.restore', $user) }}" class="inline">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700">
+                            Restore User
+                        </button>
+                    </form>
+                @endcan
             @endif
 
             <a href="{{ route('admin.users.index') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">

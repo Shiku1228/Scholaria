@@ -121,6 +121,7 @@
             'Agriculture' => 'Agriculture Department',
         ];
     @endphp
+    @can('users.edit')
     <div>
         <div class="text-xl font-semibold">Edit User</div>
         <div class="text-sm text-gray-500">Update teacher or student account</div>
@@ -431,7 +432,7 @@
             filterTeacherPrograms(true);
         })();
     </script>
-@else
-    <div class="mt-6 text-sm text-red-600">You do not have permission to edit users.</div>
-@endcan
+    @else
+        <div class="mt-6 text-sm text-red-600">You do not have permission to edit users.</div>
+    @endcan
 @endsection

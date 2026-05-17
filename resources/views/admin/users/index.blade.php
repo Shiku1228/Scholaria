@@ -50,9 +50,11 @@
                 </form>
             </div>
             <div class="mt-4">
-                <a href="{{ route('admin.users.create') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">
-                    Add User
-                </a>
+                @can('users.create')
+                    <a href="{{ route('admin.users.create') }}" class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c]">
+                        Add User
+                    </a>
+                @endcan
             </div>
         </div>
 
@@ -71,9 +73,22 @@
                 <tbody class="divide-y divide-slate-200">
                     @forelse ($users as $user)
                         @php
-                            $roleName = method_exists($user, 'getRoleNames') ? ($user->getRoleNames()->first() ?? 'Student') : 'Student';
-                            $labelRole = in_array($roleName, ['Admin', 'Teacher', 'Student'], true) ? $roleName : 'Student';
+                            $adminRoleNames = ['Admin', 'Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'];
+                            $teacherRoleNames = ['Teacher'];
+
+                            $hasAdminRole = method_exists($user, 'hasAnyRole') ? $user->hasAnyRole($adminRoleNames) : false;
+
+                            // Prefer Spatie Teacher role, but fall back to presence of Teacher profile
+                            // to avoid badging teachers as students when Spatie roles are not synced.
+                            $hasTeacherRoleSpatie = method_exists($user, 'hasAnyRole') ? $user->hasAnyRole($teacherRoleNames) : false;
+                            $hasTeacherProfile = $user->relationLoaded('teacher') ? ($user->teacher !== null) : (method_exists($user, 'teacher') ? $user->teacher()->exists() : false);
+
+                            $hasTeacherRole = $hasTeacherRoleSpatie || $hasTeacherProfile;
+
+                            // Role precedence for badge: Admin > Teacher > Student
+                            $labelRole = $hasAdminRole ? 'Admin' : ($hasTeacherRole ? 'Teacher' : 'Student');
                             $displayRole = $labelRole === 'Teacher' ? 'Instructor' : $labelRole;
+
                             $isDeleted = $user->trashed();
                             $statusLabel = $isDeleted ? 'Suspended' : 'Active';
 
@@ -86,6 +101,7 @@
                                 'Admin' => 'ADM-' . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
                                 default => '--',
                             };
+
                             $initial = strtoupper(substr((string) $fullName, 0, 1));
                         @endphp
 
@@ -129,27 +145,31 @@
                             <td class="py-4 px-6 text-slate-500">{{ optional($user->created_at)->format('Y-m-d') }}</td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-center gap-3">
-                                    <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[#c9d7f2] bg-[#eaf0fb] text-[#0b2d6b] hover:bg-[#dce7fb]" title="Edit">
-                                        <i data-lucide="pencil" class="h-4 w-4"></i>
-                                    </a>
+                                    @can('users.edit')
+                                        <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[#c9d7f2] bg-[#eaf0fb] text-[#0b2d6b] hover:bg-[#dce7fb]" title="Edit">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                        </a>
+                                    @endcan
 
                                     @if (!(method_exists($user, 'hasRole') && $user->hasRole('Admin')))
-                                        @if ($isDeleted)
-                                            <form method="POST" action="{{ route('admin.users.restore', $user) }}" onsubmit="return confirm('Restore this user?');">
-                                                @csrf
-                                                <button type="submit" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" title="Restore">
-                                                    <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
-                                                </button>
-                                            </form>
-                                        @else
-                                            <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Suspend this user?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100" title="Suspend">
-                                                    <i data-lucide="trash-2" class="h-4 w-4"></i>
-                                                </button>
-                                            </form>
-                                        @endif
+                                        @can('users.delete')
+                                            @if ($isDeleted)
+                                                <form method="POST" action="{{ route('admin.users.restore', $user) }}" onsubmit="return confirm('Restore this user?');">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" title="Restore">
+                                                        <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Suspend this user?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100" title="Suspend">
+                                                        <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        @endcan
                                     @endif
                                 </div>
                             </td>

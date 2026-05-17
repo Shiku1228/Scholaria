@@ -17,6 +17,15 @@ use Illuminate\View\View;
 
 class AdminUserController extends Controller
 {
+    public function __construct()
+    {
+        // Enforce granular permissions per action
+        $this->middleware('permission:users.view')->only(['index', 'show']);
+        $this->middleware('permission:users.create')->only(['create', 'store']);
+        $this->middleware('permission:users.edit')->only(['edit', 'update']);
+        $this->middleware('permission:users.delete')->only(['destroy', 'restore']);
+    }
+
     private const ROLE_OPTIONS = ['Admin', 'Teacher', 'Student'];
 
     public function index(Request $request): View
@@ -33,7 +42,13 @@ class AdminUserController extends Controller
             $query->withTrashed();
         }
 
-        if (in_array($role, self::ROLE_OPTIONS, true)) {
+        if ($role === 'Admin') {
+            $adminRoleNames = ['Admin', 'Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'];
+
+            $query->whereHas('roles', function ($roleQuery) use ($adminRoleNames) {
+                $roleQuery->whereIn('name', $adminRoleNames);
+            });
+        } elseif (in_array($role, ['Teacher', 'Student'], true)) {
             $query->role($role);
         }
 
@@ -63,7 +78,7 @@ class AdminUserController extends Controller
         }
 
         $users = $query
-            ->with(['student', 'teacher', 'admin'])
+            ->with(['student', 'teacher', 'admin', 'roles'])
             ->orderBy('id', 'desc')
             ->paginate(7)
             ->withQueryString();
