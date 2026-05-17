@@ -136,9 +136,20 @@
         <div>
             <label class="block text-sm font-medium text-gray-700" for="role">Role</label>
             <select id="role" name="role" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
-                <option value="Admin" {{ old('role') === 'Admin' ? 'selected' : '' }}>Admin</option>
-                <option value="Teacher" {{ old('role') === 'Teacher' ? 'selected' : '' }}>Teacher</option>
-                <option value="Student" {{ old('role', request()->query('role', 'Student')) === 'Student' ? 'selected' : '' }}>Student</option>
+                @php
+                    $selectedRole = old('role', request()->query('role', 'Student'));
+                @endphp
+
+                {{-- Admin roles from DB --}}
+                @foreach(($adminRoleNames ?? []) as $adminRoleName)
+                    <option value="{{ $adminRoleName }}" {{ $selectedRole === $adminRoleName ? 'selected' : '' }}>
+                        {{ $adminRoleName }}
+                    </option>
+                @endforeach
+
+                {{-- Non-admin roles --}}
+                <option value="Teacher" {{ $selectedRole === 'Teacher' ? 'selected' : '' }}>Teacher</option>
+                <option value="Student" {{ $selectedRole === 'Student' ? 'selected' : '' }}>Student</option>
             </select>
             @error('role')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
@@ -247,21 +258,8 @@
 
             <!-- Admin Fields -->
             <div id="adminFields" class="space-y-4 hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700" for="admin_level">Admin Level</label>
-                        <select id="admin_level" name="admin_level" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
-                            <option value="standard" {{ old('admin_level') === 'standard' ? 'selected' : '' }}>Standard</option>
-                            <option value="super" {{ old('admin_level') === 'super' ? 'selected' : '' }}>Super Admin</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700" for="access_scope">Access Scope</label>
-                        <select id="access_scope" name="access_scope" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
-                            <option value="all" {{ old('access_scope') === 'all' ? 'selected' : '' }}>All</option>
-                            <option value="limited" {{ old('access_scope') === 'limited' ? 'selected' : '' }}>Limited</option>
-                        </select>
-                    </div>
+                <div class="text-sm text-gray-500">
+                    Admin level and access scope are determined automatically from the selected admin role.
                 </div>
             </div>
         </div>
@@ -311,6 +309,8 @@
                 adminInputs.forEach(input => input.disabled = true);
 
                 // Show and enable relevant fields
+                const adminRoleValues = new Set(@json($adminRoleNames ?? []));
+
                 if (role === 'Student') {
                     studentFields?.classList.remove('hidden');
                     studentInputs.forEach(input => input.disabled = false);
@@ -321,7 +321,7 @@
                     teacherInputs.forEach(input => input.disabled = false);
                     studentNumberInput.required = false;
                     employeeIdInput.required = true;
-                } else if (role === 'Admin') {
+                } else if (adminRoleValues.has(role)) {
                     adminFields?.classList.remove('hidden');
                     adminInputs.forEach(input => input.disabled = false);
                     studentNumberInput.required = false;

@@ -26,7 +26,18 @@ class AdminUserController extends Controller
         $this->middleware('permission:users.delete')->only(['destroy', 'restore']);
     }
 
-    private const ROLE_OPTIONS = ['Admin', 'Teacher', 'Student'];
+    private const ADMIN_ROLE_OPTIONS = [
+        'Super Admin',
+        'Content Admin',
+        'User Admin',
+        'Report Admin',
+        'Settings Admin',
+    ];
+
+    // NOTE:
+    // Do not restrict admin roles to a hardcoded list, because admins may add new granular
+    // roles in the database. Any role that is not Teacher/Student is treated as an Admin role
+    // and mapped into the existing Admin profile fields.
 
     public function index(Request $request): View
     {
@@ -43,13 +54,21 @@ class AdminUserController extends Controller
         }
 
         if ($role === 'Admin') {
-            $adminRoleNames = ['Admin', 'Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin'];
+            // Query all granular admin roles too
+            $adminRoleNames = array_merge(['Admin'], self::ADMIN_ROLE_OPTIONS);
 
             $query->whereHas('roles', function ($roleQuery) use ($adminRoleNames) {
                 $roleQuery->whereIn('name', $adminRoleNames);
             });
         } elseif (in_array($role, ['Teacher', 'Student'], true)) {
             $query->role($role);
+        } else {
+            // Allow direct filtering by granular role names if provided
+            if (in_array($role, self::ADMIN_ROLE_OPTIONS, true)) {
+                $query->whereHas('roles', function ($roleQuery) use ($role) {
+                    $roleQuery->whereIn('name', [$role]);
+                });
+            }
         }
 
         // Load profile relationships for search
@@ -57,22 +76,21 @@ class AdminUserController extends Controller
             $query->where(function ($inner) use ($search) {
                 $inner->where('email', 'like', '%' . $search . '%');
 
-                // Search in profile tables if possible
                 $inner->orWhereHas('student', function ($q) use ($search) {
                     $q->where('first_name', 'like', '%' . $search . '%')
-                      ->orWhere('last_name', 'like', '%' . $search . '%')
-                      ->orWhere('student_number', 'like', '%' . $search . '%');
+                        ->orWhere('last_name', 'like', '%' . $search . '%')
+                        ->orWhere('student_number', 'like', '%' . $search . '%');
                 });
 
                 $inner->orWhereHas('teacher', function ($q) use ($search) {
                     $q->where('first_name', 'like', '%' . $search . '%')
-                      ->orWhere('last_name', 'like', '%' . $search . '%')
-                      ->orWhere('employee_id', 'like', '%' . $search . '%');
+                        ->orWhere('last_name', 'like', '%' . $search . '%')
+                        ->orWhere('employee_id', 'like', '%' . $search . '%');
                 });
 
                 $inner->orWhereHas('admin', function ($q) use ($search) {
                     $q->where('first_name', 'like', '%' . $search . '%')
-                      ->orWhere('last_name', 'like', '%' . $search . '%');
+                        ->orWhere('last_name', 'like', '%' . $search . '%');
                 });
             });
         }
@@ -95,12 +113,32 @@ class AdminUserController extends Controller
 
     public function create(): View
     {
-        return view('admin.users.create');
+        // Load roles from Spatie so the UI reflects what's in DB.
+        $roles = \Spatie\Permission\Models\Role::query()
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $adminRoleNames = $roles
+            ->pluck('name')
+            ->reject(fn ($name) => $name === 'Teacher' || $name === 'Student')
+            ->values()
+            ->all();
+
+        return view('admin.users.create', [
+            'roles' => $roles,
+            'adminRoleNames' => $adminRoleNames,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $role = $request->input('role');
+        $role = (string) $request->input('role');
+
+        $availableRoles = \Spatie\Permission\Models\Role::query()
+            ->where('guard_name', 'web')
+            ->pluck('name')
+            ->all();
 
         $rules = [
             'first_name' => ['required', 'string', 'max:255'],
@@ -108,10 +146,9 @@ class AdminUserController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
-            'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
+            'role' => ['required', Rule::in($availableRoles)],
         ];
 
-        // Add role-specific validation rules
         if ($role === 'Student') {
             $rules['student_number'] = ['required', 'string', 'max:255', 'unique:students,student_number'];
             $rules['year_level'] = ['nullable', 'string', 'max:255'];
@@ -122,38 +159,25 @@ class AdminUserController extends Controller
             $rules['college'] = ['nullable', 'string', 'max:255'];
             $rules['program'] = ['nullable', 'string', 'max:255'];
             $rules['specialization'] = ['nullable', 'string', 'max:255'];
-        } elseif ($role === 'Admin') {
+        } else {
+            // Admin roles (including any custom granular admin role)
             $rules['admin_level'] = ['nullable', 'string', 'max:255'];
             $rules['access_scope'] = ['nullable', 'string', 'max:255'];
         }
 
-        // Temporary debug - dump all request data
-        // dd($request->all());
-
         $validated = $request->validate($rules);
 
-        // Debug: Log what data is being received
-        \Log::info('Creating user with data:', [
-            'role' => $role,
-            'program' => $validated['program'] ?? 'NOT SET',
-            'college' => $validated['college'] ?? 'NOT SET',
-            'all_data' => $validated,
-        ]);
-
         DB::transaction(function () use ($validated, $role) {
-            // Create user (auth only)
             $user = User::create([
                 'name' => trim("{$validated['first_name']} {$validated['middle_name']} {$validated['last_name']}"),
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
             ]);
 
-            // Assign role
             if (method_exists($user, 'syncRoles')) {
                 $user->syncRoles([$role]);
             }
 
-            // Create profile based on role
             $profileData = [
                 'user_id' => $user->id,
                 'first_name' => $validated['first_name'],
@@ -182,15 +206,16 @@ class AdminUserController extends Controller
                     ]));
                     break;
 
-                case 'Admin':
-                    $profile = Admin::create(array_merge($profileData, [
-                        'admin_level' => $validated['admin_level'] ?? 'standard',
-                        'access_scope' => $validated['access_scope'] ?? 'all',
-                    ]));
-                    break;
+                default:
+                    if ($this->isAdminRole($role)) {
+                        // admins table no longer has admin_level/access_scope (dropped in migration)
+                        $profile = Admin::create($profileData);
+                        break;
+                    }
+
+                    abort(400, 'Unsupported role for profile creation.');
             }
 
-            // Update user with profile reference
             $user->update([
                 'profile_type' => get_class($profile),
                 'profile_id' => $profile->id,
@@ -214,7 +239,12 @@ class AdminUserController extends Controller
     public function update(Request $request, $user): RedirectResponse
     {
         $user = User::withTrashed()->findOrFail($user);
-        $role = $request->input('role');
+        $role = (string) $request->input('role');
+
+        $availableRoles = \Spatie\Permission\Models\Role::query()
+            ->where('guard_name', 'web')
+            ->pluck('name')
+            ->all();
 
         $rules = [
             'first_name' => ['required', 'string', 'max:255'],
@@ -222,10 +252,9 @@ class AdminUserController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
-            'role' => ['required', Rule::in(self::ROLE_OPTIONS)],
+            'role' => ['required', Rule::in($availableRoles)],
         ];
 
-        // Add role-specific validation rules
         if ($role === 'Student') {
             $rules['student_number'] = ['required', 'string', 'max:255', Rule::unique('students', 'student_number')->ignore($user->profile_id ?? null)];
             $rules['year_level'] = ['nullable', 'string', 'max:255'];
@@ -236,7 +265,7 @@ class AdminUserController extends Controller
             $rules['college'] = ['nullable', 'string', 'max:255'];
             $rules['program'] = ['nullable', 'string', 'max:255'];
             $rules['specialization'] = ['nullable', 'string', 'max:255'];
-        } elseif ($role === 'Admin') {
+        } else {
             $rules['admin_level'] = ['nullable', 'string', 'max:255'];
             $rules['access_scope'] = ['nullable', 'string', 'max:255'];
         }
@@ -244,7 +273,6 @@ class AdminUserController extends Controller
         $validated = $request->validate($rules);
 
         DB::transaction(function () use ($user, $validated, $role) {
-            // Update user basic info
             $user->update([
                 'name' => trim("{$validated['first_name']} {$validated['middle_name']} {$validated['last_name']}"),
                 'email' => $validated['email'],
@@ -255,23 +283,19 @@ class AdminUserController extends Controller
                 $user->save();
             }
 
-            // Update role
             if (method_exists($user, 'syncRoles')) {
                 $user->syncRoles([$role]);
             }
 
-            // Update or create profile
             $profileData = [
                 'first_name' => $validated['first_name'],
                 'middle_name' => $validated['middle_name'] ?? null,
                 'last_name' => $validated['last_name'],
             ];
 
-            // Get current role and handle profile change if needed
             $currentRole = $user->getRoleNames()->first();
 
             if ($currentRole !== $role) {
-                // Role changed - delete old profile, create new one
                 $this->deleteOldProfile($user);
 
                 switch ($role) {
@@ -297,13 +321,19 @@ class AdminUserController extends Controller
                         ]));
                         break;
 
-                    case 'Admin':
-                        $profile = Admin::create(array_merge($profileData, [
-                            'user_id' => $user->id,
-                            'admin_level' => $validated['admin_level'] ?? 'standard',
-                            'access_scope' => $validated['access_scope'] ?? 'all',
-                        ]));
-                        break;
+                    default:
+                        if ($this->isAdminRole($role)) {
+                            $adminMeta = $this->mapAdminRoleToMeta($role);
+
+                            $profile = Admin::create(array_merge($profileData, [
+                                'user_id' => $user->id,
+                                'admin_level' => $adminMeta['admin_level'],
+                                'access_scope' => $adminMeta['access_scope'],
+                            ]));
+                            break;
+                        }
+
+                        abort(400, 'Unsupported role for profile creation.');
                 }
 
                 $user->update([
@@ -311,8 +341,8 @@ class AdminUserController extends Controller
                     'profile_id' => $profile->id,
                 ]);
             } else {
-                // Same role - just update existing profile
                 $profile = $user->profile;
+
                 if ($profile) {
                     switch ($role) {
                         case 'Student':
@@ -333,12 +363,13 @@ class AdminUserController extends Controller
                             ]));
                             break;
 
-                        case 'Admin':
-                            $profile->update(array_merge($profileData, [
-                                'admin_level' => $validated['admin_level'] ?? $profile->admin_level,
-                                'access_scope' => $validated['access_scope'] ?? $profile->access_scope,
-                            ]));
-                            break;
+                        default:
+                            if ($this->isAdminRole($role) && $profile instanceof Admin) {
+                                // admins table no longer has admin_level/access_scope (dropped in migration)
+                                $profile->update($profileData);
+                            } else {
+                                abort(400, 'Unsupported role for profile update.');
+                            }
                     }
                 }
             }
@@ -355,6 +386,21 @@ class AdminUserController extends Controller
         $user->student()?->delete();
         $user->teacher()?->delete();
         $user->admin()?->delete();
+    }
+
+    private function isAdminRole(string $role): bool
+    {
+        // Any role that is not Teacher/Student is considered an Admin role for profile mapping.
+        return $role !== 'Teacher' && $role !== 'Student';
+    }
+
+    private function mapAdminRoleToMeta(string $adminRole): array
+    {
+        // Map granular admin roles into the existing Admin profile fields.
+        return match ($adminRole) {
+            'Super Admin' => ['admin_level' => 'super', 'access_scope' => 'all'],
+            default => ['admin_level' => 'standard', 'access_scope' => 'limited'],
+        };
     }
 
     private function syncLegacyRoleColumn(User $user, string $spatieRoleName): void
@@ -377,8 +423,11 @@ class AdminUserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($user);
 
-        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
-            abort(403);
+        if (method_exists($user, 'hasAnyRole')) {
+            $protectedRoles = array_merge(['Admin'], self::ADMIN_ROLE_OPTIONS);
+            if ($user->hasAnyRole($protectedRoles)) {
+                abort(403);
+            }
         }
 
         if (!$user->trashed()) {
@@ -392,8 +441,11 @@ class AdminUserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($user);
 
-        if (method_exists($user, 'hasRole') && $user->hasRole('Admin')) {
-            abort(403);
+        if (method_exists($user, 'hasAnyRole')) {
+            $protectedRoles = array_merge(['Admin'], self::ADMIN_ROLE_OPTIONS);
+            if ($user->hasAnyRole($protectedRoles)) {
+                abort(403);
+            }
         }
 
         if ($user->trashed()) {
