@@ -431,4 +431,7 @@
             filterTeacherPrograms(true);
         })();
     </script>
+@else
+    <div class="mt-6 text-sm text-red-600">You do not have permission to edit users.</div>
+@endcan
 @endsection
