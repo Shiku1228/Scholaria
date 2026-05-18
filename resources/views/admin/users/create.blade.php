@@ -11,59 +11,8 @@
         $colleges = $colleges ?? collect();
         $programs = $programs ?? collect();
 
-        // Teacher fields are still hardcoded in this view (out of scope for this request)
-        $teacherProgramOptions = [
-            'Computer Science Department' => 'College of Computer Studies',
-            'Information Technology Department' => 'College of Computer Studies',
-            'Information Systems Department' => 'College of Computer Studies',
-            'Civil Engineering Department' => 'College of Engineering',
-            'Mechanical Engineering Department' => 'College of Engineering',
-            'Electrical Engineering Department' => 'College of Engineering',
-            'Electronics Engineering Department' => 'College of Engineering',
-            'Architecture Department' => 'College of Architecture',
-            'Accountancy Department' => 'College of Business Administration',
-            'Business Administration Department' => 'College of Business Administration',
-            'Entrepreneurship Department' => 'College of Business Administration',
-            'Hospitality Management Department' => 'College of Hospitality and Tourism Management',
-            'Tourism Management Department' => 'College of Hospitality and Tourism Management',
-            'Education Department' => 'College of Education',
-            'Psychology Department' => 'College of Arts and Sciences',
-            'English Language Studies Department' => 'College of Arts and Sciences',
-            'Political Science Department' => 'College of Arts and Sciences',
-            'Criminology Department' => 'College of Criminal Justice Education',
-            'Nursing Department' => 'College of Nursing',
-            'Agriculture Department' => 'College of Agriculture',
-        ];
-        $teacherSpecializationOptions = [
-            'Software Engineering' => 'Computer Science Department',
-            'Web Development' => 'Computer Science Department',
-            'Mobile Application Development' => 'Information Technology Department',
-            'Data Science' => 'Information Systems Department',
-            'Artificial Intelligence' => 'Computer Science Department',
-            'Cybersecurity' => 'Information Technology Department',
-            'Network Administration' => 'Information Technology Department',
-            'Database Management' => 'Information Systems Department',
-            'Civil Engineering' => 'Civil Engineering Department',
-            'Mechanical Engineering' => 'Mechanical Engineering Department',
-            'Electrical Engineering' => 'Electrical Engineering Department',
-            'Electronics Engineering' => 'Electronics Engineering Department',
-            'Architecture' => 'Architecture Department',
-            'Accounting' => 'Accountancy Department',
-            'Business Management' => 'Business Administration Department',
-            'Entrepreneurship' => 'Entrepreneurship Department',
-            'Hospitality Management' => 'Hospitality Management Department',
-            'Tourism Management' => 'Tourism Management Department',
-            'General Education' => 'Education Department',
-            'English' => 'English Language Studies Department',
-            'Mathematics' => 'Education Department',
-            'Science' => 'Education Department',
-            'Social Studies' => 'Education Department',
-            'Psychology' => 'Psychology Department',
-            'Political Science' => 'Political Science Department',
-            'Criminology' => 'Criminology Department',
-            'Nursing' => 'Nursing Department',
-            'Agriculture' => 'Agriculture Department',
-        ];
+        // Teacher program and specialization options are now sourced from DB
+        $specializations = $specializations ?? collect();
 
         $yearLevelValue = old('year_level', '');
         $programValue = old('program', '');
@@ -225,28 +174,32 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="teacher_program">Program</label>
-                        <select id="teacher_program" name="program" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
+                                    <select id="teacher_program" name="program" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
                             <option value="" disabled {{ $programValue === '' ? 'selected' : '' }}>Select Program</option>
-                            @if($programValue !== '' && !array_key_exists($programValue, $teacherProgramOptions))
+
+                            @php
+                                $programNamesForTeacher = $programs->pluck('name')->all();
+                            @endphp
+
+                            @if($programValue !== '' && !in_array($programValue, $programNamesForTeacher, true))
                                 <option value="{{ $programValue }}" data-college="{{ $collegeValue }}" selected>{{ $programValue }}</option>
                             @endif
-                            @foreach($teacherProgramOptions as $teacherProgram => $teacherCollege)
-                                <option value="{{ $teacherProgram }}" data-college="{{ $teacherCollege }}" {{ $programValue === $teacherProgram ? 'selected' : '' }}>{{ $teacherProgram }}</option>
+
+                            @foreach($programs as $programOption)
+                                @php $teacherCollegeName = optional($programOption->college)->name; @endphp
+                                <option value="{{ $programOption->name }}" data-college="{{ $teacherCollegeName }}" {{ $programValue === $programOption->name ? 'selected' : '' }}>{{ $programOption->name }}</option>
                             @endforeach
                         </select>
                         @error('program')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="specialization">Specialization</label>
-                        <select id="specialization" name="specialization" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
-                            <option value="" disabled {{ $specializationValue === '' ? 'selected' : '' }}>Select Specialization</option>
-                            @if($specializationValue !== '' && !array_key_exists($specializationValue, $teacherSpecializationOptions))
-                                <option value="{{ $specializationValue }}" data-program="{{ $programValue }}" selected>{{ $specializationValue }}</option>
-                            @endif
-                            @foreach($teacherSpecializationOptions as $specializationOption => $teacherProgram)
-                                <option value="{{ $specializationOption }}" data-program="{{ $teacherProgram }}" {{ $specializationValue === $specializationOption ? 'selected' : '' }}>{{ $specializationOption }}</option>
+                        <input id="specialization" name="specialization" list="specialization_list" type="text" value="{{ $specializationValue }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="Type specialization (e.g. Applied Mathematics)">
+                        <datalist id="specialization_list">
+                            @foreach($specializations as $spec)
+                                <option value="{{ $spec->specialization }}"></option>
                             @endforeach
-                        </select>
+                        </datalist>
                         @error('specialization')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -351,7 +304,6 @@
 
             const teacherCollegeEl = document.getElementById('teacher_college');
             const teacherProgramEl = document.getElementById('teacher_program');
-            const specializationEl = document.getElementById('specialization');
 
             function filterTeacherPrograms(preserveSelected = false) {
                 if (!teacherCollegeEl || !teacherProgramEl) return;
@@ -369,30 +321,9 @@
                 if (!selectedStillVisible) {
                     teacherProgramEl.value = '';
                 }
-
-                filterTeacherSpecializations(preserveSelected);
-            }
-
-            function filterTeacherSpecializations(preserveSelected = false) {
-                if (!teacherProgramEl || !specializationEl) return;
-
-                const program = teacherProgramEl.value;
-                let selectedStillVisible = false;
-                Array.from(specializationEl.options).forEach(option => {
-                    if (!option.value) return;
-                    const visible = !program || option.dataset.program === program || (preserveSelected && option.selected);
-                    option.hidden = !visible;
-                    option.disabled = !visible;
-                    if (visible && option.selected) selectedStillVisible = true;
-                });
-
-                if (!selectedStillVisible) {
-                    specializationEl.value = '';
-                }
             }
 
             teacherCollegeEl?.addEventListener('change', () => filterTeacherPrograms(false));
-            teacherProgramEl?.addEventListener('change', () => filterTeacherSpecializations(false));
             filterTeacherPrograms(true);
         })();
     </script>

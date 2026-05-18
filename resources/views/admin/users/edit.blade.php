@@ -1,4 +1,4 @@
-﻿@extends('layouts.dashboard', [
+@extends('layouts.dashboard', [
     'title' => 'Edit User',
     'sidebarPartial' => 'partials.sidebars.admin',
 ])
@@ -36,59 +36,8 @@
         $colleges = $colleges ?? collect();
         $programs = $programs ?? collect();
 
-        // Teacher fields remain hardcoded in this view (out of scope for this request)
-        $teacherProgramOptions = [
-            'Computer Science Department' => 'College of Computer Studies',
-            'Information Technology Department' => 'College of Computer Studies',
-            'Information Systems Department' => 'College of Computer Studies',
-            'Civil Engineering Department' => 'College of Engineering',
-            'Mechanical Engineering Department' => 'College of Engineering',
-            'Electrical Engineering Department' => 'College of Engineering',
-            'Electronics Engineering Department' => 'College of Engineering',
-            'Architecture Department' => 'College of Architecture',
-            'Accountancy Department' => 'College of Business Administration',
-            'Business Administration Department' => 'College of Business Administration',
-            'Entrepreneurship Department' => 'College of Business Administration',
-            'Hospitality Management Department' => 'College of Hospitality and Tourism Management',
-            'Tourism Management Department' => 'College of Hospitality and Tourism Management',
-            'Education Department' => 'College of Education',
-            'Psychology Department' => 'College of Arts and Sciences',
-            'English Language Studies Department' => 'College of Arts and Sciences',
-            'Political Science Department' => 'College of Arts and Sciences',
-            'Criminology Department' => 'College of Criminal Justice Education',
-            'Nursing Department' => 'College of Nursing',
-            'Agriculture Department' => 'College of Agriculture',
-        ];
-        $teacherSpecializationOptions = [
-            'Software Engineering' => 'Computer Science Department',
-            'Web Development' => 'Computer Science Department',
-            'Mobile Application Development' => 'Information Technology Department',
-            'Data Science' => 'Information Systems Department',
-            'Artificial Intelligence' => 'Computer Science Department',
-            'Cybersecurity' => 'Information Technology Department',
-            'Network Administration' => 'Information Technology Department',
-            'Database Management' => 'Information Systems Department',
-            'Civil Engineering' => 'Civil Engineering Department',
-            'Mechanical Engineering' => 'Mechanical Engineering Department',
-            'Electrical Engineering' => 'Electrical Engineering Department',
-            'Electronics Engineering' => 'Electronics Engineering Department',
-            'Architecture' => 'Architecture Department',
-            'Accounting' => 'Accountancy Department',
-            'Business Management' => 'Business Administration Department',
-            'Entrepreneurship' => 'Entrepreneurship Department',
-            'Hospitality Management' => 'Hospitality Management Department',
-            'Tourism Management' => 'Tourism Management Department',
-            'General Education' => 'Education Department',
-            'English' => 'English Language Studies Department',
-            'Mathematics' => 'Education Department',
-            'Science' => 'Education Department',
-            'Social Studies' => 'Education Department',
-            'Psychology' => 'Psychology Department',
-            'Political Science' => 'Political Science Department',
-            'Criminology' => 'Criminology Department',
-            'Nursing' => 'Nursing Department',
-            'Agriculture' => 'Agriculture Department',
-        ];
+        // Teacher program and specialization options are sourced from DB
+        $specializations = $specializations ?? collect();
     @endphp
     @can('users.edit')
     <div>
@@ -127,9 +76,18 @@
         <div>
             <label class="block text-sm font-medium text-gray-700" for="role">Role</label>
             <select id="role" name="role" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required>
-                <option value="Admin" {{ old('role', $roleName) === 'Admin' ? 'selected' : '' }}>Admin</option>
-                <option value="Teacher" {{ old('role', $roleName) === 'Teacher' ? 'selected' : '' }}>Teacher</option>
-                <option value="Student" {{ old('role', $roleName) === 'Student' ? 'selected' : '' }}>Student</option>
+                @php $selectedRole = old('role', $roleName); @endphp
+
+                {{-- Admin roles from DB --}}
+                @foreach(($adminRoleNames ?? []) as $adminRoleName)
+                    <option value="{{ $adminRoleName }}" {{ $selectedRole === $adminRoleName ? 'selected' : '' }}>
+                        {{ $adminRoleName }}
+                    </option>
+                @endforeach
+
+                {{-- Non-admin roles --}}
+                <option value="Teacher" {{ $selectedRole === 'Teacher' ? 'selected' : '' }}>Teacher</option>
+                <option value="Student" {{ $selectedRole === 'Student' ? 'selected' : '' }}>Student</option>
             </select>
             @error('role')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
@@ -203,63 +161,7 @@
                             @endforeach
                         </select>
                         @error('college')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
-                    </div> REPLACE
-<<<<<<< SEARCH
-            const programEl = document.getElementById('program');
-            const collegeEl = document.getElementById('college');
-            const programCollegeMap = {
-                'BS Computer Science': 'College of Computer Studies',
-                'BS Information Technology': 'College of Computer Studies',
-                'BS Information Systems': 'College of Computer Studies',
-                'BS Civil Engineering': 'College of Engineering',
-                'BS Mechanical Engineering': 'College of Engineering',
-                'BS Electrical Engineering': 'College of Engineering',
-                'BS Electronics Engineering': 'College of Engineering',
-                'BS Architecture': 'College of Architecture',
-                'BS Accountancy': 'College of Business Administration',
-                'BS Business Administration': 'College of Business Administration',
-                'BS Entrepreneurship': 'College of Business Administration',
-                'BS Hospitality Management': 'College of Hospitality and Tourism Management',
-                'BS Tourism Management': 'College of Hospitality and Tourism Management',
-                'BS Psychology': 'College of Arts and Sciences',
-                'BS Criminology': 'College of Criminal Justice Education',
-                'BS Nursing': 'College of Nursing',
-                'BS Medical Technology': 'College of Nursing',
-                'BS Biology': 'College of Arts and Sciences',
-                'BS Agriculture': 'College of Agriculture',
-                'Bachelor of Elementary Education': 'College of Education',
-                'Bachelor of Secondary Education': 'College of Education',
-                'BA English Language Studies': 'College of Arts and Sciences',
-                'BA Political Science': 'College of Arts and Sciences',
-            };
-
-            programEl?.addEventListener('change', function () {
-                const college = programCollegeMap[this.value];
-                if (college && collegeEl) {
-                    collegeEl.value = college;
-                }
-            });
-=======
-            const programEl = document.getElementById('program');
-            const collegeEl = document.getElementById('college');
-
-            programEl?.addEventListener('change', function () {
-                if (!collegeEl) return;
-                const selected = this.options[this.selectedIndex];
-                const collegeName = selected?.dataset?.collegeName;
-                if (collegeName) {
-                    collegeEl.value = collegeName;
-                }
-            });
-
-            // Set college on load if a program was already selected (old input / validation error)
-            if (programEl && collegeEl && programEl.value) {
-                const selected = programEl.options[programEl.selectedIndex];
-                const collegeName = selected?.dataset?.collegeName;
-                if (collegeName) {
-                    collegeEl.value = collegeName;
-                }
-            }
+                    </div>
                 </div>
             </div>
 
@@ -275,11 +177,12 @@
                         <label class="block text-sm font-medium text-gray-700" for="teacher_college">College</label>
                         <select id="teacher_college" name="college" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
                             <option value="" disabled {{ $college === '' ? 'selected' : '' }}>Select College</option>
-                            @if($college !== '' && !in_array($college, $collegeOptions, true))
+                            @php $collegeNamesForTeacher = $colleges->pluck('name')->all(); @endphp
+                            @if($college !== '' && !in_array($college, $collegeNamesForTeacher, true))
                                 <option value="{{ $college }}" selected>{{ $college }}</option>
                             @endif
-                            @foreach($collegeOptions as $collegeOption)
-                                <option value="{{ $collegeOption }}" {{ $college === $collegeOption ? 'selected' : '' }}>{{ $collegeOption }}</option>
+                            @foreach($colleges as $collegeOption)
+                                <option value="{{ $collegeOption->name }}" {{ $college === $collegeOption->name ? 'selected' : '' }}>{{ $collegeOption->name }}</option>
                             @endforeach
                         </select>
                         @error('college')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
@@ -288,26 +191,28 @@
                         <label class="block text-sm font-medium text-gray-700" for="teacher_program">Program</label>
                         <select id="teacher_program" name="program" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
                             <option value="" disabled {{ $program === '' ? 'selected' : '' }}>Select Program</option>
-                            @if($program !== '' && !array_key_exists($program, $teacherProgramOptions))
+
+                            @php $programNamesForTeacher = $programs->pluck('name')->all(); @endphp
+
+                            @if($program !== '' && !in_array($program, $programNamesForTeacher, true))
                                 <option value="{{ $program }}" data-college="{{ $college }}" selected>{{ $program }}</option>
                             @endif
-                            @foreach($teacherProgramOptions as $teacherProgram => $teacherCollege)
-                                <option value="{{ $teacherProgram }}" data-college="{{ $teacherCollege }}" {{ $program === $teacherProgram ? 'selected' : '' }}>{{ $teacherProgram }}</option>
+
+                            @foreach($programs as $programOption)
+                                @php $teacherCollegeName = optional($programOption->college)->name; @endphp
+                                <option value="{{ $programOption->name }}" data-college="{{ $teacherCollegeName }}" {{ $program === $programOption->name ? 'selected' : '' }}>{{ $programOption->name }}</option>
                             @endforeach
                         </select>
                         @error('program')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700" for="specialization">Specialization</label>
-                        <select id="specialization" name="specialization" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
-                            <option value="" disabled {{ $specialization === '' ? 'selected' : '' }}>Select Specialization</option>
-                            @if($specialization !== '' && !array_key_exists($specialization, $teacherSpecializationOptions))
-                                <option value="{{ $specialization }}" data-program="{{ $program }}" selected>{{ $specialization }}</option>
-                            @endif
-                            @foreach($teacherSpecializationOptions as $specializationOption => $teacherProgram)
-                                <option value="{{ $specializationOption }}" data-program="{{ $teacherProgram }}" {{ $specialization === $specializationOption ? 'selected' : '' }}>{{ $specializationOption }}</option>
+                        <input id="specialization" name="specialization" list="specialization_list" type="text" value="{{ $specialization }}" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" placeholder="Type specialization (e.g. Mathematics)">
+                        <datalist id="specialization_list">
+                            @foreach($specializations as $spec)
+                                <option value="{{ $spec->specialization }}"></option>
                             @endforeach
-                        </select>
+                        </datalist>
                         @error('specialization')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -315,21 +220,8 @@
 
             <!-- Admin Fields -->
             <div id="adminFields" class="space-y-4 {{ $roleName !== 'Admin' ? 'hidden' : '' }}">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700" for="admin_level">Admin Level</label>
-                        <select id="admin_level" name="admin_level" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
-                            <option value="standard" {{ $adminLevel === 'standard' ? 'selected' : '' }}>Standard</option>
-                            <option value="super" {{ $adminLevel === 'super' ? 'selected' : '' }}>Super Admin</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700" for="access_scope">Access Scope</label>
-                        <select id="access_scope" name="access_scope" class="mt-2 block w-full h-11 rounded-xl border border-gray-200 px-4 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
-                            <option value="all" {{ $accessScope === 'all' ? 'selected' : '' }}>All</option>
-                            <option value="limited" {{ $accessScope === 'limited' ? 'selected' : '' }}>Limited</option>
-                        </select>
-                    </div>
+                <div class="text-sm text-gray-500">
+                    Admin level and access scope are determined automatically from the selected admin role.
                 </div>
             </div>
         </div>
@@ -379,17 +271,23 @@
                 adminInputs.forEach(input => input.disabled = true);
 
                 // Show and enable relevant fields
+                const adminRoleValues = new Set(@json($adminRoleNames ?? []));
+
                 if (role === 'Student') {
                     studentFields?.classList.remove('hidden');
                     studentInputs.forEach(input => input.disabled = false);
                     if (studentNumberInput) studentNumberInput.required = true;
+                    if (employeeIdInput) employeeIdInput.required = false;
                 } else if (role === 'Teacher') {
                     teacherFields?.classList.remove('hidden');
                     teacherInputs.forEach(input => input.disabled = false);
+                    if (studentNumberInput) studentNumberInput.required = false;
                     if (employeeIdInput) employeeIdInput.required = true;
-                } else if (role === 'Admin') {
+                } else if (adminRoleValues.has(role)) {
                     adminFields?.classList.remove('hidden');
                     adminInputs.forEach(input => input.disabled = false);
+                    if (studentNumberInput) studentNumberInput.required = false;
+                    if (employeeIdInput) employeeIdInput.required = false;
                 }
             }
 
@@ -398,42 +296,27 @@
 
             const programEl = document.getElementById('program');
             const collegeEl = document.getElementById('college');
-            const programCollegeMap = {
-                'BS Computer Science': 'College of Computer Studies',
-                'BS Information Technology': 'College of Computer Studies',
-                'BS Information Systems': 'College of Computer Studies',
-                'BS Civil Engineering': 'College of Engineering',
-                'BS Mechanical Engineering': 'College of Engineering',
-                'BS Electrical Engineering': 'College of Engineering',
-                'BS Electronics Engineering': 'College of Engineering',
-                'BS Architecture': 'College of Architecture',
-                'BS Accountancy': 'College of Business Administration',
-                'BS Business Administration': 'College of Business Administration',
-                'BS Entrepreneurship': 'College of Business Administration',
-                'BS Hospitality Management': 'College of Hospitality and Tourism Management',
-                'BS Tourism Management': 'College of Hospitality and Tourism Management',
-                'BS Psychology': 'College of Arts and Sciences',
-                'BS Criminology': 'College of Criminal Justice Education',
-                'BS Nursing': 'College of Nursing',
-                'BS Medical Technology': 'College of Nursing',
-                'BS Biology': 'College of Arts and Sciences',
-                'BS Agriculture': 'College of Agriculture',
-                'Bachelor of Elementary Education': 'College of Education',
-                'Bachelor of Secondary Education': 'College of Education',
-                'BA English Language Studies': 'College of Arts and Sciences',
-                'BA Political Science': 'College of Arts and Sciences',
-            };
 
             programEl?.addEventListener('change', function () {
-                const college = programCollegeMap[this.value];
-                if (college && collegeEl) {
-                    collegeEl.value = college;
+                if (!collegeEl) return;
+                const selected = this.options[this.selectedIndex];
+                const collegeName = selected?.dataset?.collegeName;
+                if (collegeName) {
+                    collegeEl.value = collegeName;
                 }
             });
 
+            // Set college on load if a program was already selected (old input / validation error)
+            if (programEl && collegeEl && programEl.value) {
+                const selected = programEl.options[programEl.selectedIndex];
+                const collegeName = selected?.dataset?.collegeName;
+                if (collegeName) {
+                    collegeEl.value = collegeName;
+                }
+            }
+
             const teacherCollegeEl = document.getElementById('teacher_college');
             const teacherProgramEl = document.getElementById('teacher_program');
-            const specializationEl = document.getElementById('specialization');
 
             function filterTeacherPrograms(preserveSelected = false) {
                 if (!teacherCollegeEl || !teacherProgramEl) return;
@@ -451,30 +334,9 @@
                 if (!selectedStillVisible) {
                     teacherProgramEl.value = '';
                 }
-
-                filterTeacherSpecializations(preserveSelected);
-            }
-
-            function filterTeacherSpecializations(preserveSelected = false) {
-                if (!teacherProgramEl || !specializationEl) return;
-
-                const program = teacherProgramEl.value;
-                let selectedStillVisible = false;
-                Array.from(specializationEl.options).forEach(option => {
-                    if (!option.value) return;
-                    const visible = !program || option.dataset.program === program || (preserveSelected && option.selected);
-                    option.hidden = !visible;
-                    option.disabled = !visible;
-                    if (visible && option.selected) selectedStillVisible = true;
-                });
-
-                if (!selectedStillVisible) {
-                    specializationEl.value = '';
-                }
             }
 
             teacherCollegeEl?.addEventListener('change', () => filterTeacherPrograms(false));
-            teacherProgramEl?.addEventListener('change', () => filterTeacherSpecializations(false));
             filterTeacherPrograms(true);
         })();
     </script>

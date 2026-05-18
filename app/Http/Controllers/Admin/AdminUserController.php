@@ -135,11 +135,20 @@ class AdminUserController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'college_id']);
 
+        // Load existing teacher specializations (stored as free text on teachers table)
+        $specializations = \App\Models\Teacher::query()
+            ->whereNotNull('specialization')
+            ->select(['specialization', 'program'])
+            ->distinct()
+            ->orderBy('specialization')
+            ->get();
+
         return view('admin.users.create', [
             'roles' => $roles,
             'adminRoleNames' => $adminRoleNames,
             'colleges' => $colleges,
             'programs' => $programs,
+            'specializations' => $specializations,
         ]);
     }
 
@@ -237,6 +246,17 @@ class AdminUserController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
     }
 
+    public function show($user): View
+    {
+        $user = User::withTrashed()
+            ->with(['student', 'teacher', 'admin', 'roles'])
+            ->findOrFail($user);
+
+        return view('admin.users.show', [
+            'user' => $user,
+        ]);
+    }
+
     public function edit($user): View
     {
         $user = User::withTrashed()
@@ -253,10 +273,33 @@ class AdminUserController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'college_id']);
 
+        // Load existing teacher specializations (stored as free text on teachers table)
+        $specializations = \App\Models\Teacher::query()
+            ->whereNotNull('specialization')
+            ->select(['specialization', 'program'])
+            ->distinct()
+            ->orderBy('specialization')
+            ->get();
+
+        // Load roles from Spatie so the UI reflects what's in DB (same as create)
+        $roles = \Spatie\Permission\Models\Role::query()
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $adminRoleNames = $roles
+            ->pluck('name')
+            ->reject(fn ($name) => $name === 'Teacher' || $name === 'Student')
+            ->values()
+            ->all();
+
         return view('admin.users.edit', [
             'user' => $user,
             'colleges' => $colleges,
             'programs' => $programs,
+            'specializations' => $specializations,
+            'roles' => $roles,
+            'adminRoleNames' => $adminRoleNames,
         ]);
     }
 

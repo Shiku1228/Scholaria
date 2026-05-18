@@ -1,4 +1,4 @@
-﻿@extends('layouts.dashboard', [
+@extends('layouts.dashboard', [
     'title' => 'Users',
     'sidebarPartial' => 'partials.sidebars.admin',
 ])
@@ -145,6 +145,12 @@
                             <td class="py-4 px-6 text-slate-500">{{ optional($user->created_at)->format('Y-m-d') }}</td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-center gap-3">
+                                    @can('users.view')
+                                        <a href="{{ route('admin.users.show', $user) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[#c9d7f2] bg-[#eaf0fb] text-[#0b2d6b] hover:bg-[#dce7fb]" title="View">
+                                            <i data-lucide="eye" class="h-4 w-4"></i>
+                                        </a>
+                                    @endcan
+
                                     @can('users.edit')
                                         <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-[#c9d7f2] bg-[#eaf0fb] text-[#0b2d6b] hover:bg-[#dce7fb]" title="Edit">
                                             <i data-lucide="pencil" class="h-4 w-4"></i>

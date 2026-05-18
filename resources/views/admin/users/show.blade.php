@@ -163,28 +163,12 @@
                 @endif
 
                 @if($user->admin)
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Admin Level</label>
-                            <div class="mt-1 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                {{ ucfirst($user->admin->admin_level) }}
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Access Scope</label>
-                            <div class="mt-1 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                {{ ucfirst($user->admin->access_scope) }}
-                            </div>
-                        </div>
-                    </div>
-
                     @if(method_exists($user, 'getRoleNames'))
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Granular Role</label>
                             <div class="mt-1 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                 @php
-                                    $granularRole = $user->getRoleNames()->whereNotIn(['Admin', 'Teacher', 'Student'])->first();
+                                    $granularRole = $user->getRoleNames()->diff(['Admin', 'Teacher', 'Student'])->first();
                                     echo $granularRole ?: 'No granular role assigned';
                                 @endphp
                             </div>
