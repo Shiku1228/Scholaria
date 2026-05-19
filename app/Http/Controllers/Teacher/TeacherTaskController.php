@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\Exam;
+use App\Models\Quiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -100,29 +101,27 @@ class TeacherTaskController extends Controller
             }
 
             // Get quizzes
-            if (Schema::hasTable('assignments')) {
-                $quizzesQuery = Assignment::query()
-                    ->join('courses', 'assignments.course_id', '=', 'courses.id')
+            if (Schema::hasTable('quizzes')) {
+                $quizzesQuery = Quiz::query()
+                    ->join('courses', 'quizzes.course_id', '=', 'courses.id')
                     ->where('courses.teacher_id', $teacherId)
-                    ->where('assignments.type', 'quiz')
-                    ->leftJoin('submissions', 'assignments.id', '=', 'submissions.assignment_id')
-                    ->leftJoin('users', 'submissions.student_id', '=', 'users.id')
+                    ->leftJoin('quiz_attempts', 'quizzes.id', '=', 'quiz_attempts.quiz_id')
                     ->select(
-                        'assignments.*',
+                        'quizzes.*',
                         'courses.title as course_title',
                         'courses.course_number',
-                        DB::raw('COUNT(DISTINCT submissions.id) as submission_count'),
-                        DB::raw('COUNT(DISTINCT CASE WHEN submissions.submitted_at IS NOT NULL THEN submissions.id END) as completed_count')
+                        DB::raw('COUNT(DISTINCT quiz_attempts.id) as submission_count'),
+                        DB::raw('COUNT(DISTINCT CASE WHEN quiz_attempts.status = \'submitted\' THEN quiz_attempts.id END) as completed_count')
                     )
-                    ->groupBy('assignments.id', 'courses.title', 'courses.course_number');
+                    ->groupBy('quizzes.id', 'courses.title', 'courses.course_number');
 
                 if ($courseId > 0) {
-                    $quizzesQuery->where('assignments.course_id', $courseId);
+                    $quizzesQuery->where('quizzes.course_id', $courseId);
                 }
 
                 $quizzes = $quizzesQuery
-                    ->orderBy('assignments.due_date', 'asc')
-                    ->orderBy('assignments.title', 'asc')
+                    ->orderBy('quizzes.due_date', 'asc')
+                    ->orderBy('quizzes.title', 'asc')
                     ->get()
                     ->map(function ($item) {
                         $item->completion_rate = $item->submission_count > 0 

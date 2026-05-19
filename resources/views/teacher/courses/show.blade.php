@@ -1,18 +1,6 @@
 @extends('layouts.teacher')
 
 @section('content')
-    @if (session('success'))
-        <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {{ (string) session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {{ (string) session('error') }}
-        </div>
-    @endif
-
     <div class="flex items-start justify-end gap-4">
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('teacher.courses.index') }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50">Back</a>

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -67,6 +67,7 @@
             }
             
             .slms-main {
+                padding-left: 0 !important;
                 margin-left: 0 !important;
             }
         }
@@ -98,23 +99,23 @@
         }
 
         .slms-main {
-            margin-left: 5rem;
-            transition: margin-left 0.3s ease;
+            padding-left: 5rem;
+            transition: padding-left 0.3s ease;
         }
 
         body.slms-sidebar-expanded .slms-main {
-            margin-left: 16rem;
+            padding-left: 16rem;
         }
 
         /* Ensure main content shifts on desktop only */
         @media (min-width: 992px) {
             .slms-main {
-                margin-left: 5rem;
-                transition: margin-left 0.3s ease;
+                padding-left: 5rem;
+                transition: padding-left 0.3s ease;
             }
 
             body.slms-sidebar-expanded .slms-main {
-                margin-left: 16rem;
+                padding-left: 16rem;
             }
         }
 
@@ -335,6 +336,20 @@
         </header>
 
         <main class="flex-1 p-4 sm:p-6">
+            @if (session('success'))
+                <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+                    <i data-lucide="check-circle" class="h-4 w-4"></i>
+                    <span>{{ (string) session('success') }}</span>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="h-4 w-4"></i>
+                    <span>{{ (string) session('error') }}</span>
+                </div>
+            @endif
+
             @yield('content')
         </main>
     </div>

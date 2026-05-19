@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -93,6 +93,7 @@
             }
 
             .slms-main {
+                padding-left: 0 !important;
                 margin-left: 0 !important;
             }
         }
@@ -159,12 +160,12 @@
         }
 
         .slms-main {
-            margin-left: 5rem;
-            transition: margin-left 0.3s ease;
+            padding-left: 5rem;
+            transition: padding-left 0.3s ease;
         }
 
         body.slms-sidebar-expanded .slms-main {
-            margin-left: 16rem;
+            padding-left: 16rem;
         }
 
         #sidebar {

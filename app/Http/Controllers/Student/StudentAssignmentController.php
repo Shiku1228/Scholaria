@@ -158,17 +158,61 @@ class StudentAssignmentController extends Controller
         } catch (\Throwable) {
         }
 
-        // Get the student's submission if exists
+        // Get the student's submission if exists.
+        // Important: treat a submission as "exists" only if it has been actually submitted.
         $submission = null;
         try {
             if (Schema::hasTable('submissions')) {
-                $submission = DB::table('submissions')
+                $query = DB::table('submissions')
                     ->where('assignment_id', $assignment->id)
-                    ->where('student_id', $studentId)
-                    ->first();
+                    ->where('student_id', $studentId);
+                // TEMP DEBUG (remove after fix)
+                // logger()->info('StudentAssignmentController@show submission debug', [
+                //     'assignment_id' => $assignment->id,
+                //     'student_id' => $studentId,
+                //     'has_submitted_at' => Schema::hasColumn('submissions', 'submitted_at'),
+                //     'has_file_path' => Schema::hasColumn('submissions', 'file_path'),
+                //     'has_content' => Schema::hasColumn('submissions', 'content'),
+                //     'has_submission_type' => Schema::hasColumn('submissions', 'submission_type'),
+                // ]);
+
+
+
+
+
+                // Treat submission as existing ONLY if student actually submitted payload.
+                // 1) If submitted_at exists -> must be non-null
+                // 2) AND there must be actual payload (file_path OR content) when those columns exist
+                if (Schema::hasColumn('submissions', 'submitted_at')) {
+                    $query->whereNotNull('submitted_at');
+                }
+
+                $query->where(function ($q) {
+                    $q->when(Schema::hasColumn('submissions', 'file_path'), function ($qq) {
+                        $qq->whereNotNull('file_path')
+                           ->where('file_path', '!=', '');
+                    })
+                      ->orWhere(function ($qq) {
+                          $qq->when(Schema::hasColumn('submissions', 'content'), function ($qcc) {
+                              $qcc->whereNotNull('content')
+                                  ->where('content', '!=', '');
+                          });
+
+                          // If no content column exists, then rely on type.
+                          if (!Schema::hasColumn('submissions', 'content')) {
+                              if (Schema::hasColumn('submissions', 'submission_type')) {
+                                  $qq->whereNotNull('submission_type')
+                                     ->where('submission_type', '!=', '');
+                              }
+                          }
+                      });
+                });
+
+                $submission = $query->first();
             }
         } catch (\Throwable) {
         }
+
 
         return view('student.assignments.show', [
             'assignment' => $assignment,

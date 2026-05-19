@@ -141,9 +141,9 @@
             <!-- Action Buttons -->
             <div class="flex items-center justify-end gap-3 pt-8 border-t border-slate-200">
                 <a href="{{ route('student.assignments.show', $assignment) }}" class="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">Cancel</a>
-                <button type="submit" class="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-gradient-to-r from-[#0b2d6b] to-[#0a275c] text-white text-sm font-semibold hover:shadow-lg transition-all">
+                <button type="submit" id="submit-assignment-btn" class="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-gradient-to-r from-[#0b2d6b] to-[#0a275c] text-white text-sm font-semibold hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0b2d6b] focus:ring-offset-2">
                     <i data-lucide="send" class="h-4 w-4 mr-2"></i>
-                    Submit Assignment
+                    Send
                 </button>
             </div>
         </div>
@@ -265,6 +265,12 @@
             }, false);
         });
         
+        // Click-to-submit (keeps backend behavior, but UI isn't the raw submit button)
+        const submitBtn = document.getElementById('submit-assignment-btn');
+        submitBtn?.addEventListener('click', () => {
+            document.querySelector('form')?.requestSubmit();
+        });
+
         // Form validation before submit
         document.querySelector('form').addEventListener('submit', function(e) {
             const submissionType = document.getElementById('submission_type').value;

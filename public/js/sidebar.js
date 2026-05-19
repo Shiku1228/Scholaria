@@ -41,13 +41,19 @@ document.addEventListener('DOMContentLoaded', () => {
   overlay.addEventListener('click', close);
 
   // close on any sidebar nav click (mobile)
+  // NOTE: Do NOT handle/modify navigation itself; only close sidebar.
   sidebar.addEventListener('click', (e) => {
     const link = e.target.closest('a');
     if (!link) return;
+
+    // If click triggers a download (e.g., target=_blank or data attributes), avoid any delay hacks.
+    if (link.getAttribute('download')) return;
+
     if (window.innerWidth < 992) {
-      setTimeout(() => close(), 150); // Small delay for navigation
+      setTimeout(() => close(), 50); // very small delay for navigation
     }
   });
+
 
   // Handle escape key
   document.addEventListener('keydown', (e) => {

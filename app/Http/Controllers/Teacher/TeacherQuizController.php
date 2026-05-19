@@ -98,24 +98,6 @@ class TeacherQuizController extends Controller
             'show_results' => (bool) ($validated['show_results'] ?? true),
         ]);
 
-        // Notify students
-        $studentIdsQuery = DB::table('enrollments')->where('course_id', (int) $course->id);
-        if (Schema::hasColumn('enrollments', 'status')) {
-            $studentIdsQuery->whereRaw('LOWER(status) = ?', ['active']);
-        }
-        $studentIds = $studentIdsQuery->pluck('student_id')->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
-        
-        if (!empty($studentIds)) {
-            $students = User::query()->whereIn('id', $studentIds)->get();
-            foreach ($students as $student) {
-                $student->notify(new CourseEventNotification(
-                    'New Quiz Posted',
-                    'New quiz "' . (string) $quiz->title . '" was posted in ' . ((string) ($course->title ?: $course->course_number ?: 'your course')) . '.',
-                    route('student.quizzes.show', ['quiz' => (int) $quiz->id])
-                ));
-            }
-        }
-
         return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz created successfully.');
     }
 
@@ -308,6 +290,25 @@ class TeacherQuizController extends Controller
         }
 
         $quiz->update(['is_published' => true]);
+
+        // Notify students
+        $course = $quiz->course;
+        $studentIdsQuery = DB::table('enrollments')->where('course_id', (int) $course->id);
+        if (Schema::hasColumn('enrollments', 'status')) {
+            $studentIdsQuery->whereRaw('LOWER(status) = ?', ['active']);
+        }
+        $studentIds = $studentIdsQuery->pluck('student_id')->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
+        
+        if (!empty($studentIds)) {
+            $students = User::query()->whereIn('id', $studentIds)->get();
+            foreach ($students as $student) {
+                $student->notify(new CourseEventNotification(
+                    'New Quiz Posted',
+                    'New quiz "' . (string) $quiz->title . '" was posted in ' . ((string) ($course->title ?: $course->course_number ?: 'your course')) . '.',
+                    route('student.quizzes.show', ['quiz' => (int) $quiz->id])
+                ));
+            }
+        }
 
         return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz published successfully.');
     }

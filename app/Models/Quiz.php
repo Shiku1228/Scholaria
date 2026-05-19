@@ -47,4 +47,10 @@ class Quiz extends Model
     {
         return $this->hasMany(QuizAttempt::class, 'quiz_id');
     }
+
+    public function getDurationAttribute(): ?int
+    {
+        return $this->time_limit;
+    }
 }
+

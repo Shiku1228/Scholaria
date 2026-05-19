@@ -223,31 +223,34 @@
                 </div>
             </div>
         </div>
-    @else
-        {{-- No Submission Yet Section --}}
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-8 text-center">
-            <div class="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                <i data-lucide="send" class="h-8 w-8 text-slate-400"></i>
+        @else
+            {{-- No Submission Yet Section --}}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-8 text-center">
+                <div class="h-16 w-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="send" class="h-8 w-8 text-amber-500"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-900 mb-2">No Submission Yet</h3>
+                <p class="text-sm text-slate-600 mb-6">You haven't submitted this assignment yet. Click the button below to submit your work.</p>
+                <div class="flex items-center justify-center gap-3">
+                    <a href="{{ route('student.assignments.index') }}" class="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                        Cancel
+                    </a>
+                    <a href="{{ route('student.assignments.submit', $assignment) }}" class="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-gradient-to-r from-[#0b2d6b] to-[#0a275c] text-white text-sm font-semibold hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#0b2d6b] focus:ring-offset-2">
+                        <i data-lucide="send" class="h-4 w-4 mr-2"></i>
+                        Submit Assignment
+                    </a>
+                </div>
             </div>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">No Submission Yet</h3>
-            <p class="text-sm text-slate-600 mb-6">You haven't submitted this assignment yet. Click the button below to submit your work.</p>
-        </div>
     @endif
 
     {{-- Action Buttons --}}
-    <div class="flex items-center justify-end gap-3 pb-8">
-        @if($submission)
+    @if($submission)
+        <div class="flex items-center justify-start gap-3 pb-8">
             <a href="{{ route('student.assignments.index') }}" class="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                 Back to Assignments
             </a>
-        @else
-            <a href="{{ route('student.assignments.index') }}" class="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                Cancel
-            </a>
-            <a href="{{ route('student.assignments.submit', $assignment) }}" class="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-gradient-to-r from-[#0b2d6b] to-[#0a275c] text-white text-sm font-semibold hover:shadow-lg transition-all">
-                <i data-lucide="send" class="h-4 w-4 mr-2"></i>
-                Submit Assignment
-            </a>
-        @endif
-    </div>
+        </div>
+    @endif
 @endsection
+
+

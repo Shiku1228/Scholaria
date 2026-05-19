@@ -79,7 +79,7 @@
                 @endif
             </td>
             <td class="py-4 px-6">
-                <a href="{{ route('student.assignments.show', $quiz->id) }}" 
+                <a href="{{ route('student.quizzes.show', $quiz->id) }}" 
                    class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                     @if($quiz->status === 'submitted')
                         View Results
