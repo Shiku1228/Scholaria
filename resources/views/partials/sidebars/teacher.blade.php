@@ -6,6 +6,7 @@
         ['label' => 'Enrollments', 'route' => 'teacher.enrollments.*', 'href' => route('teacher.enrollments.index')],
         ['label' => 'Announcements', 'route' => 'teacher.announcements*', 'href' => route('teacher.announcements')],
         ['label' => 'Messages', 'route' => 'teacher.messages', 'href' => route('teacher.messages')],
+        ['label' => 'Calendar', 'route' => 'teacher.calendar', 'href' => route('teacher.calendar')],
         ['label' => 'Settings', 'route' => 'teacher.settings', 'href' => route('teacher.settings')],
     ];
 
@@ -16,9 +17,11 @@
         'Enrollments' => 'user-plus',
         'Announcements' => 'megaphone',
         'Messages' => 'message-circle',
+        'Calendar' => 'calendar',
         'Settings' => 'settings',
     ];
 @endphp
+
 
 @foreach ($nav as $item)
     @php

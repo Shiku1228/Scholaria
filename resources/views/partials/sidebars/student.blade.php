@@ -5,6 +5,7 @@
         ['label' => 'Tasks', 'route' => 'student.tasks.index', 'href' => route('student.tasks.index')],
         ['label' => 'Grades', 'route' => 'student.grades.index', 'href' => route('student.grades.index')],
         ['label' => 'Messages', 'route' => 'student.messages', 'href' => route('student.messages')],
+        ['label' => 'Calendar', 'route' => 'student.calendar', 'href' => route('student.calendar')],
     ];
 
     $icons = [
@@ -13,8 +14,10 @@
         'Tasks' => 'clipboard-list',
         'Grades' => 'graduation-cap',
         'Messages' => 'message-circle',
+        'Calendar' => 'calendar',
     ];
 @endphp
+
 
 @foreach ($nav as $item)
     @php

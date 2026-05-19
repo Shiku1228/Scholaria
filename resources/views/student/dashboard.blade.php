@@ -29,11 +29,17 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
                 <a href="{{ route('student.assignments.index') }}" class="inline-flex items-center justify-center h-12 w-full rounded-xl border border-gray-300 bg-white text-lg font-medium text-slate-700 hover:bg-gray-50">View Assignments</a>
+                <a href="{{ route('student.next-up') }}" class="inline-flex items-center justify-center h-12 w-full rounded-xl border border-gray-300 bg-white text-lg font-medium text-slate-700 hover:bg-gray-50">Next up</a>
+                <a href="{{ route('student.calendar') }}" class="inline-flex items-center justify-center h-12 w-full rounded-xl border border-gray-300 bg-white text-lg font-medium text-slate-700 hover:bg-gray-50">Calendar</a>
+
                 <a href="{{ route('student.grades.index') }}" class="inline-flex items-center justify-center h-12 w-full rounded-xl border border-gray-300 bg-white text-lg font-medium text-slate-700 hover:bg-gray-50">View Grades</a>
+
                 <a href="{{ route('student.dashboard') }}" class="inline-flex items-center justify-center h-12 w-full rounded-xl border border-gray-300 bg-white text-lg font-medium text-slate-700 hover:bg-gray-50">Message Teacher</a>
+
             </div>
         </div>
 

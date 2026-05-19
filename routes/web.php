@@ -38,6 +38,9 @@ use App\Http\Controllers\Messaging\CourseMessagingController;
 use App\Http\Controllers\JwtAuthController;
 use App\Http\Controllers\JwtTestController;
 use App\Http\Controllers\SocialAuthController;
+use App\Http\Controllers\Calendar\TeacherCalendarController;
+use App\Http\Controllers\Calendar\StudentCalendarController;
+
 
 Route::get('/jwt-test', [JwtTestController::class, 'index'])->name('jwt.test');
 
@@ -165,6 +168,9 @@ Route::prefix('teacher')
     ->group(function () {
         Route::get('/dashboard', [TeacherDashboardController::class, 'index'])->name('dashboard');
 
+        Route::get('/calendar', [TeacherCalendarController::class, 'index'])->name('calendar');
+
+
         Route::get('/tasks', [TeacherTaskController::class, 'overview'])->name('tasks.overview');
         Route::get('/assignments', [TeacherAssignmentController::class, 'overview'])->name('assignments.overview'); // Keep for backward compatibility
         
@@ -242,8 +248,12 @@ Route::prefix('student')
     ->middleware(['auth', 'role:Student', 'session.tracking'])
     ->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/calendar', [StudentCalendarController::class, 'index'])->name('calendar');
+
+        Route::get('/next-up', [\App\Http\Controllers\Student\StudentNextUpController::class, 'index'])->name('next-up');
 
         Route::get('/courses', [StudentCourseController::class, 'index'])->name('courses.index');
+
         Route::get('/courses/{course}', [StudentCourseController::class, 'show'])->name('courses.show');
         Route::post('/courses/{course}/discussions', [StudentCourseController::class, 'storeDiscussion'])->name('courses.discussions.store');
         Route::patch('/courses/{course}/discussions/{discussion}', [StudentCourseController::class, 'updateDiscussion'])->name('courses.discussions.update');

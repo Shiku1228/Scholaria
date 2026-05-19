@@ -99,8 +99,8 @@
                 </div>
 
                 <div class="mt-5 text-center">
-                    <a href="{{ route('teacher.courses.index') }}" class="text-[#0b2d6b] font-semibold hover:underline">View Full Calendar</a>
-                </div>
+                    <a href="{{ route('teacher.calendar') }}" class="text-[#0b2d6b] font-semibold hover:underline">View Full Calendar</a>
+                 </div>
             </section>
         </div>
 
