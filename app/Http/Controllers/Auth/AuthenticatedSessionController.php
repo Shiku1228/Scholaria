@@ -54,16 +54,16 @@ class AuthenticatedSessionController extends Controller
 
         $roleDefaultRedirect = route('student.dashboard');
 
-        if (method_exists($user, 'hasRole')) {
-            if ($user->hasRole('Admin') || $user->hasRole('Super Admin') ||
-                $user->hasRole('Content Admin') || $user->hasRole('User Admin') ||
-                $user->hasRole('Report Admin') || $user->hasRole('Settings Admin') ||
-                $user->hasRole('Catalog Admin')) {
-                $roleDefaultRedirect = route('admin.dashboard');
-            } elseif ($user->hasRole('Teacher')) {
-                $roleDefaultRedirect = route('teacher.dashboard');
-            } elseif ($user->hasRole('Student')) {
-                $roleDefaultRedirect = route('student.dashboard');
+        if (method_exists($user, 'getRoleNames')) {
+            $roles = $user->getRoleNames();
+            if ($roles->isNotEmpty()) {
+                if ($roles->diff(['Teacher', 'Student'])->isNotEmpty()) {
+                    $roleDefaultRedirect = route('admin.dashboard');
+                } elseif ($roles->contains('Teacher')) {
+                    $roleDefaultRedirect = route('teacher.dashboard');
+                } elseif ($roles->contains('Student')) {
+                    $roleDefaultRedirect = route('student.dashboard');
+                }
             }
         }
 
@@ -90,20 +90,18 @@ class AuthenticatedSessionController extends Controller
     {
         $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
 
-        if (method_exists($user, 'hasRole')) {
-            if ($user->hasRole('Admin') || $user->hasRole('Super Admin') || 
-                $user->hasRole('Content Admin') || $user->hasRole('User Admin') || 
-                $user->hasRole('Report Admin') || $user->hasRole('Settings Admin') ||
-                $user->hasRole('Catalog Admin')) {
-                return str_starts_with($path, '/admin');
-            }
-
-            if ($user->hasRole('Teacher')) {
-                return str_starts_with($path, '/teacher');
-            }
-
-            if ($user->hasRole('Student')) {
-                return str_starts_with($path, '/student');
+        if (method_exists($user, 'getRoleNames')) {
+            $roles = $user->getRoleNames();
+            if ($roles->isNotEmpty()) {
+                if ($roles->diff(['Teacher', 'Student'])->isNotEmpty()) {
+                    return str_starts_with($path, '/admin');
+                }
+                if ($roles->contains('Teacher')) {
+                    return str_starts_with($path, '/teacher');
+                }
+                if ($roles->contains('Student')) {
+                    return str_starts_with($path, '/student');
+                }
             }
         }
 

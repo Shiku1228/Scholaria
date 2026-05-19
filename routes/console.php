@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 use App\Jobs\SessionCleanupJob;
 use App\Jobs\AnomalyDetectionJob;
-use App\Console\Commands\SecurityCleanup;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -138,11 +137,6 @@ Artisan::command('db:cleanup {--execute : Actually delete rows (otherwise dry-ru
 
     $this->line($execute ? 'Cleanup executed.' : 'Dry-run only. Re-run with --execute to delete rows.');
 })->purpose('Safely clean up expired/old rows from framework tables (dry-run by default)');
-
-// Register security cleanup command
-Artisan::command('security:cleanup', function () {
-    return app(SecurityCleanup::class)->handle();
-})->purpose('Run security cleanup tasks including session and log cleanup');
 
 // Schedule anomaly detection job every 30 minutes
 Schedule::job(new AnomalyDetectionJob())

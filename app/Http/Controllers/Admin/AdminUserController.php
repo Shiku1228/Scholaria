@@ -26,14 +26,6 @@ class AdminUserController extends Controller
         $this->middleware('permission:users.delete')->only(['destroy', 'restore']);
     }
 
-    private const ADMIN_ROLE_OPTIONS = [
-        'Super Admin',
-        'Content Admin',
-        'User Admin',
-        'Report Admin',
-        'Settings Admin',
-    ];
-
     // NOTE:
     // Do not restrict admin roles to a hardcoded list, because admins may add new granular
     // roles in the database. Any role that is not Teacher/Student is treated as an Admin role
@@ -54,21 +46,17 @@ class AdminUserController extends Controller
         }
 
         if ($role === 'Admin') {
-            // Query all granular admin roles too
-            $adminRoleNames = array_merge(['Admin'], self::ADMIN_ROLE_OPTIONS);
-
-            $query->whereHas('roles', function ($roleQuery) use ($adminRoleNames) {
-                $roleQuery->whereIn('name', $adminRoleNames);
+            // Query all roles that are not Teacher or Student dynamically
+            $query->whereHas('roles', function ($roleQuery) {
+                $roleQuery->whereNotIn('name', ['Teacher', 'Student']);
             });
         } elseif (in_array($role, ['Teacher', 'Student'], true)) {
             $query->role($role);
-        } else {
+        } elseif ($role !== 'all') {
             // Allow direct filtering by granular role names if provided
-            if (in_array($role, self::ADMIN_ROLE_OPTIONS, true)) {
-                $query->whereHas('roles', function ($roleQuery) use ($role) {
-                    $roleQuery->whereIn('name', [$role]);
-                });
-            }
+            $query->whereHas('roles', function ($roleQuery) use ($role) {
+                $roleQuery->where('name', $role);
+            });
         }
 
         // Load profile relationships for search
@@ -490,9 +478,9 @@ class AdminUserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($user);
 
-        if (method_exists($user, 'hasAnyRole')) {
-            $protectedRoles = array_merge(['Admin'], self::ADMIN_ROLE_OPTIONS);
-            if ($user->hasAnyRole($protectedRoles)) {
+        if (method_exists($user, 'getRoleNames')) {
+            $hasAdminRole = $user->getRoleNames()->diff(['Teacher', 'Student'])->isNotEmpty();
+            if ($hasAdminRole) {
                 abort(403);
             }
         }
@@ -508,9 +496,9 @@ class AdminUserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($user);
 
-        if (method_exists($user, 'hasAnyRole')) {
-            $protectedRoles = array_merge(['Admin'], self::ADMIN_ROLE_OPTIONS);
-            if ($user->hasAnyRole($protectedRoles)) {
+        if (method_exists($user, 'getRoleNames')) {
+            $hasAdminRole = $user->getRoleNames()->diff(['Teacher', 'Student'])->isNotEmpty();
+            if ($hasAdminRole) {
                 abort(403);
             }
         }

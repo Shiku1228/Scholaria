@@ -93,7 +93,7 @@ Route::middleware(['auth'])->prefix('2fa')->name('2fa.')->group(function () {
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'role:Admin|Super Admin|Content Admin|User Admin|Report Admin|Settings Admin|Catalog Admin', 'session.tracking'])
+    ->middleware(['auth', 'is_admin', 'session.tracking'])
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::post('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');

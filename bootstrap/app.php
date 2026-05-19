@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api' => \App\Http\Middleware\ApiMiddleware::class,
             'session.tracking' => \App\Http\Middleware\SessionTracking::class,
             'auth.monitoring' => \App\Http\Middleware\AuthenticationMonitoring::class,
+            'is_admin' => \App\Http\Middleware\CheckIsAdmin::class,
         ]);
         
                 

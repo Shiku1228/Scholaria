@@ -219,7 +219,7 @@
             </div>
 
             <!-- Admin Fields -->
-            <div id="adminFields" class="space-y-4 {{ $roleName !== 'Admin' ? 'hidden' : '' }}">
+            <div id="adminFields" class="space-y-4 {{ !in_array($roleName, $adminRoleNames ?? []) ? 'hidden' : '' }}">
                 <div class="text-sm text-gray-500">
                     Admin level and access scope are determined automatically from the selected admin role.
                 </div>

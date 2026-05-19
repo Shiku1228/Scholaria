@@ -73,21 +73,32 @@
                 <tbody class="divide-y divide-slate-200">
                     @forelse ($users as $user)
                         @php
-                            $adminRoleNames = ['Admin', 'Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin', 'Catalog Admin'];
-                            $teacherRoleNames = ['Teacher'];
+                            $userRoles = method_exists($user, 'getRoleNames') ? $user->getRoleNames() : collect();
+                            $hasAdminRoleSpatie = false;
+                            $hasTeacherRoleSpatie = false;
 
-                            $hasAdminRole = method_exists($user, 'hasAnyRole') ? $user->hasAnyRole($adminRoleNames) : false;
+                            foreach ($userRoles as $rName) {
+                                if ($rName === 'Teacher') {
+                                    $hasTeacherRoleSpatie = true;
+                                } elseif ($rName !== 'Student') {
+                                    $hasAdminRoleSpatie = true;
+                                }
+                            }
 
-                            // Prefer Spatie Teacher role, but fall back to presence of Teacher profile
-                            // to avoid badging teachers as students when Spatie roles are not synced.
-                            $hasTeacherRoleSpatie = method_exists($user, 'hasAnyRole') ? $user->hasAnyRole($teacherRoleNames) : false;
+                            $hasAdminProfile = $user->relationLoaded('admin') ? ($user->admin !== null) : (method_exists($user, 'admin') ? $user->admin()->exists() : false);
                             $hasTeacherProfile = $user->relationLoaded('teacher') ? ($user->teacher !== null) : (method_exists($user, 'teacher') ? $user->teacher()->exists() : false);
 
+                            $hasAdminRole = $hasAdminRoleSpatie || $hasAdminProfile;
                             $hasTeacherRole = $hasTeacherRoleSpatie || $hasTeacherProfile;
 
                             // Role precedence for badge: Admin > Teacher > Student
                             $labelRole = $hasAdminRole ? 'Admin' : ($hasTeacherRole ? 'Teacher' : 'Student');
-                            $displayRole = $labelRole === 'Teacher' ? 'Instructor' : $labelRole;
+
+                            if ($labelRole === 'Admin') {
+                                $displayRole = $userRoles->diff(['Teacher', 'Student'])->first() ?? 'Admin';
+                            } else {
+                                $displayRole = $labelRole === 'Teacher' ? 'Instructor' : $labelRole;
+                            }
 
                             $isDeleted = $user->trashed();
                             $statusLabel = $isDeleted ? 'Suspended' : 'Active';
