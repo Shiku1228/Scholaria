@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\UserSession;
+use App\Models\SecurityAudit;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -16,13 +17,13 @@ class SessionManager
      */
     public function createSession(User $user, string $sessionId = null): UserSession
     {
-        $request = Request::capture();
+        $request = request();
         
         // Check for existing active sessions and enforce limits
         $this->enforceSessionLimit($user);
         
-        $userAgent = $request->userAgent();
-        $ipAddress = $request->ip();
+        $userAgent = $request->userAgent() ?? 'Unknown';
+        $ipAddress = $request->ip() ?? '127.0.0.1';
         
         // Parse user agent to extract device info
         $deviceInfo = $this->parseUserAgent($userAgent);
@@ -177,7 +178,7 @@ class SessionManager
         
         // Check IP consistency if required
         if (config('security.session.require_ip_consistency', true)) {
-            $currentIp = Request::ip();
+            $currentIp = Request::ip() ?? '127.0.0.1';
             if ($session->ip_address !== $currentIp) {
                 $this->endSession($sessionId, 'ip_mismatch');
                 SecurityAudit::logSuspiciousActivity([
@@ -195,7 +196,7 @@ class SessionManager
         
         // Check user agent consistency if required
         if (config('security.session.require_user_agent_consistency', true)) {
-            $currentUserAgent = Request::userAgent();
+            $currentUserAgent = Request::userAgent() ?? 'Unknown';
             if ($session->user_agent !== $currentUserAgent) {
                 $this->endSession($sessionId, 'user_agent_mismatch');
                 SecurityAudit::logSuspiciousActivity([
@@ -273,8 +274,9 @@ class SessionManager
     /**
      * Parse user agent string to extract device information.
      */
-    private function parseUserAgent(string $userAgent): array
+    private function parseUserAgent(?string $userAgent): array
     {
+        $userAgent = $userAgent ?? '';
         $deviceType = 'desktop';
         $browser = 'unknown';
         $platform = 'unknown';
@@ -333,7 +335,7 @@ class SessionManager
     /**
      * Get location information from IP address.
      */
-    private function getLocationFromIp(string $ipAddress): array
+    private function getLocationFromIp(?string $ipAddress): array
     {
         // This is a placeholder - implement actual IP geolocation service
         return [

@@ -64,8 +64,13 @@ class TeacherQuizController extends Controller
             abort(403);
         }
 
+        $questionBanks = \App\Models\QuestionBank::where('teacher_id', $request->user()->id)
+            ->with('questions')
+            ->get();
+
         return view('teacher.quizzes.create', [
             'course' => $course,
+            'questionBanks' => $questionBanks,
         ]);
     }
 
@@ -78,25 +83,99 @@ class TeacherQuizController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
             'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'time_limit' => ['nullable', 'integer', 'min:1', 'max:480'],
             'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
             'shuffle_questions' => ['nullable', 'boolean'],
+            'random_subset_count' => ['nullable', 'integer', 'min:1', 'max:100'],
             'show_results' => ['nullable', 'boolean'],
+            'feedback_type' => ['nullable', 'in:instant,delayed'],
+            'question_bank_id' => ['nullable', 'exists:question_banks,id'],
+            'question_ids' => ['nullable', 'array'],
+            'question_ids.*' => ['exists:bank_questions,id'],
+            'questions' => ['nullable', 'array'],
+            'questions.*.text' => ['required_with:questions', 'string'],
+            'questions.*.type' => ['required_with:questions', 'in:multiple_choice,true_false,short_answer'],
+            'questions.*.points' => ['required_with:questions', 'integer', 'min:1', 'max:100'],
+            'questions.*.options' => ['nullable', 'array'],
+            'questions.*.correct' => ['nullable', 'string'],
+            'questions.*.correct_answer' => ['nullable', 'string'],
+            'questions.*.explanation' => ['nullable', 'string'],
         ]);
 
         $quiz = Quiz::create([
             'course_id' => (int) $course->id,
             'title' => (string) $validated['title'],
             'description' => $validated['description'] ?? null,
+            'start_date' => $validated['start_date'] ?? null,
             'due_date' => $validated['due_date'] ?? null,
             'max_score' => (int) ($validated['max_score'] ?? 100),
             'time_limit' => (int) ($validated['time_limit'] ?? 60),
             'attempts_allowed' => (int) ($validated['attempts_allowed'] ?? 1),
             'shuffle_questions' => (bool) ($validated['shuffle_questions'] ?? false),
+            'random_subset_count' => isset($validated['random_subset_count']) ? (int) $validated['random_subset_count'] : null,
             'show_results' => (bool) ($validated['show_results'] ?? true),
+            'feedback_type' => $validated['feedback_type'] ?? 'instant',
+            'results_released' => ($validated['feedback_type'] ?? 'instant') === 'instant',
         ]);
+
+        $order = 0;
+
+        // 1. Copy questions from question bank if selected
+        if (!empty($validated['question_bank_id']) && !empty($validated['question_ids'])) {
+            $bankQuestions = \App\Models\BankQuestion::where('question_bank_id', $validated['question_bank_id'])
+                ->whereIn('id', $validated['question_ids'])
+                ->get();
+
+            foreach ($bankQuestions as $bq) {
+                $quiz->questions()->create([
+                    'question_text' => $bq->question_text,
+                    'question_type' => $bq->question_type,
+                    'options' => $bq->options,
+                    'correct_answer' => $bq->correct_answer,
+                    'explanation' => $bq->explanation,
+                    'points' => $bq->points,
+                    'order' => ++$order,
+                ]);
+            }
+        }
+
+        // 2. Add direct inline questions if provided
+        if (!empty($validated['questions'])) {
+            foreach ($validated['questions'] as $qData) {
+                $options = null;
+                $correctAnswer = null;
+
+                if ($qData['type'] === 'multiple_choice') {
+                    $options = [
+                        'A' => $qData['options']['A'] ?? '',
+                        'B' => $qData['options']['B'] ?? '',
+                        'C' => $qData['options']['C'] ?? '',
+                        'D' => $qData['options']['D'] ?? '',
+                    ];
+                    $correctAnswer = $qData['correct'] ?? null;
+                } elseif ($qData['type'] === 'true_false') {
+                    $correctAnswer = $qData['correct'] ?? null;
+                } else {
+                    $correctAnswer = $qData['correct_answer'] ?? null;
+                }
+
+                $quiz->questions()->create([
+                    'question_text' => $qData['text'],
+                    'question_type' => $qData['type'],
+                    'options' => $options,
+                    'correct_answer' => $correctAnswer,
+                    'explanation' => $qData['explanation'] ?? null,
+                    'points' => (int) $qData['points'],
+                    'order' => ++$order,
+                ]);
+            }
+        }
+
+        // 3. Update total quiz points
+        $this->updateQuizPoints($quiz);
 
         return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz created successfully.');
     }
@@ -146,23 +225,29 @@ class TeacherQuizController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
             'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'time_limit' => ['nullable', 'integer', 'min:1', 'max:480'],
             'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
             'shuffle_questions' => ['nullable', 'boolean'],
+            'random_subset_count' => ['nullable', 'integer', 'min:1', 'max:100'],
             'show_results' => ['nullable', 'boolean'],
+            'feedback_type' => ['nullable', 'in:instant,delayed'],
         ]);
 
         $quiz->update([
             'title' => (string) $validated['title'],
             'description' => $validated['description'] ?? null,
+            'start_date' => $validated['start_date'] ?? null,
             'due_date' => $validated['due_date'] ?? null,
             'max_score' => (int) ($validated['max_score'] ?? $quiz->max_score ?? 100),
             'time_limit' => (int) ($validated['time_limit'] ?? $quiz->time_limit ?? 60),
             'attempts_allowed' => (int) ($validated['attempts_allowed'] ?? $quiz->attempts_allowed ?? 1),
             'shuffle_questions' => (bool) ($validated['shuffle_questions'] ?? $quiz->shuffle_questions ?? false),
+            'random_subset_count' => isset($validated['random_subset_count']) ? (int) $validated['random_subset_count'] : null,
             'show_results' => (bool) ($validated['show_results'] ?? $quiz->show_results ?? true),
+            'feedback_type' => $validated['feedback_type'] ?? $quiz->feedback_type ?? 'instant',
         ]);
 
         return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz updated successfully.');
@@ -215,6 +300,7 @@ class TeacherQuizController extends Controller
             'points' => ['required', 'integer', 'min:1', 'max:100'],
             'options' => ['nullable', 'array'],
             'correct_answer' => ['nullable', 'string'],
+            'explanation' => ['nullable', 'string'],
         ]);
 
         // Build options array for multiple choice
@@ -238,6 +324,7 @@ class TeacherQuizController extends Controller
             'question_type' => $validated['question_type'],
             'options' => $options,
             'correct_answer' => $validated['correct_answer'] ?? null,
+            'explanation' => $validated['explanation'] ?? null,
             'points' => $validated['points'],
             'order' => $maxOrder + 1,
         ]);
@@ -323,5 +410,71 @@ class TeacherQuizController extends Controller
             'points' => $totalPoints,
             'max_score' => $totalPoints > 0 ? $totalPoints : $quiz->max_score,
         ]);
+    }
+
+    /**
+     * Unpublish the quiz.
+     */
+    public function unpublish(Request $request, Quiz $quiz)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $quiz->update(['is_published' => false]);
+
+        return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz unpublished successfully.');
+    }
+
+    /**
+     * Release results of the quiz to students.
+     */
+    public function releaseResults(Request $request, Quiz $quiz)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $quiz->update(['results_released' => true]);
+
+        return redirect()->route('teacher.quizzes.show', $quiz)->with('success', 'Quiz results released to students.');
+    }
+
+    /**
+     * Import questions from a question bank.
+     */
+    public function importFromBank(Request $request, Quiz $quiz)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'question_bank_id' => ['required', 'exists:question_banks,id'],
+            'question_ids' => ['required', 'array'],
+            'question_ids.*' => ['exists:bank_questions,id'],
+        ]);
+
+        $bankQuestions = \App\Models\BankQuestion::where('question_bank_id', $validated['question_bank_id'])
+            ->whereIn('id', $validated['question_ids'])
+            ->get();
+
+        $maxOrder = $quiz->questions()->max('order') ?? 0;
+
+        foreach ($bankQuestions as $bq) {
+            $quiz->questions()->create([
+                'question_text' => $bq->question_text,
+                'question_type' => $bq->question_type,
+                'options' => $bq->options,
+                'correct_answer' => $bq->correct_answer,
+                'explanation' => $bq->explanation,
+                'points' => $bq->points,
+                'order' => ++$maxOrder,
+            ]);
+        }
+
+        $this->updateQuizPoints($quiz);
+
+        return redirect()->route('teacher.quizzes.questions', $quiz)->with('success', 'Questions imported successfully.');
     }
 }

@@ -107,7 +107,22 @@ class StudentAnnouncementController extends Controller
                 ])
                 ->values()
                 ->all();
-        } catch (\Throwable) {
+
+            // Record Read Receipts
+            if (!empty($announcements)) {
+                $announcementIds = array_column($announcements, 'announcement_id');
+                $readsData = [];
+                $now = now();
+                foreach ($announcementIds as $aid) {
+                    $readsData[] = [
+                        'user_id' => $studentId,
+                        'announcement_id' => $aid,
+                        'read_at' => $now,
+                    ];
+                }
+                DB::table('announcement_reads')->insertOrIgnore($readsData);
+            }
+        } catch (\Throwable $e) {
         }
 
         return view('student.announcements.index', [

@@ -17,7 +17,7 @@ class AuthenticationMonitor
      */
     public function logFailedLogin(array $credentials, string $reason = 'Invalid credentials'): SecurityAudit
     {
-        $request = Request::capture();
+        $request = request();
         $ipAddress = $request->ip();
         $userAgent = $request->userAgent();
         
@@ -69,7 +69,7 @@ class AuthenticationMonitor
      */
     public function logSuccessfulLogin(User $user): void
     {
-        $request = Request::capture();
+        $request = request();
         $ipAddress = $request->ip();
         $fingerprint = $this->generateFingerprint($request);
         

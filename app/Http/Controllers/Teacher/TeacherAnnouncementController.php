@@ -41,10 +41,12 @@ class TeacherAnnouncementController extends Controller
         }
 
         $announcements = collect();
+        $totalStudents = 0;
 
         try {
+            $totalStudents = $course->enrollments()->count();
             if (Schema::hasTable('announcements')) {
-                $announcements = $course->announcements()->orderByDesc('id')->paginate(15);
+                $announcements = $course->announcements()->withCount('reads')->orderByDesc('id')->paginate(15);
             }
         } catch (\Throwable) {
             $announcements = collect();
@@ -53,6 +55,7 @@ class TeacherAnnouncementController extends Controller
         return view('teacher.announcements.index', [
             'course' => $course,
             'announcements' => $announcements,
+            'totalStudents' => $totalStudents,
         ]);
     }
 

@@ -25,6 +25,7 @@ class ActivityLog extends Model
         'encrypted_data',
         'encryption_key',
         'is_sensitive',
+        'created_at',
     ];
 
     protected $casts = [

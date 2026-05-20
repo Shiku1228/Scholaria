@@ -32,6 +32,7 @@
                 <button type="button" data-tab-btn="tasks" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Tasks</button>
                 <button type="button" data-tab-btn="students" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Students</button>
                 <button type="button" data-tab-btn="announcements" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Announcements</button>
+                <a href="{{ route('teacher.office-hours.index', $course) }}" class="text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent font-semibold">Live Q&A</a>
             </div>
         </div>
 
@@ -137,6 +138,16 @@
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50">Delete</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('teacher.courses.discussions.subscribe', [$course, $post]) }}">
+                                        @csrf
+                                        <button type="submit" class="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">
+                                            @if($post->subscriptions->contains('id', auth()->id()))
+                                                Unsubscribe
+                                            @else
+                                                Subscribe
+                                            @endif
+                                        </button>
                                     </form>
                                 </div>
                             </div>

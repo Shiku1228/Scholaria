@@ -184,6 +184,7 @@ class StudentCourseController extends Controller
                     ->with([
                         'user:id,name',
                         'replies.user:id,name',
+                        'subscriptions:id',
                     ])
                     ->where('course_id', $courseId)
                     ->whereNull('parent_id')
@@ -315,44 +316,86 @@ class StudentCourseController extends Controller
             }
         }
 
-        CourseDiscussion::query()->create([
+        $discussion = CourseDiscussion::query()->create([
             'course_id' => $courseId,
             'user_id' => $studentId,
             'parent_id' => $parentId > 0 ? $parentId : null,
             'content' => (string) $validated['content'],
         ]);
 
-        $courseName = (string) ($course->title ?: $course->course_number ?: 'your course');
+        $thread = $parent ?? $discussion;
+        
+        // Auto-subscribe the author
+        $thread->subscriptions()->syncWithoutDetaching([$request->user()->id]);
 
-        $teacher = User::query()->find((int) ($course->teacher_id ?? 0));
-        if ($teacher) {
-            $teacher->notify(new CourseEventNotification(
-                'New Student Discussion Comment',
-                $request->user()->name . ' posted a new discussion comment in ' . $courseName . '.',
-                route('teacher.courses.show', $course) . '#discussion'
-            ));
-        }
+        $url = route('student.courses.show', $course) . '#discussion-' . $thread->id;
 
-        if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'course_id') && Schema::hasColumn('enrollments', 'student_id')) {
-            $peerIdsQuery = DB::table('enrollments')
-                ->where('course_id', $courseId);
-            if (Schema::hasColumn('enrollments', 'status')) {
-                $peerIdsQuery->whereRaw('LOWER(status) = ?', ['active']);
-            }
-            $peerIds = $peerIdsQuery->pluck('student_id')->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
-            if (!empty($peerIds)) {
-                $peers = User::query()->whereIn('id', $peerIds)->get();
-                foreach ($peers as $peer) {
-                    $peer->notify(new CourseEventNotification(
-                        'New Discussion Comment',
-                        $request->user()->name . ' commented in ' . $courseName . ' discussion.',
-                        route('student.courses.show', $course) . '#discussion'
+        // Process Mentions
+        preg_match_all('/@([a-zA-Z0-9_ -]+)/', $discussion->content, $matches);
+        if (!empty($matches[1])) {
+            $mentionedNames = array_unique(array_map('trim', $matches[1]));
+            $mentionedUsers = User::whereIn('name', $mentionedNames)->get();
+            foreach ($mentionedUsers as $mentionedUser) {
+                if ($mentionedUser->id !== $request->user()->id) {
+                    $mentionedUser->notify(new \App\Notifications\MentionNotification(
+                        $course->id,
+                        'You were mentioned in a discussion',
+                        $request->user()->name . ' mentioned you in ' . ($course->title ?: 'a course') . '.',
+                        $url
                     ));
+                    // Auto-subscribe mentioned users to the thread
+                    $thread->subscriptions()->syncWithoutDetaching([$mentionedUser->id]);
                 }
             }
         }
 
-        return redirect()->to(route('student.courses.show', $course) . '#discussion')->with('success', 'Your comment has been posted.');
+        $courseName = (string) ($course->title ?: $course->course_number ?: 'your course');
+
+        if ($parent) {
+            // Notify subscribers of the reply
+            $subscribers = $parent->subscriptions()->where('user_id', '!=', $request->user()->id)->get();
+            foreach ($subscribers as $subscriber) {
+                $subscriber->notify(new \App\Notifications\DiscussionReplyNotification(
+                    $course->id,
+                    'New Reply to Discussion',
+                    $request->user()->name . ' replied to a discussion thread you follow.',
+                    $url
+                ));
+            }
+        } else {
+            // Notify Teacher and other Students
+            $teacher = User::query()->find((int) ($course->teacher_id ?? 0));
+            if ($teacher) {
+                $teacher->notify(new CourseEventNotification(
+                    'New Student Discussion Comment',
+                    $request->user()->name . ' posted a new discussion comment in ' . $courseName . '.',
+                    $url
+                ));
+            }
+
+            if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'course_id') && Schema::hasColumn('enrollments', 'student_id')) {
+                $peerIdsQuery = DB::table('enrollments')
+                    ->where('course_id', $courseId);
+                if (Schema::hasColumn('enrollments', 'status')) {
+                    $peerIdsQuery->whereRaw('LOWER(status) = ?', ['active']);
+                }
+                $peerIds = $peerIdsQuery->pluck('student_id')->map(fn ($id) => (int) $id)->filter()->unique()->values()->all();
+                if (!empty($peerIds)) {
+                    $peers = User::query()->whereIn('id', $peerIds)->get();
+                    foreach ($peers as $peer) {
+                        if ($peer->id !== $request->user()->id) {
+                            $peer->notify(new CourseEventNotification(
+                                'New Discussion Comment',
+                                $request->user()->name . ' commented in ' . $courseName . ' discussion.',
+                                $url
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        return redirect()->to($url)->with('success', 'Your comment has been posted.');
     }
 
     public function updateDiscussion(Request $request, Course $course, CourseDiscussion $discussion)
@@ -416,5 +459,27 @@ class StudentCourseController extends Controller
         $discussion->delete();
 
         return redirect()->to(route('student.courses.show', $course) . '#discussion')->with('success', 'Comment deleted.');
+    }
+
+    public function toggleDiscussionSubscription(Request $request, Course $course, CourseDiscussion $discussion)
+    {
+        $studentId = (int) $request->user()->id;
+        $courseId = (int) $course->id;
+
+        $enrollmentQuery = DB::table('enrollments')
+            ->where('student_id', $studentId)
+            ->where('course_id', $courseId);
+        if (Schema::hasColumn('enrollments', 'status')) {
+            $enrollmentQuery->whereRaw('LOWER(status) = ?', ['active']);
+        }
+        if (!$enrollmentQuery->exists()) {
+            abort(403);
+        }
+        if ((int) $discussion->course_id !== $courseId) {
+            abort(404);
+        }
+
+        $discussion->subscriptions()->toggle([$studentId]);
+        return redirect()->back()->with('success', 'Subscription updated.');
     }
 }

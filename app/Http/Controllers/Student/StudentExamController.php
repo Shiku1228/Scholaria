@@ -24,11 +24,13 @@ class StudentExamController extends Controller
             ->orderBy('exam_date', 'asc')
             ->paginate(20);
         
-        // Get student's attempts
+        // Get student's latest attempts keyed by exam_id
         $attempts = StudentExamAttempt::query()
             ->where('student_id', $studentId)
             ->whereIn('exam_id', $exams->pluck('id'))
+            ->orderBy('attempt_number', 'desc')
             ->get()
+            ->unique('exam_id')
             ->keyBy('exam_id');
         
         return view('student.exams.index', [
@@ -37,7 +39,7 @@ class StudentExamController extends Controller
         ]);
     }
     
-    public function show(Request $request, Exam $exam): View
+    public function show(Request $request, Exam $exam): View|RedirectResponse
     {
         $studentId = (int) $request->user()->id;
         
@@ -51,38 +53,72 @@ class StudentExamController extends Controller
             abort(403, 'You are not enrolled in this course.');
         }
         
-        // Get or create attempt
-        $attempt = StudentExamAttempt::query()
-            ->where('exam_id', $exam->id)
-            ->where('student_id', $studentId)
-            ->first();
-        
-        // If exam hasn't started yet
+        // Check if exam hasn't started yet
         if ($exam->exam_date && $exam->exam_date->isFuture()) {
             return view('student.exams.upcoming', [
                 'exam' => $exam,
             ]);
         }
         
-        // If exam is past and no attempt
-        if ($exam->exam_date && $exam->exam_date->isPast() && !$attempt) {
+        // Get student's attempts
+        $attempts = StudentExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->where('student_id', $studentId)
+            ->orderBy('attempt_number')
+            ->get();
+            
+        $activeAttempt = $attempts->where('status', 'in_progress')->first();
+        
+        // If in progress, go to take view directly
+        if ($activeAttempt) {
+            $questionIds = $activeAttempt->question_ids ?? [];
+            if (!empty($questionIds)) {
+                $questions = $exam->questions()
+                    ->whereIn('id', $questionIds)
+                    ->get()
+                    ->sortBy(function ($q) use ($questionIds) {
+                        return array_search($q->id, $questionIds);
+                    })->values();
+            } else {
+                $questions = $exam->questions()->orderBy('order')->get();
+            }
+
+            return view('student.exams.take', [
+                'exam' => $exam,
+                'questions' => $questions,
+                'attempt' => $activeAttempt,
+            ]);
+        }
+        
+        // If exam is past and no attempts
+        if ($exam->due_date && $exam->due_date->isPast() && $attempts->isEmpty()) {
             return view('student.exams.missed', [
                 'exam' => $exam,
             ]);
         }
         
-        // If in progress
-        if ($attempt && !$attempt->isSubmitted()) {
-            return view('student.exams.take', [
-                'exam' => $exam->load('questions'),
-                'attempt' => $attempt,
-            ]);
+        // If student wants to view a specific past attempt
+        $selectedAttemptId = $request->query('attempt_id');
+        $selectedAttempt = null;
+        if ($selectedAttemptId) {
+            $selectedAttempt = StudentExamAttempt::query()
+                ->where('student_id', $studentId)
+                ->where('exam_id', $exam->id)
+                ->where('id', $selectedAttemptId)
+                ->with('answers.question')
+                ->first();
+        } else {
+            // Default to latest submitted attempt
+            $selectedAttempt = $attempts->whereIn('status', ['submitted', 'graded'])->last();
+            if ($selectedAttempt) {
+                $selectedAttempt->load('answers.question');
+            }
         }
         
-        // Show results
-        return view('student.exams.result', [
-            'exam' => $exam->load('questions'),
-            'attempt' => $attempt?->load('answers'),
+        return view('student.exams.show', [
+            'exam' => $exam,
+            'attempts' => $attempts,
+            'selectedAttempt' => $selectedAttempt,
         ]);
     }
     
@@ -108,23 +144,57 @@ class StudentExamController extends Controller
         if ($exam->exam_date && $exam->exam_date->isFuture()) {
             return back()->with('error', 'This exam has not started yet.');
         }
+
+        // Check due date window (if any)
+        if ($exam->due_date && $exam->due_date->isPast()) {
+            return back()->with('error', 'The due date for this exam has passed.');
+        }
         
-        // Check if already has an attempt
-        $existingAttempt = StudentExamAttempt::query()
+        // Check if already has active attempt
+        $activeAttempt = StudentExamAttempt::query()
             ->where('exam_id', $exam->id)
             ->where('student_id', $studentId)
+            ->where('status', 'in_progress')
             ->first();
         
-        if ($existingAttempt) {
+        if ($activeAttempt) {
             return redirect()->route('student.exams.show', $exam);
         }
+
+        // Check attempts limit
+        $pastAttemptsCount = StudentExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->where('student_id', $studentId)
+            ->whereIn('status', ['submitted', 'graded'])
+            ->count();
+
+        if ($exam->attempts_allowed && $pastAttemptsCount >= $exam->attempts_allowed) {
+            return back()->with('error', 'You have reached the maximum number of attempts allowed for this exam.');
+        }
+
+        // Determine question order and subset
+        $questionsQuery = $exam->questions()->orderBy('order');
+        if ($exam->shuffle_questions) {
+            $questions = $questionsQuery->inRandomOrder()->get();
+        } else {
+            $questions = $questionsQuery->get();
+        }
+
+        if ($exam->random_subset_count && $exam->random_subset_count > 0) {
+            $questions = $questions->take($exam->random_subset_count);
+        }
+
+        $questionIds = $questions->pluck('id')->toArray();
         
         // Create new attempt
         StudentExamAttempt::create([
             'exam_id' => $exam->id,
             'student_id' => $studentId,
+            'attempt_number' => $pastAttemptsCount + 1,
             'started_at' => now(),
             'max_score' => $exam->max_score,
+            'status' => 'in_progress',
+            'question_ids' => $questionIds,
         ]);
         
         return redirect()->route('student.exams.show', $exam);
@@ -137,32 +207,35 @@ class StudentExamController extends Controller
         $attempt = StudentExamAttempt::query()
             ->where('exam_id', $exam->id)
             ->where('student_id', $studentId)
-            ->whereNull('submitted_at')
+            ->where('status', 'in_progress')
             ->firstOrFail();
         
         $validated = $request->validate([
-            'answers' => ['required', 'array'],
+            'answers' => ['nullable', 'array'],
             'answers.*' => ['nullable', 'string'],
         ]);
         
+        $answers = $validated['answers'] ?? [];
         $totalScore = 0;
         
-        foreach ($validated['answers'] as $questionId => $answer) {
-            $question = $exam->questions()->find($questionId);
-            
-            if (!$question) continue;
+        // Load questions for the attempt
+        $questionIds = $attempt->question_ids ?? [];
+        $questions = $exam->questions()->whereIn('id', $questionIds)->get();
+
+        foreach ($questions as $question) {
+            $submittedAnswer = $answers[$question->id] ?? null;
             
             // Calculate score for auto-gradable questions
             $score = null;
             if (in_array($question->question_type, ['multiple_choice', 'true_false'])) {
-                $score = $question->correct_answer === $answer ? $question->points : 0;
+                $score = $question->correct_answer === $submittedAnswer ? $question->points : 0;
                 $totalScore += $score;
             }
             
             ExamAnswer::create([
                 'attempt_id' => $attempt->id,
-                'question_id' => $questionId,
-                'answer' => $answer,
+                'question_id' => $question->id,
+                'answer' => $submittedAnswer,
                 'score' => $score,
             ]);
         }
@@ -175,6 +248,6 @@ class StudentExamController extends Controller
         ]);
         
         return redirect()->route('student.exams.show', $exam)
-            ->with('success', 'Exam submitted successfully! Your score: ' . $totalScore . '/' . $exam->max_score);
+            ->with('success', 'Exam submitted successfully! Score: ' . $totalScore);
     }
 }

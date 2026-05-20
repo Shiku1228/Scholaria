@@ -1,6 +1,10 @@
 @extends('layouts.teacher')
 
 @section('content')
+    @php
+        $questionBanks = \App\Models\QuestionBank::where('teacher_id', auth()->id())->with('questions')->get();
+    @endphp
+
     {{-- Header --}}
     <div class="flex items-start justify-between gap-4 mb-6">
         <div>
@@ -35,7 +39,7 @@
                 </div>
                 <div>
                     <div class="text-xs text-slate-500">Total Points</div>
-                    <div class="text-sm font-semibold text-slate-900">{{ $exam->getTotalPoints() }}</div>
+                    <div class="text-sm font-semibold text-slate-900">{{ $exam->max_score ?? $questions->sum('points') }}</div>
                 </div>
             </div>
         </div>
@@ -51,6 +55,70 @@
             </div>
         </div>
     </div>
+
+    {{-- Import from Question Bank Card --}}
+    @if($questionBanks->count() > 0)
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+            <div class="px-5 py-4 border-b border-slate-200 bg-purple-50/50 flex items-center justify-between">
+                <div class="flex items-center gap-2 text-sm font-semibold text-purple-900">
+                    <i data-lucide="database" class="h-4 w-4 text-purple-600"></i>
+                    Import Questions from Question Bank
+                </div>
+                <button type="button" onclick="toggleImportCard()" class="text-purple-600 hover:text-purple-800 text-xs font-semibold">
+                    Toggle Import Form
+                </button>
+            </div>
+            <div id="import-card-body" class="p-5 hidden space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Select Question Bank</label>
+                    <select id="bank_selector" onchange="showBankQuestions(this.value)" class="w-full rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500 text-sm">
+                        <option value="">-- Choose a Question Bank --</option>
+                        @foreach($questionBanks as $bank)
+                            <option value="{{ $bank->id }}">{{ $bank->name }} ({{ $bank->questions->count() }} questions)</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <form method="POST" action="{{ route('teacher.exams.import-bank', $exam) }}" id="import-questions-form" class="hidden space-y-4">
+                    @csrf
+                    <input type="hidden" name="question_bank_id" id="hidden_bank_id">
+                    
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <div class="bg-slate-50 px-4 py-2 border-b border-slate-200 text-xs font-semibold text-slate-700 flex items-center justify-between">
+                            <span>Questions Available</span>
+                            <button type="button" onclick="selectAllImportQuestions(true)" class="text-purple-600 hover:underline">Select All</button>
+                        </div>
+                        <div class="divide-y divide-slate-100 max-h-60 overflow-y-auto" id="bank-questions-list">
+                            @foreach($questionBanks as $bank)
+                                <div class="bank-group hidden" id="bank-group-{{ $bank->id }}">
+                                    @forelse($bank->questions as $q)
+                                        <label class="flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer">
+                                            <input type="checkbox" name="question_ids[]" value="{{ $q->id }}" class="mt-1 rounded border-slate-300 text-purple-600 focus:ring-purple-500">
+                                            <div class="text-sm">
+                                                <p class="font-medium text-slate-800">{{ $q->question_text }}</p>
+                                                <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                                    <span class="px-1.5 py-0.5 rounded bg-slate-100">{{ ucfirst(str_replace('_', ' ', $q->question_type)) }}</span>
+                                                    <span>{{ $q->points }} pts</span>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    @empty
+                                        <p class="p-4 text-sm text-slate-500 text-center">No questions in this bank.</p>
+                                    @endforelse
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" class="inline-flex items-center justify-center h-10 px-5 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 shadow-sm">
+                            <i data-lucide="download" class="h-4 w-4 mr-2"></i>Import Selected Questions
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 
     {{-- Add Question Card --}}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
@@ -70,7 +138,7 @@
                             Question Text <span class="text-red-500">*</span>
                         </span>
                     </label>
-                    <textarea name="question_text" rows="3" placeholder="Enter your question..." class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] resize-none" required></textarea>
+                    <textarea name="question_text" rows="4" placeholder="Enter your question..." class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] resize-none" required></textarea>
                 </div>
                 <div class="space-y-4">
                     <div>
@@ -137,6 +205,23 @@
                 </div>
             </div>
 
+            {{-- Short Answer Correct Answer --}}
+            <div id="sa_options" class="hidden space-y-2">
+                <label class="block text-sm font-medium text-slate-700">Acceptable Correct Answer (Optional)</label>
+                <input type="text" name="correct_answer" id="correct_answer_sa" placeholder="Expected answer text..." class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm">
+            </div>
+
+            {{-- Explanation field for all types --}}
+            <div>
+                <label for="explanation" class="block text-sm font-medium text-slate-700 mb-1">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="info" class="h-4 w-4 text-[#0b2d6b]"></i>
+                        Correct Answer Explanation (Explanations are displayed to students based on reveal control feedback settings)
+                    </span>
+                </label>
+                <textarea name="explanation" id="explanation" rows="2" placeholder="Explain why the answer is correct..." class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm resize-none"></textarea>
+            </div>
+
             {{-- Error Display --}}
             <div id="question-error" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <p class="text-red-600 text-sm font-medium" id="error-message"></p>
@@ -167,7 +252,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-start justify-between gap-4">
-                                <div>
+                                <div class="space-y-2 flex-1">
                                     <p class="text-sm text-slate-900 font-medium">{{ $question->question_text }}</p>
                                     <div class="mt-1 flex items-center gap-3 text-xs text-slate-500">
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100">
@@ -194,6 +279,21 @@
                                         <div class="mt-2 text-sm">
                                             <span class="text-slate-500">Correct answer:</span>
                                             <span class="font-medium text-green-700">{{ ucfirst($question->correct_answer) }}</span>
+                                        </div>
+                                    @elseif($question->isShortAnswer())
+                                        <div class="mt-2 text-sm">
+                                            <span class="text-slate-500">Acceptable correct answer:</span>
+                                            <span class="font-medium text-green-700">{{ $question->correct_answer ?: 'Any text (manually graded)' }}</span>
+                                        </div>
+                                    @endif
+
+                                    @if($question->explanation)
+                                        <div class="bg-amber-50/50 border border-amber-100 rounded-lg p-3 text-xs text-slate-600 mt-2 flex items-start gap-2">
+                                            <i data-lucide="info" class="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0"></i>
+                                            <div>
+                                                <span class="font-semibold text-slate-700">Explanation:</span>
+                                                {{ $question->explanation }}
+                                            </div>
                                         </div>
                                     @endif
                                 </div>
@@ -232,20 +332,62 @@
     @endif
 
     <script>
+        function toggleImportCard() {
+            const body = document.getElementById('import-card-body');
+            body.classList.toggle('hidden');
+        }
+
+        function showBankQuestions(bankId) {
+            const form = document.getElementById('import-questions-form');
+            const hiddenInput = document.getElementById('hidden_bank_id');
+            const groups = document.querySelectorAll('.bank-group');
+            
+            // Hide all groups
+            groups.forEach(g => g.classList.add('hidden'));
+            
+            if (bankId) {
+                hiddenInput.value = bankId;
+                const activeGroup = document.getElementById('bank-group-' + bankId);
+                if (activeGroup) {
+                    activeGroup.classList.remove('hidden');
+                }
+                form.classList.remove('hidden');
+            } else {
+                hiddenInput.value = '';
+                form.classList.add('hidden');
+            }
+        }
+
+        function selectAllImportQuestions(checked) {
+            const activeGroup = document.querySelector('.bank-group:not(.hidden)');
+            if (activeGroup) {
+                const checkboxes = activeGroup.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.checked = checked);
+            }
+        }
+
         document.getElementById('question_type').addEventListener('change', function() {
             const mcOptions = document.getElementById('mc_options');
             const tfOptions = document.getElementById('tf_options');
+            const saOptions = document.getElementById('sa_options');
             const errorDiv = document.getElementById('question-error');
             
             if (this.value === 'multiple_choice') {
                 mcOptions.classList.remove('hidden');
                 tfOptions.classList.add('hidden');
+                saOptions.classList.add('hidden');
             } else if (this.value === 'true_false') {
                 mcOptions.classList.add('hidden');
                 tfOptions.classList.remove('hidden');
+                saOptions.classList.add('hidden');
+            } else if (this.value === 'short_answer') {
+                mcOptions.classList.add('hidden');
+                tfOptions.classList.add('hidden');
+                saOptions.classList.remove('hidden');
             } else {
                 mcOptions.classList.add('hidden');
                 tfOptions.classList.add('hidden');
+                saOptions.classList.add('hidden');
             }
             
             // Hide error when changing type

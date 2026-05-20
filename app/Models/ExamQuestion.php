@@ -15,6 +15,7 @@ class ExamQuestion extends Model
         'question_type',
         'options',
         'correct_answer',
+        'explanation',
         'points',
         'order',
     ];

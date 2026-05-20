@@ -35,4 +35,10 @@ class CourseDiscussion extends Model
     {
         return $this->hasMany(self::class, 'parent_id')->orderBy('created_at');
     }
+
+    public function subscriptions(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'discussion_subscriptions')
+            ->withTimestamps();
+    }
 }

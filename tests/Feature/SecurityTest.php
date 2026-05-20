@@ -12,10 +12,12 @@ use App\Services\TransactionService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class SecurityTest extends TestCase
 {
+    use RefreshDatabase;
     /**
      * Test session tracking functionality.
      */
@@ -26,10 +28,11 @@ class SecurityTest extends TestCase
         // Simulate login and session creation
         $session = UserSession::create([
             'user_id' => $user->id,
-            'token' => Hash::make('test-token'),
+            'session_id' => 'test-session-id',
             'ip_address' => '127.0.0.1',
             'user_agent' => 'Test Browser',
-            'expires_at' => now()->addHours(2),
+            'last_activity_at' => now(),
+            'login_at' => now(),
         ]);
 
         $this->assertDatabaseHas('user_sessions', [
@@ -38,7 +41,7 @@ class SecurityTest extends TestCase
         ]);
 
         // Test session validation
-        $this->assertTrue($session->expires_at > now());
+        $this->assertFalse($session->isExpired());
     }
 
     /**
@@ -81,6 +84,7 @@ class SecurityTest extends TestCase
             'username' => 'test@example.com',
             'reason' => 'Invalid credentials',
             'ip_address' => '192.168.1.1',
+            'fingerprint' => 'test-fingerprint',
         ]);
 
         $this->assertDatabaseHas('security_audits', [
@@ -138,21 +142,23 @@ class SecurityTest extends TestCase
         // Test failed transaction with rollback
         $failedTransaction = null;
         try {
-            $failedTransaction = $service->execute([
+            $service->execute([
                 'type' => 'create',
                 'table_name' => 'test_table',
                 'record_id' => 2,
                 'user_id' => $user->id,
                 'data_after' => ['name' => 'Test'],
-            ], function ($transaction) {
+            ], function ($transaction) use (&$failedTransaction) {
+                $failedTransaction = $transaction;
                 throw new \Exception('Simulated failure');
             });
         } catch (\Exception $e) {
             // Expected
         }
 
+        $this->assertNotNull($failedTransaction);
         $this->assertEquals('failed', $failedTransaction->status);
-        $this->assertNotNull($failedTransaction->error_message);
+        $this->assertEquals('Simulated failure', $failedTransaction->error_message);
     }
 
     /**
@@ -343,6 +349,7 @@ class SecurityTest extends TestCase
      */
     public function test_csrf_protection(): void
     {
+        $this->startSession();
         $this->assertNotNull(csrf_token());
     }
 
@@ -383,6 +390,7 @@ class SecurityTest extends TestCase
             'description' => 'Test suspicious activity',
             'severity' => 'high',
         ]);
+        $audit->refresh();
 
         $this->assertFalse($audit->is_resolved);
 

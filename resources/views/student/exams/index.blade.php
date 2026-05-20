@@ -1,23 +1,6 @@
 @extends('layouts.student')
 
 @section('content')
-    {{-- Debug info --}}
-    @if(app()->environment('local') || config('app.debug'))
-        @php
-            $studentId = auth()->id();
-            $debugExams = \App\Models\Exam::where('is_published', true)->where('exam_type', 'online')->get();
-            $enrolledCourseIds = \App\Models\Enrollment::where('student_id', $studentId)->where('status', 'active')->pluck('course_id');
-        @endphp
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-xs">
-            <p><strong>Debug:</strong> Student ID: {{ $studentId }}</p>
-            <p>Enrolled courses: {{ $enrolledCourseIds->implode(', ') }}</p>
-            <p>All published online exams: {{ $debugExams->count() }}</p>
-            @foreach($debugExams as $de)
-                <p>- Exam "{{ $de->title }}" (Course: {{ $de->course_id }}, Published: {{ $de->is_published ? 'Yes' : 'No' }})</p>
-            @endforeach
-        </div>
-    @endif
-
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-2 text-2xl font-semibold text-slate-900">
             <i data-lucide="laptop" class="h-6 w-6 text-[#0b2d6b]"></i>

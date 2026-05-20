@@ -71,6 +71,11 @@ class Course extends Model
         return $this->hasMany(CourseDiscussion::class, 'course_id');
     }
 
+    public function officeHours(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(OfficeHour::class, 'course_id');
+    }
+
     public function chatGroup(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(ChatGroup::class, 'course_id');

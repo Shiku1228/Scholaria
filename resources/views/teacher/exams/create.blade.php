@@ -1,448 +1,557 @@
 @extends('layouts.teacher')
 
 @section('content')
-    {{-- Header --}}
-    <div class="flex items-start justify-between gap-4 mb-6">
-        <div>
-            <div class="flex items-center gap-2 text-2xl font-semibold text-slate-900" id="page-title">
-                <i data-lucide="calendar-plus" class="h-6 w-6 text-[#0b2d6b]"></i>
-                <span>Schedule Exam</span>
-            </div>
-            <div class="mt-1 text-sm text-slate-500">{{ $course->course_number ?? $course->title ?? ('Course #' . $course->id) }}</div>
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .animated-bg {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .step-active {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+            border-color: transparent;
+        }
+        .step-inactive {
+            background: rgba(255, 255, 255, 0.5);
+            color: #64748b;
+            border-color: #e2e8f0;
+        }
+        .form-input-premium {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            transition: all 0.3s ease;
+        }
+        .form-input-premium:focus {
+            background: #ffffff;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            transform: translateY(-1px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <div class="relative min-h-screen bg-slate-50/50 p-4 sm:p-8 rounded-3xl">
+        <!-- Ambient Background -->
+        <div class="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none z-0">
+            <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+            <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-400/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
         </div>
-        <a href="{{ route('teacher.courses.show', ['course' => $course, 'tab' => 'tasks']) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            <i data-lucide="arrow-left" class="h-4 w-4 mr-2"></i>Back
-        </a>
+
+        <div class="relative z-10 max-w-5xl mx-auto space-y-12 pb-24">
+            {{-- Premium Header --}}
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10 animate-fade-in-up">
+                <div>
+                    <div class="flex items-center gap-4">
+                        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-white">
+                            <i data-lucide="sparkles" class="h-6 w-6"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-900 to-purple-900 tracking-tight">Create New Exam</h1>
+                            <p class="text-sm text-indigo-600/80 mt-1 font-medium flex items-center gap-2">
+                                <i data-lucide="book-open" class="h-4 w-4"></i>
+                                {{ $course->course_number }} &bull; {{ $course->title }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ route('teacher.courses.show', ['course' => $course, 'tab' => 'tasks']) }}" 
+                    class="inline-flex items-center justify-center h-11 px-5 rounded-xl border border-slate-200/60 bg-white/50 backdrop-blur-sm text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-md transition-all">
+                    <i data-lucide="arrow-left" class="h-4 w-4 mr-2 text-indigo-500"></i>Back to Course
+                </a>
+            </div>
+
+            {{-- Error Messages --}}
+            @if($errors->any())
+                <div class="glass-panel rounded-2xl p-5 mb-8 animate-fade-in-up border-l-4 border-l-rose-500" style="animation-delay: 0.1s;">
+                    <div class="flex gap-3">
+                        <div class="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+                            <i data-lucide="alert-triangle" class="h-4 w-4 text-rose-600"></i>
+                        </div>
+                        <div>
+                            <h5 class="text-sm font-bold text-rose-900">Please correct the following errors:</h5>
+                            <ul class="list-disc list-inside text-sm text-rose-700 mt-2 space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Interactive Multi-Step Indicator Bar --}}
+            <div class="glass-panel rounded-2xl p-6 mb-8 animate-fade-in-up" style="animation-delay: 0.2s;">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-6 max-w-3xl mx-auto relative">
+                    <!-- Connector Line Background -->
+                    <div class="hidden sm:block absolute top-1/2 left-12 right-12 h-1 bg-slate-200 rounded-full -translate-y-1/2 z-0"></div>
+                    <!-- Connector Line Progress -->
+                    <div class="hidden sm:block absolute top-1/2 left-12 w-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full -translate-y-1/2 z-0 transition-all duration-500" id="connector-line-progress"></div>
+
+                    <!-- Step 1 Indicator -->
+                    <button type="button" onclick="goToStep(1)" class="relative z-10 flex flex-col items-center gap-3 group focus:outline-none w-32">
+                        <div id="step-badge-1" class="h-12 w-12 rounded-2xl step-active flex items-center justify-center text-lg font-bold transition-all duration-300 transform group-hover:scale-105">1</div>
+                        <div class="text-center">
+                            <span class="block text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1">Step 1</span>
+                            <span id="step-title-1" class="text-sm font-bold text-slate-800 transition-all">Exam Details</span>
+                        </div>
+                    </button>
+
+                    <!-- Step 2 Indicator -->
+                    <button type="button" onclick="goToStep(2)" class="relative z-10 flex flex-col items-center gap-3 group focus:outline-none w-32">
+                        <div id="step-badge-2" class="h-12 w-12 rounded-2xl step-inactive border-2 flex items-center justify-center text-lg font-bold transition-all duration-300 transform group-hover:scale-105">2</div>
+                        <div class="text-center">
+                            <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Step 2</span>
+                            <span id="step-title-2" class="text-sm font-bold text-slate-400 transition-all">Questions</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('teacher.exams.store', $course) }}" id="exam-creation-form">
+                @csrf
+
+                {{-- ==================== STEP 1: EXAM DETAILS ==================== --}}
+                <div id="step-content-1" class="space-y-6 animate-fade-in-up" style="animation-delay: 0.3s;">
+                    {{-- General Configuration Card --}}
+                    <div class="glass-panel rounded-3xl overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                        <div class="px-8 py-5 border-b border-white/20 bg-white/40 flex items-center gap-3 backdrop-blur-md">
+                            <div class="p-2 bg-indigo-100 rounded-lg">
+                                <i data-lucide="edit-3" class="h-5 w-5 text-indigo-600"></i>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-800">General Specifications</h3>
+                        </div>
+                        <div class="p-8 sm:p-10 space-y-8 bg-white/50">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Exam Title <span class="text-rose-500">*</span></label>
+                                <input type="text" name="title" value="{{ old('title') }}" placeholder="e.g. Final Examination in Advanced Mathematics"
+                                    class="w-full rounded-xl form-input-premium text-base py-3 px-4 outline-none" 
+                                    required>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Instructions & Guidelines</label>
+                                <textarea name="instructions" rows="4" placeholder="Explain the exam rules, allowed topics, or reminders to your students..."
+                                    class="w-full rounded-xl form-input-premium text-base resize-none py-3 px-4 outline-none">{{ old('instructions') }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Scheduling & Duration Card --}}
+                    <div class="glass-panel rounded-3xl overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                        <div class="px-8 py-5 border-b border-white/20 bg-white/40 flex items-center gap-3 backdrop-blur-md">
+                            <div class="p-2 bg-amber-100 rounded-lg">
+                                <i data-lucide="calendar-clock" class="h-5 w-5 text-amber-600"></i>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-800">Timing & Schedule</h3>
+                        </div>
+                        <div class="p-8 sm:p-10 bg-white/50">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div class="relative group">
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Start Date & Time</label>
+                                    <input type="datetime-local" name="exam_date" value="{{ old('exam_date') }}" 
+                                        class="w-full rounded-xl form-input-premium text-sm py-3 px-4 outline-none cursor-pointer">
+                                    <div class="absolute -bottom-6 left-0 text-xs text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">Leave empty for instant access.</div>
+                                </div>
+                                <div class="relative group">
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Due Date</label>
+                                    <input type="datetime-local" name="due_date" value="{{ old('due_date') }}" 
+                                        class="w-full rounded-xl form-input-premium text-sm py-3 px-4 outline-none cursor-pointer">
+                                    <div class="absolute -bottom-6 left-0 text-xs text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">Time window lock.</div>
+                                </div>
+                                <div class="relative group">
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Duration <span class="text-rose-500">*</span></label>
+                                    <div class="relative rounded-xl shadow-sm">
+                                        <input type="number" name="duration" value="{{ old('duration', 60) }}" min="1" max="480"
+                                            class="w-full rounded-xl form-input-premium text-sm py-3 px-4 pr-16 outline-none font-semibold text-indigo-900">
+                                        <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none border-l border-slate-200 pl-3 my-2">
+                                            <span class="text-slate-400 text-sm font-bold">mins</span>
+                                        </div>
+                                    </div>
+                                    <div class="absolute -bottom-6 left-0 text-xs text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">Auto-submits on expiry.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Sophisticated Reveal Rules Card --}}
+                    <div class="glass-panel rounded-3xl overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                        <div class="px-8 py-5 border-b border-white/20 bg-white/40 flex items-center gap-3 backdrop-blur-md">
+                            <div class="p-2 bg-emerald-100 rounded-lg">
+                                <i data-lucide="shield-check" class="h-5 w-5 text-emerald-600"></i>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-800">Advanced Rules & Feedback</h3>
+                        </div>
+                        <div class="p-8 sm:p-10 space-y-10 bg-white/50">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Attempts Allowed</label>
+                                    <input type="number" name="attempts_allowed" value="{{ old('attempts_allowed', 1) }}" min="1" max="10"
+                                        class="w-full rounded-xl form-input-premium text-sm py-3 px-4 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Feedback Mode</label>
+                                    <select name="feedback_type" class="w-full rounded-xl form-input-premium text-sm py-3 px-4 outline-none appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:12px_12px] bg-[right_1rem_center]">
+                                        <option value="instant" {{ old('feedback_type') == 'instant' ? 'selected' : '' }}>Instant (Immediate Review)</option>
+                                        <option value="delayed" {{ old('feedback_type') == 'delayed' ? 'selected' : '' }}>Delayed (Manual Release)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Random Subset Count</label>
+                                    <input type="number" name="random_subset_count" value="{{ old('random_subset_count') }}" placeholder="All questions"
+                                        class="w-full rounded-xl form-input-premium text-sm py-3 px-4 outline-none">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 pt-6 border-t border-slate-200/60">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Maximum Score</label>
+                                    <input type="number" name="max_score" id="max_score_input" value="{{ old('max_score', 100) }}" min="1"
+                                        class="w-full rounded-xl border border-indigo-100 bg-indigo-50/50 text-indigo-900 font-extrabold text-lg py-2.5 px-4 outline-none shadow-inner" readonly>
+                                    <span class="text-xs text-slate-500 mt-2 block font-medium">Calculated dynamically from questions.</span>
+                                </div>
+                                <div class="flex items-center pt-5">
+                                    <label class="flex items-start gap-4 cursor-pointer group p-3 rounded-xl hover:bg-white/50 transition-colors w-full">
+                                        <div class="relative flex items-center justify-center mt-0.5">
+                                            <input type="checkbox" name="shuffle_questions" value="1" {{ old('shuffle_questions') ? 'checked' : '' }} 
+                                                class="peer appearance-none w-6 h-6 border-2 border-slate-300 rounded-lg checked:bg-indigo-500 checked:border-indigo-500 transition-all outline-none focus:ring-4 focus:ring-indigo-500/20">
+                                            <i data-lucide="check" class="absolute h-4 w-4 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"></i>
+                                        </div>
+                                        <div>
+                                            <span class="block text-sm font-bold text-slate-700 group-hover:text-indigo-700 transition-colors">Shuffle Order</span>
+                                            <span class="block text-xs text-slate-500 mt-0.5">Randomizes question sequence</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="flex items-center pt-5">
+                                    <label class="flex items-start gap-4 cursor-pointer group p-3 rounded-xl hover:bg-white/50 transition-colors w-full">
+                                        <div class="relative flex items-center justify-center mt-0.5">
+                                            <input type="checkbox" name="show_results" value="1" {{ old('show_results', '1') ? 'checked' : '' }} 
+                                                class="peer appearance-none w-6 h-6 border-2 border-slate-300 rounded-lg checked:bg-indigo-500 checked:border-indigo-500 transition-all outline-none focus:ring-4 focus:ring-indigo-500/20">
+                                            <i data-lucide="check" class="absolute h-4 w-4 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"></i>
+                                        </div>
+                                        <div>
+                                            <span class="block text-sm font-bold text-slate-700 group-hover:text-indigo-700 transition-colors">Show Results</span>
+                                            <span class="block text-xs text-slate-500 mt-0.5">Reveal score after submission</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ==================== STEP 2: QUESTIONS ==================== --}}
+                <div id="step-content-2" class="space-y-6 hidden">
+                    {{-- Inline Question Builder Card --}}
+                    <div class="glass-panel rounded-3xl overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                        <div class="px-8 py-5 border-b border-white/20 bg-white/40 flex items-center justify-between backdrop-blur-md">
+                            <div class="flex items-center gap-4">
+                                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                    <i data-lucide="help-circle" class="h-6 w-6 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800">Direct Questions Builder</h3>
+                                    <p class="text-sm text-slate-500 font-medium mt-0.5">Draft custom questions specific to this exam.</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="addQuestionField()" 
+                                class="inline-flex items-center justify-center h-11 px-5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5 transition-all focus:ring-4 focus:ring-indigo-500/30">
+                                <i data-lucide="plus" class="h-5 w-5 mr-1.5"></i>Add Question
+                            </button>
+                        </div>
+
+                        <div class="p-8 bg-white/60 min-h-[400px]">
+                            <div id="questions-container" class="space-y-10">
+                                {{-- Injected dynamically via Javascript --}}
+                            </div>
+
+                            {{-- Elegant Empty Placeholder --}}
+                            <div id="no-questions-msg" class="flex flex-col items-center justify-center py-20 animate-fade-in-up">
+                                <div class="relative">
+                                    <div class="absolute inset-0 bg-indigo-400/20 blur-2xl rounded-full"></div>
+                                    <div class="h-16 w-16 rounded-full bg-white flex items-center justify-center shadow-xl border border-indigo-50 relative z-10 mb-4 group-hover:scale-110 transition-transform">
+                                        <i data-lucide="layers" class="h-8 w-8 text-indigo-400"></i>
+                                    </div>
+                                </div>
+                                <h4 class="text-xl font-extrabold text-slate-800 mb-2">No questions created yet</h4>
+                                <p class="text-sm text-slate-500 max-w-sm text-center mb-6 leading-relaxed">Start building your exam by adding custom questions. Click the button above to begin.</p>
+                                <button type="button" onclick="addQuestionField()" class="text-indigo-600 font-bold hover:text-indigo-700 flex items-center gap-1.5 text-sm bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors">
+                                    <i data-lucide="plus-circle" class="h-4 w-4"></i> Add First Question
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Action Bar --}}
+                <div class="sticky bottom-6 z-50 mt-10">
+                    <div class="glass-panel rounded-2xl shadow-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 bg-white/95 backdrop-blur-xl border border-indigo-50">
+                        <a href="{{ route('teacher.courses.show', ['course' => $course, 'tab' => 'tasks']) }}" 
+                            class="text-sm font-bold text-slate-500 hover:text-rose-600 transition-colors px-4 py-2 rounded-lg hover:bg-rose-50 order-2 sm:order-1">
+                            Cancel Draft
+                        </a>
+                        
+                        <div class="flex flex-wrap items-center gap-3 order-1 sm:order-2 w-full sm:w-auto">
+                            <button type="button" onclick="goToStep(1)" id="prev-btn" 
+                                class="hidden flex-1 sm:flex-none inline-flex items-center justify-center h-12 px-6 rounded-xl border-2 border-indigo-100 bg-white text-indigo-700 text-sm font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-all focus:ring-4 focus:ring-indigo-500/20">
+                                <i data-lucide="chevron-left" class="h-5 w-5 mr-1"></i> Back
+                            </button>
+
+                            <button type="button" onclick="goToStep(2)" id="next-btn" 
+                                class="flex-1 sm:flex-none inline-flex items-center justify-center h-12 px-8 rounded-xl btn-primary text-white text-sm font-bold shadow-lg shadow-indigo-500/30 focus:ring-4 focus:ring-indigo-500/40">
+                                Proceed to Questions <i data-lucide="arrow-right" class="h-5 w-5 ml-2"></i>
+                            </button>
+
+                            <button type="submit" id="submit-btn" 
+                                class="hidden flex-1 sm:flex-none inline-flex items-center justify-center h-12 px-8 rounded-xl btn-success text-white text-sm font-bold shadow-lg shadow-emerald-500/30 focus:ring-4 focus:ring-emerald-500/40">
+                                <i data-lucide="check-circle" class="h-5 w-5 mr-2"></i> Publish Exam
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <form method="POST" action="{{ route('teacher.exams.store', $course) }}">
-        @csrf
-
-        {{-- Exam Type Selector - MOVED TO TOP for visibility --}}
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-            <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
-                <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                    <i data-lucide="monitor" class="h-4 w-4 text-purple-500"></i>
-                    Select Exam Type <span class="text-red-500">*</span>
-                </div>
-            </div>
-            <div class="p-5">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {{-- Scheduled Exam Option --}}
-                    <label class="relative flex cursor-pointer group" id="label-scheduled" onclick="updateFormMode()">
-                        <input type="radio" name="exam_type" value="scheduled" id="type-scheduled" class="peer sr-only" {{ old('exam_type', 'scheduled') === 'scheduled' ? 'checked' : '' }} onclick="updateFormMode()" />
-                        <div class="flex-1 rounded-xl border-2 border-slate-200 p-5 peer-checked:border-[#0b2d6b] peer-checked:bg-[#0b2d6b]/5 hover:border-slate-300 transition-all">
-                            {{-- Selected Badge --}}
-                            <div class="absolute top-3 right-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#0b2d6b] text-white opacity-0 peer-checked:opacity-100 transition-opacity">
-                                    <i data-lucide="check" class="h-3 w-3 mr-1"></i>Selected
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <div class="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                    <i data-lucide="calendar" class="h-6 w-6 text-amber-600"></i>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-slate-900 peer-checked:text-[#0b2d6b]">Scheduled Exam</div>
-                                    <div class="text-sm text-slate-500">Physical exam or external online platform</div>
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-4 border-t border-slate-100">
-                                <ul class="text-xs text-slate-500 space-y-1">
-                                    <li class="flex items-center gap-1"><i data-lucide="check" class="h-3 w-3 text-green-500"></i> Set date, time & location</li>
-                                    <li class="flex items-center gap-1"><i data-lucide="check" class="h-3 w-3 text-green-500"></i> Students notified of schedule</li>
-                                    <li class="flex items-center gap-1"><i data-lucide="x" class="h-3 w-3 text-slate-300"></i> No system questions</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </label>
-
-                    {{-- Online Exam Option --}}
-                    <label class="relative flex cursor-pointer group" id="label-online" onclick="updateFormMode()">
-                        <input type="radio" name="exam_type" value="online" id="type-online" class="peer sr-only" {{ old('exam_type') === 'online' ? 'checked' : '' }} onclick="updateFormMode()" />
-                        <div class="flex-1 rounded-xl border-2 border-slate-200 p-5 peer-checked:border-purple-600 peer-checked:bg-purple-50 hover:border-slate-300 transition-all">
-                            {{-- Selected Badge --}}
-                            <div class="absolute top-3 right-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-600 text-white opacity-0 peer-checked:opacity-100 transition-opacity">
-                                    <i data-lucide="check" class="h-3 w-3 mr-1"></i>Selected
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <div class="h-12 w-12 rounded-xl bg-purple-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                    <i data-lucide="laptop" class="h-6 w-6 text-purple-600"></i>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-slate-900 peer-checked:text-purple-700">Online Exam</div>
-                                    <div class="text-sm text-slate-500">System-hosted with questions</div>
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-4 border-t border-slate-100">
-                                <ul class="text-xs text-slate-500 space-y-1">
-                                    <li class="flex items-center gap-1"><i data-lucide="check" class="h-3 w-3 text-green-500"></i> Create questions in system</li>
-                                    <li class="flex items-center gap-1"><i data-lucide="check" class="h-3 w-3 text-green-500"></i> Auto-grading for MC/TF</li>
-                                    <li class="flex items-center gap-1"><i data-lucide="check" class="h-3 w-3 text-green-500"></i> Students take exam here</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </label>
-                </div>
-                @error('exam_type')
-                    <p class="mt-3 text-xs text-red-600 flex items-center gap-1">
-                        <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
-                    </p>
-                @enderror
-            </div>
-        </div>
-
-        {{-- Exam Details Card --}}
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-            <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
-                <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                    <i data-lucide="clipboard-list" class="h-4 w-4 text-slate-500"></i>
-                    Exam Details
-                </div>
-            </div>
-            <div class="p-5 space-y-5">
-                {{-- Title --}}
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
-                        <span class="flex items-center gap-2">
-                            <i data-lucide="type" class="h-4 w-4 text-slate-400"></i>
-                            Exam Title <span class="text-red-500">*</span>
-                        </span>
-                    </label>
-                    <input type="text" name="title" value="{{ old('title') }}" placeholder="e.g., Midterm Examination" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required />
-                    @error('title')
-                        <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
-                            <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
-                        </p>
-                    @enderror
-                </div>
-
-                {{-- Description --}}
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
-                        <span class="flex items-center gap-2">
-                            <i data-lucide="align-left" class="h-4 w-4 text-slate-400"></i>
-                            Description
-                        </span>
-                    </label>
-                    <textarea name="description" rows="3" placeholder="Brief description of the exam..." class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] resize-none">{{ old('description') }}</textarea>
-                    @error('description')
-                        <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
-                            <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
-                        </p>
-                    @enderror
-                </div>
-
-                {{-- Date/Time & Duration Row --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {{-- Exam Date --}}
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="calendar-clock" class="h-4 w-4 text-amber-500"></i>
-                                Exam Date & Time <span class="text-red-500">*</span>
-                            </span>
-                        </label>
-                        <input type="datetime-local" name="exam_date" value="{{ old('exam_date') }}" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" required />
-                        @error('exam_date')
-                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-
-                    {{-- Duration --}}
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="clock" class="h-4 w-4 text-blue-500"></i>
-                                Duration (minutes) <span class="text-red-500">*</span>
-                            </span>
-                        </label>
-                        <div class="relative">
-                            <input type="number" name="duration" value="{{ old('duration', 60) }}" min="15" max="480" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] pl-3 pr-16" required />
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">min</span>
-                        </div>
-                        @error('duration')
-                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-                </div>
-
-                {{-- Max Score & Location Row --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {{-- Max Score --}}
-                    <div id="max-score-section">
-                        <label class="block text-sm font-medium text-slate-700 mb-2">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="target" class="h-4 w-4 text-emerald-500"></i>
-                                <span id="max-score-label">Maximum Score</span>
-                            </span>
-                        </label>
-                        <div class="relative">
-                            <input type="number" name="max_score" id="max_score_input" value="{{ old('max_score', 100) }}" min="1" max="1000" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] pl-3 pr-12" />
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">pts</span>
-                        </div>
-                        <p class="mt-1 text-xs text-slate-500" id="max-score-hint">For online exams, this will auto-update based on question points.</p>
-                        @error('max_score')
-                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-
-                    {{-- Location - Only for Scheduled --}}
-                    <div id="location-section">
-                        <label class="block text-sm font-medium text-slate-700 mb-2">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="map-pin" class="h-4 w-4 text-rose-500"></i>
-                                Location / Venue
-                            </span>
-                        </label>
-                        <input type="text" name="location" id="location_input" value="{{ old('location') }}" placeholder="e.g., Room 101, Main Hall, Online via Zoom" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
-                        @error('location')
-                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
-                            </p>
-                        @enderror
-                    </div>
-                </div>
-
-                {{-- Instructions --}}
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
-                        <span class="flex items-center gap-2">
-                            <i data-lucide="info" class="h-4 w-4 text-slate-400"></i>
-                            Instructions for Students
-                        </span>
-                    </label>
-                    <textarea name="instructions" rows="3" placeholder="Special instructions, allowed materials, exam rules, etc." class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] resize-none">{{ old('instructions') }}</textarea>
-                    @error('instructions')
-                        <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
-                            <i data-lucide="alert-circle" class="h-3 w-3"></i>{{ $message }}
-                        </p>
-                    @enderror
-                </div>
-            </div>
-        </div>
-
-        {{-- Question Builder Section - Only for Online Exams --}}
-        <div id="question-builder-section" style="display: none;">
-            <div class="bg-purple-50 rounded-xl border border-purple-200 overflow-hidden mb-6">
-                <div class="px-5 py-4 border-b border-purple-200 bg-purple-100/50">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2 text-sm font-semibold text-purple-900">
-                            <i data-lucide="help-circle" class="h-4 w-4"></i>
-                            Questions
-                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-200 text-purple-800" id="question-count">0 questions</span>
-                        </div>
-                        <button type="button" onclick="addQuestionField()" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-purple-600 text-white text-xs font-medium hover:bg-purple-700">
-                            <i data-lucide="plus" class="h-3 w-3 mr-1"></i>Add Question
-                        </button>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div id="questions-container" class="space-y-4">
-                        {{-- Questions will be added here dynamically --}}
-                    </div>
-                    <div id="no-questions-msg" class="text-center py-8">
-                        <div class="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-3">
-                            <i data-lucide="help-circle" class="h-6 w-6 text-purple-400"></i>
-                        </div>
-                        <p class="text-sm text-slate-500">No questions added yet.</p>
-                        <p class="text-xs text-slate-400 mt-1">Click "Add Question" to start building your exam.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Action Buttons --}}
-        <div class="flex items-center justify-end gap-3">
-            <a href="{{ route('teacher.courses.show', ['course' => $course, 'tab' => 'tasks']) }}" class="inline-flex items-center justify-center h-11 px-6 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                <i data-lucide="x" class="h-4 w-4 mr-2"></i>Cancel
-            </a>
-            <button type="submit" id="submit-btn" class="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c] transition-colors shadow-sm">
-                <i data-lucide="calendar-plus" class="h-4 w-4 mr-2"></i>
-                <span id="submit-text">Schedule Exam</span>
-            </button>
-        </div>
-    </form>
-
-    {{-- JavaScript for dynamic form behavior --}}
+    {{-- Interactive Multi-Step Form Logic and Dynamic Question Layout --}}
     <script>
+        let currentStep = 1;
         let questionCounter = 0;
-        
-        function updateFormMode() {
-            const isScheduled = document.getElementById('type-scheduled').checked;
-            const isOnline = document.getElementById('type-online').checked;
-            
-            console.log('updateFormMode called. isOnline:', isOnline, 'isScheduled:', isScheduled);
-            
-            // Update page title
-            const titleIcon = document.querySelector('#page-title i');
-            const titleText = document.querySelector('#page-title span');
-            
-            if (isOnline) {
-                titleText.textContent = 'Create Online Exam';
-                if (titleIcon) titleIcon.setAttribute('data-lucide', 'laptop');
-            } else {
-                titleText.textContent = 'Schedule Exam';
-                if (titleIcon) titleIcon.setAttribute('data-lucide', 'calendar-plus');
-            }
-            
-            // Update submit button
-            const submitText = document.getElementById('submit-text');
-            const submitBtn = document.getElementById('submit-btn');
-            if (isOnline) {
-                submitText.textContent = 'Create Online Exam';
-                submitBtn.style.backgroundColor = '#9333ea'; // purple-600
-            } else {
-                submitText.textContent = 'Schedule Exam';
-                submitBtn.style.backgroundColor = '#0b2d6b';
-            }
-            
-            // Show/hide location field using display style
-            const locationSection = document.getElementById('location-section');
-            const locationInput = document.getElementById('location_input');
-            if (isOnline) {
-                locationSection.style.display = 'none';
-                if (locationInput) locationInput.removeAttribute('required');
-            } else {
-                locationSection.style.display = 'block';
-            }
-            
-            // Show/hide question builder using display style
-            const questionBuilder = document.getElementById('question-builder-section');
-            console.log('Question builder element:', questionBuilder);
-            if (isOnline) {
-                questionBuilder.style.display = 'block';
-                console.log('Showing question builder');
-            } else {
-                questionBuilder.style.display = 'none';
-                console.log('Hiding question builder');
-            }
-            
-            // Update max score label
-            const maxScoreLabel = document.getElementById('max-score-label');
-            const maxScoreHint = document.getElementById('max-score-hint');
-            const maxScoreInput = document.getElementById('max_score_input');
-            if (isOnline) {
-                if (maxScoreLabel) maxScoreLabel.textContent = 'Total Points (Auto-calculated)';
-                if (maxScoreHint) maxScoreHint.textContent = 'This will be automatically calculated from your question points.';
-                if (maxScoreInput) {
-                    maxScoreInput.readOnly = true;
-                    maxScoreInput.style.backgroundColor = '#f1f5f9'; // slate-100
-                }
-            } else {
-                if (maxScoreLabel) maxScoreLabel.textContent = 'Maximum Score';
-                if (maxScoreHint) maxScoreHint.textContent = 'Set the maximum score for this exam.';
-                if (maxScoreInput) {
-                    maxScoreInput.readOnly = false;
-                    maxScoreInput.style.backgroundColor = '';
+
+        function goToStep(step) {
+            if (step === 2) {
+                const title = document.querySelector('input[name="title"]');
+                if (!title || !title.value.trim()) {
+                    title.classList.add('border-rose-500', 'ring-2', 'ring-rose-200');
+                    setTimeout(() => title.classList.remove('border-rose-500', 'ring-2', 'ring-rose-200'), 2000);
+                    title.focus();
+                    return;
                 }
             }
+
+            currentStep = step;
+
+            // Content Visibility with animation classes
+            const step1 = document.getElementById('step-content-1');
+            const step2 = document.getElementById('step-content-2');
             
-            // Re-initialize Lucide icons
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+            if (step === 1) {
+                step2.classList.add('hidden');
+                step2.classList.remove('animate-fade-in-up');
+                step1.classList.remove('hidden');
+                // Force reflow
+                void step1.offsetWidth;
+                step1.classList.add('animate-fade-in-up');
+            } else {
+                step1.classList.add('hidden');
+                step1.classList.remove('animate-fade-in-up');
+                step2.classList.remove('hidden');
+                void step2.offsetWidth;
+                step2.classList.add('animate-fade-in-up');
             }
-            
-            updateTotalPoints();
+
+            // Buttons
+            document.getElementById('prev-btn').classList.toggle('hidden', step !== 2);
+            document.getElementById('next-btn').classList.toggle('hidden', step !== 1);
+            document.getElementById('submit-btn').classList.toggle('hidden', step !== 2);
+
+            // Indicators
+            const badge1 = document.getElementById('step-badge-1');
+            const badge2 = document.getElementById('step-badge-2');
+            const title1 = document.getElementById('step-title-1');
+            const title2 = document.getElementById('step-title-2');
+            const progress = document.getElementById('connector-line-progress');
+
+            if (step === 1) {
+                badge1.className = 'h-12 w-12 rounded-2xl step-active flex items-center justify-center text-lg font-bold transition-all duration-300 transform group-hover:scale-105';
+                title1.className = 'text-sm font-bold text-indigo-700 transition-all';
+                badge2.className = 'h-12 w-12 rounded-2xl step-inactive border-2 flex items-center justify-center text-lg font-bold transition-all duration-300 transform group-hover:scale-105';
+                title2.className = 'text-sm font-bold text-slate-400 transition-all';
+                if(progress) progress.style.width = '0%';
+            } else {
+                badge1.className = 'h-12 w-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-lg font-bold shadow-lg shadow-emerald-500/30 transition-all duration-300 transform group-hover:scale-105';
+                badge1.innerHTML = '<i data-lucide="check" class="h-6 w-6"></i>';
+                title1.className = 'text-sm font-bold text-emerald-600 transition-all';
+                badge2.className = 'h-12 w-12 rounded-2xl step-active flex items-center justify-center text-lg font-bold transition-all duration-300 transform group-hover:scale-105';
+                title2.className = 'text-sm font-bold text-indigo-700 transition-all';
+                if(progress) progress.style.width = '100%';
+                if (typeof window.lucide !== 'undefined') {
+                    window.lucide.createIcons();
+                }
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        
+
         function addQuestionField() {
             questionCounter++;
             const container = document.getElementById('questions-container');
             const noQuestionsMsg = document.getElementById('no-questions-msg');
-            
-            noQuestionsMsg.classList.add('hidden');
-            
+
+            if (noQuestionsMsg) noQuestionsMsg.classList.add('hidden');
+
             const questionDiv = document.createElement('div');
-            questionDiv.className = 'bg-white rounded-lg border border-purple-200 p-4';
+            questionDiv.className = 'bg-white rounded-2xl border border-slate-200/60 p-6 sm:p-8 shadow-sm hover:shadow-md transition-shadow duration-300 relative group animate-fade-in-up';
             questionDiv.id = `question-${questionCounter}`;
             questionDiv.innerHTML = `
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-semibold question-number">${questionCounter}</span>
-                        <span class="text-sm font-medium text-slate-700">Question</span>
-                    </div>
-                    <button type="button" onclick="removeQuestion(${questionCounter})" class="text-red-500 hover:text-red-700 p-1">
+                <div class="absolute -top-4 -left-4 h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-sm font-extrabold shadow-lg shadow-indigo-500/30 question-number z-10 border-2 border-white">
+                    ${questionCounter}
+                </div>
+                
+                <div class="flex items-start justify-end mb-4 absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button type="button" onclick="removeQuestion(${questionCounter})" class="h-8 w-8 bg-rose-50 text-rose-500 rounded-lg flex items-center justify-center hover:bg-rose-500 hover:text-white transition-colors" title="Delete Question">
                         <i data-lucide="trash-2" class="h-4 w-4"></i>
                     </button>
                 </div>
-                <div class="space-y-3">
-                    <textarea name="questions[${questionCounter}][text]" rows="2" placeholder="Enter question text..." class="w-full rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500 text-sm resize-none" required></textarea>
-                    <div class="grid grid-cols-2 gap-3">
-                        <select name="questions[${questionCounter}][type]" onchange="updateQuestionType(${questionCounter})" class="rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500 text-sm">
-                            <option value="multiple_choice">Multiple Choice</option>
-                            <option value="true_false">True / False</option>
-                            <option value="short_answer">Short Answer</option>
-                            <option value="essay">Essay</option>
-                        </select>
-                        <div class="relative">
-                            <input type="number" name="questions[${questionCounter}][points]" value="1" min="1" max="100" class="w-full rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500 text-sm pr-8" onchange="updateTotalPoints()" required />
-                            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">pts</span>
+
+                <div class="space-y-6 mt-2">
+                    {{-- Question Text --}}
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Question Text <span class="text-rose-500">*</span></label>
+                        <textarea name="questions[${questionCounter}][text]" rows="2" placeholder="What is the main concept of..." 
+                            class="w-full rounded-xl form-input-premium text-base resize-none py-3 px-4" required></textarea>
+                    </div>
+
+                    {{-- Type & Points Row --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Format</label>
+                            <select name="questions[${questionCounter}][type]" onchange="updateQuestionType(${questionCounter})" 
+                                class="w-full rounded-xl form-input-premium text-sm py-2.5 px-3">
+                                <option value="multiple_choice">Multiple Choice</option>
+                                <option value="true_false">True / False</option>
+                                <option value="short_answer">Short Answer</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Points</label>
+                            <div class="relative">
+                                <input type="number" name="questions[${questionCounter}][points]" value="1" min="1" max="100" 
+                                    class="w-full rounded-xl form-input-premium text-sm py-2.5 px-3 pr-12 font-bold text-indigo-700" 
+                                    onchange="updateTotalPoints()" required>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-slate-400 text-xs font-bold">PTS</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div id="options-${questionCounter}" class="space-y-2">
-                        <label class="text-xs text-slate-500">Answer Options (select correct answer)</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                                <input type="radio" name="questions[${questionCounter}][correct]" value="A" class="text-purple-600" required>
-                                <span class="text-sm font-medium">A.</span>
-                                <input type="text" name="questions[${questionCounter}][options][A]" placeholder="Option A" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0" required>
+
+                    {{-- Answers Selector Container --}}
+                    <div id="options-${questionCounter}" class="space-y-3">
+                        <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Answer Choices &amp; Key</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-colors focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                                <input type="radio" name="questions[${questionCounter}][correct]" value="A" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5" required>
+                                <span class="text-sm font-extrabold text-slate-400">A.</span>
+                                <input type="text" name="questions[${questionCounter}][options][A]" placeholder="First choice" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0 font-medium text-slate-700" required>
                             </label>
-                            <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                                <input type="radio" name="questions[${questionCounter}][correct]" value="B" class="text-purple-600">
-                                <span class="text-sm font-medium">B.</span>
-                                <input type="text" name="questions[${questionCounter}][options][B]" placeholder="Option B" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0" required>
+                            <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-colors focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                                <input type="radio" name="questions[${questionCounter}][correct]" value="B" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5">
+                                <span class="text-sm font-extrabold text-slate-400">B.</span>
+                                <input type="text" name="questions[${questionCounter}][options][B]" placeholder="Second choice" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0 font-medium text-slate-700" required>
                             </label>
-                            <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                                <input type="radio" name="questions[${questionCounter}][correct]" value="C" class="text-purple-600">
-                                <span class="text-sm font-medium">C.</span>
-                                <input type="text" name="questions[${questionCounter}][options][C]" placeholder="Option C" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0" required>
+                            <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-colors focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                                <input type="radio" name="questions[${questionCounter}][correct]" value="C" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5">
+                                <span class="text-sm font-extrabold text-slate-400">C.</span>
+                                <input type="text" name="questions[${questionCounter}][options][C]" placeholder="Third choice" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0 font-medium text-slate-700" required>
                             </label>
-                            <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                                <input type="radio" name="questions[${questionCounter}][correct]" value="D" class="text-purple-600">
-                                <span class="text-sm font-medium">D.</span>
-                                <input type="questions[${questionCounter}][options][D]" placeholder="Option D" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0" required>
+                            <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-colors focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                                <input type="radio" name="questions[${questionCounter}][correct]" value="D" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5">
+                                <span class="text-sm font-extrabold text-slate-400">D.</span>
+                                <input type="text" name="questions[${questionCounter}][options][D]" placeholder="Fourth choice" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0 font-medium text-slate-700" required>
                             </label>
                         </div>
+                    </div>
+
+                    {{-- Detailed Explanation Field --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i data-lucide="message-square-dashed" class="h-4 w-4 text-indigo-500"></i>
+                            Explanation (Optional)
+                        </label>
+                        <input type="text" name="questions[${questionCounter}][explanation]" 
+                            placeholder="Provide context for the correct answer to help students learn..." 
+                            class="w-full rounded-xl form-input-premium text-sm py-3 px-4 bg-slate-50/50">
                     </div>
                 </div>
             `;
-            
+
             container.appendChild(questionDiv);
-            
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+
+            if (typeof window.lucide !== 'undefined') {
+                window.lucide.createIcons();
             }
-            
-            updateQuestionCount();
+
             updateTotalPoints();
             renumberQuestions();
         }
-        
+
         function removeQuestion(id) {
             const question = document.getElementById(`question-${id}`);
             if (question) {
-                question.remove();
-                updateQuestionCount();
-                updateTotalPoints();
-                renumberQuestions();
-                
-                const container = document.getElementById('questions-container');
-                const noQuestionsMsg = document.getElementById('no-questions-msg');
-                if (container.children.length === 0) {
-                    noQuestionsMsg.classList.remove('hidden');
-                }
+                question.style.opacity = '0';
+                question.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    question.remove();
+                    updateTotalPoints();
+                    renumberQuestions();
+
+                    const container = document.getElementById('questions-container');
+                    const noQuestionsMsg = document.getElementById('no-questions-msg');
+                    if (container.children.length === 0 && noQuestionsMsg) {
+                        noQuestionsMsg.classList.remove('hidden');
+                    }
+                }, 300);
             }
         }
-        
+
         function renumberQuestions() {
             const questions = document.querySelectorAll('#questions-container > div');
             questions.forEach((q, index) => {
@@ -452,95 +561,72 @@
                 }
             });
         }
-        
-        function updateQuestionCount() {
-            const count = document.getElementById('questions-container').children.length;
-            document.getElementById('question-count').textContent = `${count} question${count !== 1 ? 's' : ''}`;
-        }
-        
+
         function updateTotalPoints() {
-            const isOnline = document.getElementById('type-online').checked;
-            if (!isOnline) return;
-            
-            const inputs = document.querySelectorAll('input[name^="questions["][name$="[points]"]');
             let total = 0;
+            const inputs = document.querySelectorAll('input[name^="questions["][name$="[points]"]');
             inputs.forEach(input => {
                 total += parseInt(input.value) || 0;
             });
-            
-            document.getElementById('max_score_input').value = total || 100;
+            const maxScoreField = document.getElementById('max_score_input');
+            if (maxScoreField) {
+                maxScoreField.value = total > 0 ? total : 100;
+            }
         }
-        
+
         function updateQuestionType(id) {
             const select = document.querySelector(`select[name="questions[${id}][type]"]`);
             const optionsDiv = document.getElementById(`options-${id}`);
-            
+
             if (!select || !optionsDiv) return;
-            
+
             if (select.value === 'true_false') {
                 optionsDiv.innerHTML = `
-                    <label class="text-xs text-slate-500">Correct Answer</label>
+                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-3">Mark Correct Option</label>
                     <div class="flex gap-4">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="questions[${id}][correct]" value="true" class="text-purple-600" required>
-                            <span class="text-sm">True</span>
+                        <label class="flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-500">
+                            <input type="radio" name="questions[${id}][correct]" value="true" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5" required>
+                            <span class="text-sm font-bold text-slate-700">True</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="questions[${id}][correct]" value="false" class="text-purple-600">
-                            <span class="text-sm">False</span>
+                        <label class="flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-500">
+                            <input type="radio" name="questions[${id}][correct]" value="false" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5">
+                            <span class="text-sm font-bold text-slate-700">False</span>
                         </label>
                     </div>
                 `;
             } else if (select.value === 'multiple_choice') {
                 optionsDiv.innerHTML = `
-                    <label class="text-xs text-slate-500">Answer Options (select correct answer)</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                            <input type="radio" name="questions[${id}][correct]" value="A" class="text-purple-600" required>
-                            <span class="text-sm font-medium">A.</span>
-                            <input type="text" name="questions[${id}][options][A]" placeholder="Option A" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0" required>
+                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-3">Answer Choices &amp; Key</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-colors focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                            <input type="radio" name="questions[${id}][correct]" value="A" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5" required>
+                            <span class="text-sm font-extrabold text-slate-400">A.</span>
+                            <input type="text" name="questions[${id}][options][A]" placeholder="First choice" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0 font-medium text-slate-700" required>
                         </label>
-                        <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                            <input type="radio" name="questions[${id}][correct]" value="B" class="text-purple-600">
-                            <span class="text-sm font-medium">B.</span>
-                            <input type="text" name="questions[${id}][options][B]" placeholder="Option B" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0" required>
+                        <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-colors focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                            <input type="radio" name="questions[${id}][correct]" value="B" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5">
+                            <span class="text-sm font-extrabold text-slate-400">B.</span>
+                            <input type="text" name="questions[${id}][options][B]" placeholder="Second choice" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0 font-medium text-slate-700" required>
                         </label>
-                        <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                            <input type="radio" name="questions[${id}][correct]" value="C" class="text-purple-600">
-                            <span class="text-sm font-medium">C.</span>
-                            <input type="text" name="questions[${id}][options][C]" placeholder="Option C" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0" required>
+                        <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-colors focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                            <input type="radio" name="questions[${id}][correct]" value="C" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5">
+                            <span class="text-sm font-extrabold text-slate-400">C.</span>
+                            <input type="text" name="questions[${id}][options][C]" placeholder="Third choice" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0 font-medium text-slate-700" required>
                         </label>
-                        <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                            <input type="radio" name="questions[${id}][correct]" value="D" class="text-purple-600">
-                            <span class="text-sm font-medium">D.</span>
-                            <input type="text" name="questions[${id}][options][D]" placeholder="Option D" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0" required>
+                        <label class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer hover:border-indigo-300 transition-colors focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10">
+                            <input type="radio" name="questions[${id}][correct]" value="D" class="text-indigo-600 focus:ring-indigo-500 h-5 w-5">
+                            <span class="text-sm font-extrabold text-slate-400">D.</span>
+                            <input type="text" name="questions[${id}][options][D]" placeholder="Fourth choice" class="flex-1 bg-transparent border-0 p-0 text-sm focus:ring-0 font-medium text-slate-700" required>
                         </label>
                     </div>
                 `;
             } else {
                 optionsDiv.innerHTML = `
-                    <label class="text-xs text-slate-500">Correct Answer (for auto-grading)</label>
-                    <input type="text" name="questions[${id}][correct_answer]" placeholder="Enter expected answer (optional)" class="w-full rounded-lg border-slate-200 focus:border-purple-500 focus:ring-purple-500 text-sm" />
-                    <p class="text-xs text-slate-400 mt-1">Leave blank to grade manually later.</p>
+                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-2">Expected Correct Answer Text</label>
+                    <input type="text" name="questions[${id}][correct_answer]" placeholder="e.g. Paris (Used for auto-grading)" 
+                        class="w-full rounded-xl form-input-premium text-sm py-3 px-4" />
                 `;
             }
         }
-        
-        // Initialize on page load
-        function initForm() {
-            console.log('Initializing form...');
-            updateFormMode();
-        }
-        
-        // Try multiple ways to ensure it runs
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initForm);
-        } else {
-            // DOM already loaded
-            initForm();
-        }
-        
-        // Fallback: also run after a short delay
-        setTimeout(initForm, 100);
     </script>
 @endsection

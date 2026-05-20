@@ -1,4 +1,4 @@
-﻿@extends('layouts.teacher')
+@extends('layouts.teacher')
 
 @section('content')
     <div class="flex items-start justify-between gap-4">
@@ -18,14 +18,20 @@
             <tr class="text-left text-xs text-gray-500 border-b border-gray-100">
                 <th class="py-3 px-4">Title</th>
                 <th class="py-3 px-4">Posted</th>
+                <th class="py-3 px-4 text-center">Read By</th>
                 <th class="py-3 px-4"></th>
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
             @forelse ($announcements as $n)
                 <tr class="text-gray-700">
-                    <td class="py-3 px-4 font-medium text-gray-900">{{ $n->title ?? 'â€”' }}</td>
-                    <td class="py-3 px-4 text-gray-500">{{ $n->created_at ?? 'â€”' }}</td>
+                    <td class="py-3 px-4 font-medium text-gray-900">{{ $n->title ?? '—' }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ $n->created_at ?? '—' }}</td>
+                    <td class="py-3 px-4 text-center text-gray-500 font-semibold">
+                        <span class="{{ ($n->reads_count ?? 0) === $totalStudents && $totalStudents > 0 ? 'text-green-600' : '' }}">
+                            {{ $n->reads_count ?? 0 }} / {{ $totalStudents }}
+                        </span>
+                    </td>
                     <td class="py-3 px-4 text-right">
                         <div class="flex items-center justify-end gap-3">
                             <a href="{{ route('teacher.announcements.show', [$course, $n]) }}" class="text-sm font-semibold text-[#0a3a8a] hover:underline">View</a>

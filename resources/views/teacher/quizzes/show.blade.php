@@ -98,6 +98,11 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <i data-lucide="calendar" class="h-4 w-4 text-slate-400"></i>
+                                <span class="text-slate-600">Start Date:</span>
+                                <span class="font-medium text-slate-900">{{ $quiz->start_date ? $quiz->start_date->format('M j, Y g:i A') : 'Immediately available' }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="calendar-days" class="h-4 w-4 text-slate-400"></i>
                                 <span class="text-slate-600">Due Date:</span>
                                 <span class="font-medium text-slate-900">{{ $quiz->due_date ? $quiz->due_date->format('M j, Y g:i A') : 'No due date' }}</span>
                             </div>
@@ -121,8 +126,15 @@
                             <div class="flex items-center gap-2">
                                 <i data-lucide="help-circle" class="h-4 w-4 text-slate-400"></i>
                                 <span class="text-slate-600">Questions:</span>
-                                <span class="font-medium text-slate-900">{{ $quiz->questions()->count() }}</span>
+                                <span class="font-medium text-slate-900">{{ $quiz->questions()->count() }} {{ $quiz->shuffle_questions ? '(shuffled)' : '' }}</span>
                             </div>
+                            @if($quiz->random_subset_count)
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="filter" class="h-4 w-4 text-slate-400"></i>
+                                    <span class="text-slate-600">Random Subset:</span>
+                                    <span class="font-medium text-slate-900">Choose {{ $quiz->random_subset_count }} questions</span>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     @if($quiz->description)
@@ -212,29 +224,81 @@
                         </div>
                     </a>
                 </div>
-            </div>
-
-            {{-- Publish Status --}}
-            @if(!$quiz->is_published)
-                <div class="bg-amber-50 rounded-xl border border-amber-200 p-4">
-                    <div class="flex items-start gap-3">
-                        <i data-lucide="alert-circle" class="h-5 w-5 text-amber-600 mt-0.5"></i>
-                        <div>
-                            <div class="text-sm font-medium text-amber-900">Quiz Not Published</div>
-                            <p class="text-xs text-amber-700 mt-1">Students cannot see this quiz until you publish it.</p>
-                            <form method="POST" action="{{ route('teacher.quizzes.publish', $quiz) }}" class="mt-3" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<i data-lucide=\'loader-2\' class=\'h-3 w-3 mr-1 animate-spin\'></i>Publishing...';">
-                                @csrf
-                                <button type="submit" class="inline-flex items-center justify-center h-8 px-4 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700" {{ $quiz->questions()->count() === 0 ? 'disabled' : '' }}>
-                                    <i data-lucide="upload" class="h-3 w-3 mr-1"></i>Publish Quiz
-                                </button>
-                                @if($quiz->questions()->count() === 0)
-                                    <p class="text-xs text-amber-700 mt-2">Add questions before publishing.</p>
-                                @endif
-                            </form>
-                        </div>
-                    </div>
+            </div>            {{-- Status & Release Controls --}}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
+                    <div class="text-sm font-semibold text-slate-800">Status & Release Controls</div>
                 </div>
-            @endif
+                <div class="p-4 space-y-4">
+                    @if($quiz->is_published)
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start gap-2.5">
+                            <i data-lucide="check-circle" class="h-5 w-5 text-green-600 mt-0.5"></i>
+                            <div>
+                                <div class="text-sm font-semibold text-green-900">Quiz is Published</div>
+                                <p class="text-xs text-green-700 mt-0.5">Active and visible to students.</p>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="{{ route('teacher.quizzes.unpublish', $quiz) }}">
+                            @csrf
+                            <button type="submit" class="w-full inline-flex items-center justify-center h-10 px-4 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                <i data-lucide="eye-off" class="h-4 w-4 mr-2"></i>Unpublish (Revert to Draft)
+                            </button>
+                        </form>
+                    @else
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2.5">
+                            <i data-lucide="alert-circle" class="h-5 w-5 text-amber-600 mt-0.5"></i>
+                            <div>
+                                <div class="text-sm font-semibold text-amber-900">Quiz is Draft</div>
+                                <p class="text-xs text-amber-700 mt-0.5">Hidden from students.</p>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="{{ route('teacher.quizzes.publish', $quiz) }}">
+                            @csrf
+                            <button type="submit" class="w-full inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#0b2d6b] text-white text-sm font-semibold hover:bg-[#0a275c] shadow-sm" {{ $quiz->questions()->count() === 0 ? 'disabled' : '' }}>
+                                <i data-lucide="upload" class="h-4 w-4 mr-2"></i>Publish Quiz
+                            </button>
+                            @if($quiz->questions()->count() === 0)
+                                <p class="text-xs text-amber-750 mt-2 text-center">Add questions before publishing.</p>
+                            @endif
+                        </form>
+                    @endif
+
+                    @if($quiz->feedback_type === 'delayed')
+                        <div class="border-t border-slate-100 pt-4 space-y-3">
+                            <div class="flex items-center justify-between text-xs text-slate-500">
+                                <span>Feedback Release Mode:</span>
+                                <span class="font-semibold text-purple-700">Delayed</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs text-slate-500">
+                                <span>Results Released:</span>
+                                @if($quiz->results_released)
+                                    <span class="inline-flex items-center text-green-700 font-semibold">
+                                        <i data-lucide="check" class="h-3 w-3 mr-1"></i>Released
+                                    </span>
+                                @else
+                                    <span class="text-amber-700 font-semibold">Pending Release</span>
+                                @endif
+                            </div>
+
+                            @if(!$quiz->results_released)
+                                <form method="POST" action="{{ route('teacher.quizzes.release-results', $quiz) }}">
+                                    @csrf
+                                    <button type="submit" class="w-full inline-flex items-center justify-center h-10 px-4 rounded-lg bg-emerald-655 bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 shadow-sm">
+                                        <i data-lucide="unlock" class="h-4 w-4 mr-2"></i>Release Results & Feedback
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    @else
+                        <div class="border-t border-slate-100 pt-4 text-xs text-slate-500 flex items-center justify-between">
+                            <span>Feedback Release Mode:</span>
+                            <span class="font-semibold text-slate-700">Instant on Submit</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 @endsection

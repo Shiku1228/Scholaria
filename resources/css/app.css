@@ -383,7 +383,7 @@
 
 /* Ensure login form is always visible */
 @media (min-width: 1024px) {
-    .grid.lg\\:grid-cols-2 > .order-1.lg\\:order-2 {
+    .grid.lg\:grid-cols-2 > .order-1.lg\:order-2 {
         display: block !important;
     }
 }
@@ -398,3 +398,41 @@
     background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
     border: 3px solid #f87171 !important;
 }
+
+/* Bulletproof Brand Button Fallbacks for SCHOLARIA */
+.btn-brand-primary {
+    background-color: #0b2d6b !important;
+    color: #ffffff !important;
+    border: 1px solid #082252 !important;
+}
+.btn-brand-primary:hover {
+    background-color: #092456 !important;
+}
+
+.btn-brand-success {
+    background-color: #047857 !important; /* Premium Emerald-700 for solid high contrast (6.27:1 ratio) */
+    color: #ffffff !important;
+    border: 1px solid #065f46 !important;
+}
+.btn-brand-success:hover {
+    background-color: #065f46 !important;
+}
+
+.btn-brand-secondary {
+    background-color: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+.btn-brand-secondary:hover {
+    background-color: #f1f5f9 !important;
+}
+
+.btn-brand-purple {
+    background-color: #7c3aed !important;
+    color: #ffffff !important;
+    border: 1px solid #6d28d9 !important;
+}
+.btn-brand-purple:hover {
+    background-color: #6d28d9 !important;
+}
+

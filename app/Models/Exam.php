@@ -15,17 +15,30 @@ class Exam extends Model
         'title',
         'description',
         'exam_date',
+        'due_date',
         'duration',
+        'attempts_allowed',
         'max_score',
         'location',
         'instructions',
+        'feedback_type',
+        'results_released',
+        'show_results',
+        'shuffle_questions',
+        'random_subset_count',
         'is_published',
     ];
 
     protected $casts = [
         'exam_date' => 'datetime',
+        'due_date' => 'datetime',
         'duration' => 'integer',
+        'attempts_allowed' => 'integer',
         'max_score' => 'integer',
+        'results_released' => 'boolean',
+        'show_results' => 'boolean',
+        'shuffle_questions' => 'boolean',
+        'random_subset_count' => 'integer',
         'is_published' => 'boolean',
     ];
 

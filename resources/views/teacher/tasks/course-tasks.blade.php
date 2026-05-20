@@ -3,7 +3,7 @@
     $courseId = $course->id ?? 0;
 @endphp
 
-<div class="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
+<div id="course-tasks-root" class="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
     <div class="px-6 py-6 border-b border-slate-200">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -188,7 +188,8 @@
 
 <script>
     (function() {
-        const subTabsRoot = document.currentScript.parentElement;
+        const subTabsRoot = document.getElementById('course-tasks-root');
+        if (!subTabsRoot) return;
         const subButtons = subTabsRoot.querySelectorAll('[data-sub-tab-btn]');
         const subPanels = subTabsRoot.querySelectorAll('[data-sub-tab-panel]');
 

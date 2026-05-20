@@ -25,4 +25,10 @@ class Announcement extends Model
     {
         return $this->belongsTo(User::class, 'teacher_id');
     }
+
+    public function reads(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'announcement_reads')
+            ->withPivot('read_at');
+    }
 }

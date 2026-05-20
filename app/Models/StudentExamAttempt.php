@@ -12,16 +12,20 @@ class StudentExamAttempt extends Model
     protected $fillable = [
         'exam_id',
         'student_id',
+        'attempt_number',
         'started_at',
         'submitted_at',
         'score',
         'max_score',
         'status',
+        'question_ids',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'submitted_at' => 'datetime',
+        'attempt_number' => 'integer',
+        'question_ids' => 'array',
     ];
 
     public function exam(): \Illuminate\Database\Eloquent\Relations\BelongsTo

@@ -81,10 +81,16 @@ class TeacherExamController extends Controller
             'description' => ['nullable', 'string'],
             'exam_type' => ['required', 'in:scheduled,online'],
             'exam_date' => ['required', 'date', 'after:now'],
+            'due_date' => ['nullable', 'date', 'after:exam_date'],
             'duration' => ['required', 'integer', 'min:15', 'max:480'],
+            'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
             'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'location' => ['nullable', 'string', 'max:255'],
             'instructions' => ['nullable', 'string'],
+            'feedback_type' => ['nullable', 'in:instant,delayed'],
+            'show_results' => ['nullable', 'boolean'],
+            'shuffle_questions' => ['nullable', 'boolean'],
+            'random_subset_count' => ['nullable', 'integer', 'min:1', 'max:100'],
             'questions' => ['nullable', 'array'],
             'questions.*.text' => ['required_with:questions', 'string'],
             'questions.*.type' => ['required_with:questions', 'in:multiple_choice,true_false,short_answer,essay'],
@@ -109,10 +115,17 @@ class TeacherExamController extends Controller
             'title' => (string) $validated['title'],
             'description' => $validated['description'] ?? null,
             'exam_date' => $validated['exam_date'],
+            'due_date' => $validated['due_date'] ?? null,
             'duration' => (int) $validated['duration'],
+            'attempts_allowed' => (int) ($validated['attempts_allowed'] ?? 1),
             'max_score' => $isOnline ? $totalPoints : (int) ($validated['max_score'] ?? 100),
             'location' => $isOnline ? null : ($validated['location'] ?? null),
             'instructions' => $validated['instructions'] ?? null,
+            'feedback_type' => $validated['feedback_type'] ?? 'instant',
+            'results_released' => ($validated['feedback_type'] ?? 'instant') === 'instant',
+            'show_results' => (bool) ($validated['show_results'] ?? true),
+            'shuffle_questions' => (bool) ($validated['shuffle_questions'] ?? false),
+            'random_subset_count' => isset($validated['random_subset_count']) ? (int) $validated['random_subset_count'] : null,
             'is_published' => false,
         ]);
 
@@ -226,11 +239,17 @@ class TeacherExamController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'exam_type' => ['required', 'in:scheduled,online'],
-            'exam_date' => ['required', 'date', 'after:now'],
+            'exam_date' => ['required', 'date'],
+            'due_date' => ['nullable', 'date', 'after:exam_date'],
             'duration' => ['required', 'integer', 'min:15', 'max:480'],
+            'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
             'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'location' => ['nullable', 'string', 'max:255'],
             'instructions' => ['nullable', 'string'],
+            'feedback_type' => ['nullable', 'in:instant,delayed'],
+            'show_results' => ['nullable', 'boolean'],
+            'shuffle_questions' => ['nullable', 'boolean'],
+            'random_subset_count' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $exam->update([
@@ -238,10 +257,16 @@ class TeacherExamController extends Controller
             'exam_type' => $validated['exam_type'],
             'description' => $validated['description'] ?? null,
             'exam_date' => $validated['exam_date'],
+            'due_date' => $validated['due_date'] ?? null,
             'duration' => (int) $validated['duration'],
+            'attempts_allowed' => (int) ($validated['attempts_allowed'] ?? 1),
             'max_score' => (int) ($validated['max_score'] ?? $exam->max_score ?? 100),
             'location' => $validated['location'] ?? null,
             'instructions' => $validated['instructions'] ?? null,
+            'feedback_type' => $validated['feedback_type'] ?? $exam->feedback_type ?? 'instant',
+            'show_results' => (bool) ($validated['show_results'] ?? true),
+            'shuffle_questions' => (bool) ($validated['shuffle_questions'] ?? false),
+            'random_subset_count' => isset($validated['random_subset_count']) ? (int) $validated['random_subset_count'] : null,
         ]);
 
         return redirect()->route('teacher.exams.show', $exam)->with('success', 'Exam updated successfully.');
@@ -297,6 +322,7 @@ class TeacherExamController extends Controller
             'options' => ['nullable', 'array'],
             'options.*' => ['nullable', 'string'],
             'correct_answer' => ['nullable', 'string'],
+            'explanation' => ['nullable', 'string'],
             'points' => ['required', 'integer', 'min:1', 'max:100'],
         ]);
 
@@ -328,7 +354,8 @@ class TeacherExamController extends Controller
             'question_text' => $validated['question_text'],
             'question_type' => $validated['question_type'],
             'options' => $options,
-            'correct_answer' => in_array($validated['question_type'], ['multiple_choice', 'true_false']) ? ($validated['correct_answer'] ?? null) : null,
+            'correct_answer' => in_array($validated['question_type'], ['multiple_choice', 'true_false']) ? ($validated['correct_answer'] ?? null) : ($validated['correct_answer'] ?? null),
+            'explanation' => $validated['explanation'] ?? null,
             'points' => $validated['points'],
             'order' => $order,
         ]);
@@ -404,5 +431,59 @@ class TeacherExamController extends Controller
         $exam->update(['is_published' => false]);
 
         return redirect()->route('teacher.exams.show', $exam)->with('success', 'Exam unpublished.');
+    }
+
+    /**
+     * Release results of the exam to students.
+     */
+    public function releaseResults(Request $request, Exam $exam)
+    {
+        if ((int) $exam->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $exam->update(['results_released' => true]);
+
+        return redirect()->route('teacher.exams.show', $exam)->with('success', 'Exam results released to students.');
+    }
+
+    /**
+     * Import questions from a question bank.
+     */
+    public function importFromBank(Request $request, Exam $exam)
+    {
+        if ((int) $exam->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'question_bank_id' => ['required', 'exists:question_banks,id'],
+            'question_ids' => ['required', 'array'],
+            'question_ids.*' => ['exists:bank_questions,id'],
+        ]);
+
+        $bankQuestions = \App\Models\BankQuestion::where('question_bank_id', $validated['question_bank_id'])
+            ->whereIn('id', $validated['question_ids'])
+            ->get();
+
+        $maxOrder = $exam->questions()->max('order') ?? 0;
+
+        foreach ($bankQuestions as $bq) {
+            $exam->questions()->create([
+                'question_text' => $bq->question_text,
+                'question_type' => $bq->question_type,
+                'options' => $bq->options,
+                'correct_answer' => $bq->correct_answer,
+                'explanation' => $bq->explanation,
+                'points' => $bq->points,
+                'order' => ++$maxOrder,
+            ]);
+        }
+
+        // Update exam max_score
+        $totalPoints = $exam->getTotalPoints();
+        $exam->update(['max_score' => $totalPoints]);
+
+        return redirect()->route('teacher.exams.questions', $exam)->with('success', 'Questions imported successfully.');
     }
 }

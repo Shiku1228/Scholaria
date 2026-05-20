@@ -39,31 +39,62 @@ class StudentQuizController extends Controller
         if (!$isEnrolled) {
             abort(403, 'You are not enrolled in this course.');
         }
+
+        // Check start date window
+        if ($quiz->start_date && $quiz->start_date->isFuture()) {
+            return back()->with('error', 'This quiz is not open yet. It starts on ' . $quiz->start_date->format('M j, Y g:i A'));
+        }
         
-        // Get student's attempt
-        $attempt = $quiz->attempts()
+        // Get student's attempts
+        $attempts = $quiz->attempts()
             ->where('student_id', $studentId)
-            ->first();
+            ->orderBy('attempt_number')
+            ->get();
+            
+        $activeAttempt = $attempts->where('status', 'in_progress')->first();
         
-        // If quiz has past due and no attempt
-        if ($quiz->due_date && $quiz->due_date->isPast() && !$attempt) {
-            return view('student.quizzes.missed', [
-                'quiz' => $quiz,
-            ]);
-        }
-        
-        // If in progress
-        if ($attempt && $attempt->status !== 'submitted') {
+        // If in progress, go to take view directly
+        if ($activeAttempt) {
+            $questionIds = $activeAttempt->question_ids ?? [];
+            if (!empty($questionIds)) {
+                $questions = $quiz->questions()
+                    ->whereIn('id', $questionIds)
+                    ->get()
+                    ->sortBy(function ($q) use ($questionIds) {
+                        return array_search($q->id, $questionIds);
+                    })->values();
+            } else {
+                $questions = $quiz->questions()->orderBy('order')->get();
+            }
+
             return view('student.quizzes.take', [
-                'quiz' => $quiz->load('questions'),
-                'attempt' => $attempt,
+                'quiz' => $quiz,
+                'questions' => $questions,
+                'attempt' => $activeAttempt,
             ]);
         }
         
-        // Show results or take page
+        // If student wants to view a specific past attempt
+        $selectedAttemptId = $request->query('attempt_id');
+        $selectedAttempt = null;
+        if ($selectedAttemptId) {
+            $selectedAttempt = $quiz->attempts()
+                ->where('student_id', $studentId)
+                ->where('id', $selectedAttemptId)
+                ->with('answers.question')
+                ->first();
+        } else {
+            // Default to latest submitted attempt
+            $selectedAttempt = $attempts->where('status', 'submitted')->last();
+            if ($selectedAttempt) {
+                $selectedAttempt->load('answers.question');
+            }
+        }
+        
         return view('student.quizzes.show', [
-            'quiz' => $quiz->load('questions'),
-            'attempt' => $attempt,
+            'quiz' => $quiz,
+            'attempts' => $attempts,
+            'selectedAttempt' => $selectedAttempt,
         ]);
     }
     
@@ -74,6 +105,7 @@ class StudentQuizController extends Controller
         // Check enrollment
         $isEnrolled = $quiz->course->enrollments()
             ->where('student_id', $studentId)
+            ->whereRaw('LOWER(status) = ?', ['active'])
             ->exists();
         
         if (!$isEnrolled) {
@@ -84,21 +116,58 @@ class StudentQuizController extends Controller
         if (!$quiz->is_published) {
             return back()->with('error', 'This quiz is not available.');
         }
+
+        // Check start date window
+        if ($quiz->start_date && $quiz->start_date->isFuture()) {
+            return back()->with('error', 'This quiz is not open yet.');
+        }
+
+        // Check due date window (if any)
+        if ($quiz->due_date && $quiz->due_date->isPast()) {
+            return back()->with('error', 'The due date for this quiz has passed.');
+        }
         
-        // Check if already has an attempt
-        $existingAttempt = $quiz->attempts()
+        // Check if already has active attempt
+        $activeAttempt = $quiz->attempts()
             ->where('student_id', $studentId)
+            ->where('status', 'in_progress')
             ->first();
         
-        if ($existingAttempt) {
+        if ($activeAttempt) {
             return redirect()->route('student.quizzes.show', $quiz);
         }
+
+        // Check attempts limit
+        $pastAttemptsCount = $quiz->attempts()
+            ->where('student_id', $studentId)
+            ->where('status', 'submitted')
+            ->count();
+
+        if ($quiz->attempts_allowed && $pastAttemptsCount >= $quiz->attempts_allowed) {
+            return back()->with('error', 'You have reached the maximum number of attempts allowed for this quiz.');
+        }
+
+        // Determine question order and subset
+        $questionsQuery = $quiz->questions()->orderBy('order');
+        if ($quiz->shuffle_questions) {
+            $questions = $questionsQuery->inRandomOrder()->get();
+        } else {
+            $questions = $questionsQuery->get();
+        }
+
+        if ($quiz->random_subset_count && $quiz->random_subset_count > 0) {
+            $questions = $questions->take($quiz->random_subset_count);
+        }
+
+        $questionIds = $questions->pluck('id')->toArray();
         
         // Create new attempt
         $quiz->attempts()->create([
             'student_id' => $studentId,
+            'attempt_number' => $pastAttemptsCount + 1,
             'started_at' => now(),
             'status' => 'in_progress',
+            'question_ids' => $questionIds,
         ]);
         
         return redirect()->route('student.quizzes.show', $quiz);
@@ -110,30 +179,46 @@ class StudentQuizController extends Controller
 
         $attempt = $quiz->attempts()
             ->where('student_id', $studentId)
-            ->where('status', '!=', 'submitted')
+            ->where('status', 'in_progress')
             ->firstOrFail();
         
         $validated = $request->validate([
-            'answers' => ['required', 'array'],
+            'answers' => ['nullable', 'array'],
             'answers.*' => ['nullable', 'string'],
         ]);
         
+        $answers = $validated['answers'] ?? [];
         $totalScore = 0;
-        $maxScore = 0;
         
-        foreach ($validated['answers'] as $questionId => $answer) {
-            $question = $quiz->questions()->find($questionId);
+        // Load questions for the attempt
+        $questionIds = $attempt->question_ids ?? [];
+        $questions = $quiz->questions()->whereIn('id', $questionIds)->get();
+
+        foreach ($questions as $question) {
+            $submittedAnswer = $answers[$question->id] ?? null;
             
-            if (!$question) continue;
+            $isCorrect = false;
+            $pointsEarned = 0;
             
-            $maxScore += $question->points;
-            
-            // Calculate score for auto-gradable questions
-            $score = null;
-            if (in_array($question->question_type, ['multiple_choice', 'true_false'])) {
-                $score = $question->correct_answer === $answer ? $question->points : 0;
-                $totalScore += $score;
+            if ($question->question_type === 'short_answer') {
+                $isCorrect = strtolower(trim($submittedAnswer ?? '')) === strtolower(trim($question->correct_answer ?? ''));
+                $pointsEarned = $isCorrect ? $question->points : 0;
+            } elseif (in_array($question->question_type, ['multiple_choice', 'true_false'])) {
+                $isCorrect = $question->correct_answer === $submittedAnswer;
+                $pointsEarned = $isCorrect ? $question->points : 0;
+            } else {
+                $isCorrect = false;
+                $pointsEarned = 0;
             }
+
+            $attempt->answers()->create([
+                'question_id' => $question->id,
+                'answer' => $submittedAnswer,
+                'is_correct' => $isCorrect,
+                'points_earned' => $pointsEarned,
+            ]);
+
+            $totalScore += $pointsEarned;
         }
         
         // Update attempt
@@ -144,6 +229,6 @@ class StudentQuizController extends Controller
         ]);
         
         return redirect()->route('student.quizzes.show', $quiz)
-            ->with('success', 'Quiz submitted successfully! Your score: ' . $totalScore . '/' . $maxScore);
+            ->with('success', 'Quiz submitted successfully! Score: ' . $totalScore);
     }
 }

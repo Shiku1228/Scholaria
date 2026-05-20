@@ -33,7 +33,7 @@ class RbacTest extends TestCase
     {
         $editor = User::factory()->create();
         if (method_exists($editor, 'assignRole')) {
-            $editor->assignRole('Editor');
+            $editor->assignRole('Teacher');
         }
 
         $this->actingAs($editor)
@@ -45,7 +45,7 @@ class RbacTest extends TestCase
     {
         $user = User::factory()->create();
         if (method_exists($user, 'assignRole')) {
-            $user->assignRole('User');
+            $user->assignRole('Student');
         }
 
         $this->actingAs($user)

@@ -44,6 +44,7 @@
                         </button>
                         <button type="button" data-tab-btn="resources" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Resources</button>
                         <button type="button" data-tab-btn="discussion" class="tab-btn text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent">Discussion</button>
+                        <a href="{{ route('student.courses.office-hours.index', $course) }}" class="text-slate-500 hover:text-slate-700 pb-2 border-b-2 border-transparent font-semibold">Live Q&A</a>
                     </div>
                 </div>
 
@@ -290,19 +291,29 @@
                                             <div class="text-xs text-slate-500">{{ $post->created_at?->diffForHumans() ?? '' }}</div>
                                         </div>
                                     </div>
-                                    @if ((int) ($post->user_id ?? 0) === (int) auth()->id())
-                                        <div class="relative">
-                                            <button type="button" class="discussion-menu-toggle h-8 w-8 rounded-full hover:bg-slate-100 text-slate-500" data-menu-id="menu-post-{{ $post->id }}">⋮</button>
-                                            <div id="menu-post-{{ $post->id }}" class="hidden absolute right-0 mt-1 w-28 rounded-lg border border-slate-200 bg-white shadow-lg z-20">
+                                    <div class="relative">
+                                        <button type="button" class="discussion-menu-toggle h-8 w-8 rounded-full hover:bg-slate-100 text-slate-500" data-menu-id="menu-post-{{ $post->id }}">⋮</button>
+                                        <div id="menu-post-{{ $post->id }}" class="hidden absolute right-0 mt-1 w-28 rounded-lg border border-slate-200 bg-white shadow-lg z-20">
+                                            @if ((int) ($post->user_id ?? 0) === (int) auth()->id())
                                                 <button type="button" class="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 edit-toggle" data-edit-id="edit-post-{{ $post->id }}">Edit</button>
                                                 <form method="POST" action="{{ route('student.courses.discussions.destroy', [$course, $post]) }}">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50">Delete</button>
                                                 </form>
+                                            @endif
+                                                <form method="POST" action="{{ route('student.courses.discussions.subscribe', [$course, $post]) }}">
+                                                    @csrf
+                                                    <button type="submit" class="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">
+                                                        @if($post->subscriptions->contains('id', auth()->id()))
+                                                            Unsubscribe
+                                                        @else
+                                                            Subscribe
+                                                        @endif
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
-                                    @endif
                                 </div>
                                 <div class="mt-2 text-base text-slate-800 whitespace-pre-line">{{ $post->content }}</div>
                                 @if ((int) ($post->user_id ?? 0) === (int) auth()->id())

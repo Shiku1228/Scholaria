@@ -23,6 +23,7 @@ use App\Http\Controllers\Teacher\TeacherSubmissionController;
 use App\Http\Controllers\Teacher\TeacherNotificationController;
 use App\Http\Controllers\Teacher\TeacherQuizController;
 use App\Http\Controllers\Teacher\TeacherExamController;
+use App\Http\Controllers\Teacher\TeacherQuestionBankController;
 use App\Http\Controllers\Student\StudentDashboardController;
 use App\Http\Controllers\Student\StudentSubmissionController;
 use App\Http\Controllers\Student\StudentCourseController;
@@ -188,8 +189,11 @@ Route::prefix('teacher')
         Route::post('/quizzes/{quiz}/questions', [TeacherQuizController::class, 'addQuestion'])->name('quizzes.questions.add');
         Route::delete('/quizzes/{quiz}/questions/{question}', [TeacherQuizController::class, 'removeQuestion'])->name('quizzes.questions.remove');
 
-        // Quiz Publish/Unpublish
+        // Quiz Publish/Unpublish & Settings
         Route::post('/quizzes/{quiz}/publish', [TeacherQuizController::class, 'publish'])->name('quizzes.publish');
+        Route::post('/quizzes/{quiz}/unpublish', [TeacherQuizController::class, 'unpublish'])->name('quizzes.unpublish');
+        Route::post('/quizzes/{quiz}/release-results', [TeacherQuizController::class, 'releaseResults'])->name('quizzes.release-results');
+        Route::post('/quizzes/{quiz}/import-bank', [TeacherQuizController::class, 'importFromBank'])->name('quizzes.import-bank');
 
         // Exam routes
         Route::get('/exams', [TeacherExamController::class, 'index'])->name('exams.index');
@@ -205,9 +209,11 @@ Route::prefix('teacher')
         Route::post('/exams/{exam}/questions', [TeacherExamController::class, 'addQuestion'])->name('exams.questions.add');
         Route::delete('/exams/{exam}/questions/{question}', [TeacherExamController::class, 'removeQuestion'])->name('exams.questions.remove');
 
-        // Exam Publish/Unpublish
+        // Exam Publish/Unpublish & Settings
         Route::post('/exams/{exam}/publish', [TeacherExamController::class, 'publish'])->name('exams.publish');
         Route::post('/exams/{exam}/unpublish', [TeacherExamController::class, 'unpublish'])->name('exams.unpublish');
+        Route::post('/exams/{exam}/release-results', [TeacherExamController::class, 'releaseResults'])->name('exams.release-results');
+        Route::post('/exams/{exam}/import-bank', [TeacherExamController::class, 'importFromBank'])->name('exams.import-bank');
 
         Route::get('/courses', [TeacherCourseController::class, 'index'])->name('courses.index');
         Route::get('/courses/{course}', [TeacherCourseController::class, 'show'])->name('courses.show');
@@ -217,6 +223,7 @@ Route::prefix('teacher')
         Route::post('/courses/{course}/discussions', [TeacherCourseController::class, 'storeDiscussion'])->name('courses.discussions.store');
         Route::patch('/courses/{course}/discussions/{discussion}', [TeacherCourseController::class, 'updateDiscussion'])->name('courses.discussions.update');
         Route::delete('/courses/{course}/discussions/{discussion}', [TeacherCourseController::class, 'destroyDiscussion'])->name('courses.discussions.destroy');
+        Route::post('/courses/{course}/discussions/{discussion}/subscribe', [TeacherCourseController::class, 'toggleDiscussionSubscription'])->name('courses.discussions.subscribe');
 
         Route::prefix('/courses/{course}')
             ->group(function () {
@@ -227,6 +234,10 @@ Route::prefix('teacher')
                 Route::delete('/announcements/{announcement}', [TeacherAnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
                 Route::patch('/assignments/{assignment}/submissions/{submission}', [TeacherSubmissionController::class, 'update'])->name('submissions.update');
+
+                Route::get('/office-hours', [\App\Http\Controllers\Teacher\TeacherOfficeHourController::class, 'index'])->name('office-hours.index');
+                Route::post('/office-hours', [\App\Http\Controllers\Teacher\TeacherOfficeHourController::class, 'store'])->name('office-hours.store');
+                Route::post('/office-hours/answer/{question}', [\App\Http\Controllers\Teacher\TeacherOfficeHourController::class, 'answer'])->name('office-hours.answer');
             });
 
         Route::get('/students', [TeacherStudentController::class, 'index'])->name('students.index');
@@ -238,6 +249,11 @@ Route::prefix('teacher')
 
         Route::get('/announcements', [TeacherAnnouncementController::class, 'overview'])->name('announcements');
         Route::redirect('/messages', '/messages')->name('messages');
+        // Question Banks Routes
+        Route::resource('/question-banks', TeacherQuestionBankController::class);
+        Route::post('/question-banks/{bank}/questions', [TeacherQuestionBankController::class, 'addQuestion'])->name('question-banks.questions.add');
+        Route::delete('/question-banks/{bank}/questions/{question}', [TeacherQuestionBankController::class, 'removeQuestion'])->name('question-banks.questions.remove');
+
         Route::view('/settings', 'teacher.settings')->name('settings');
         Route::post('/notifications/read-all', [TeacherNotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::get('/notifications/{notification}/open', [TeacherNotificationController::class, 'open'])->name('notifications.open');
@@ -258,6 +274,11 @@ Route::prefix('student')
         Route::post('/courses/{course}/discussions', [StudentCourseController::class, 'storeDiscussion'])->name('courses.discussions.store');
         Route::patch('/courses/{course}/discussions/{discussion}', [StudentCourseController::class, 'updateDiscussion'])->name('courses.discussions.update');
         Route::delete('/courses/{course}/discussions/{discussion}', [StudentCourseController::class, 'destroyDiscussion'])->name('courses.discussions.destroy');
+        Route::post('/courses/{course}/discussions/{discussion}/subscribe', [StudentCourseController::class, 'toggleDiscussionSubscription'])->name('courses.discussions.subscribe');
+        
+        Route::get('/courses/{course}/office-hours', [\App\Http\Controllers\Student\StudentOfficeHourController::class, 'index'])->name('courses.office-hours.index');
+        Route::post('/courses/{course}/office-hours/{officeHour}/question', [\App\Http\Controllers\Student\StudentOfficeHourController::class, 'storeQuestion'])->name('courses.office-hours.question.store');
+        
         Route::get('/tasks', [StudentTaskController::class, 'index'])->name('tasks.index');
         Route::get('/assignments', [StudentAssignmentController::class, 'index'])->name('assignments.index'); // Keep for backward compatibility
         Route::get('/assignments/{assignment}', [StudentAssignmentController::class, 'show'])->name('assignments.show');

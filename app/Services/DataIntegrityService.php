@@ -64,7 +64,7 @@ class DataIntegrityService
      *
      * @return array
      */
-    protected function checkReferentialIntegrity(): array
+    public function checkReferentialIntegrity(): array
     {
         $violations = [];
         $tables = ['enrollments', 'grades', 'assignments', 'announcements', 'course_resources', 'course_discussions'];
