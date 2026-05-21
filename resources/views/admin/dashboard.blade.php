@@ -30,6 +30,7 @@
             && array_sum((array) data_get($analytics, 'students_per_course.data', [])) > 0;
         $userGrowthHasData = array_sum((array) data_get($analytics, 'user_growth.students', [])) > 0
             || array_sum((array) data_get($analytics, 'user_growth.teachers', [])) > 0;
+        $logType = (string) data_get($filters, 'log_type', 'all');
     @endphp
 
     <div class="space-y-6">
@@ -92,14 +93,33 @@
                             <div class="text-sm text-slate-500">Latest platform events and actions</div>
                         </div>
                     </div>
-                    @if (!empty($recentActivity))
-                        <a href="{{ route('admin.dashboard') }}#recent-activity" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View All</a>
-                    @endif
+                    <div class="flex items-center gap-2">
+                        <form method="GET" action="{{ route('admin.dashboard') }}#recent-activity" class="flex items-center gap-2">
+                            <input type="hidden" name="range" value="{{ $filters['range'] ?? '7d' }}">
+                            <label for="recentActivityLogType" class="sr-only">Filter recent activity</label>
+                            <select
+                                id="recentActivityLogType"
+                                name="log_type"
+                                onchange="this.form.submit()"
+                                class="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]"
+                            >
+                                <option value="all" {{ $logType === 'all' ? 'selected' : '' }}>All Logs</option>
+                                <option value="teacher" {{ $logType === 'teacher' ? 'selected' : '' }}>Teacher Logs</option>
+                                <option value="student" {{ $logType === 'student' ? 'selected' : '' }}>Student Logs</option>
+                                <option value="admin" {{ $logType === 'admin' ? 'selected' : '' }}>Admin Logs</option>
+                                <option value="enrollment" {{ $logType === 'enrollment' ? 'selected' : '' }}>Enrollment Logs</option>
+                                <option value="course" {{ $logType === 'course' ? 'selected' : '' }}>Course Logs</option>
+                            </select>
+                        </form>
+                        @if (!empty($recentActivity))
+                            <a href="{{ route('admin.dashboard', ['range' => $filters['range'] ?? '7d', 'log_type' => $logType]) }}#recent-activity" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View All</a>
+                        @endif
+                    </div>
                 </div>
                 <div id="recent-activity" class="p-4 sm:p-5">
                     @if (empty($recentActivity))
                         <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-                            No recent activity yet. Once users enroll, submit, and publish content, events will appear here.
+                            No recent activity found for the selected filter.
                         </div>
                     @else
                         <div class="space-y-3 max-h-[360px] overflow-auto pr-1">

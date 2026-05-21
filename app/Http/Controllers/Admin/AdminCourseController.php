@@ -75,7 +75,7 @@ class AdminCourseController extends Controller
         $chatService->syncCourseMembers($course);
         $this->notifyAssignedTeacher($course);
 
-        return redirect()->route('admin.courses.edit', $course)->with('success', 'Course created.');
+        return redirect()->route('admin.courses.index')->with('success', 'Course created.');
     }
 
     public function edit(Course $course): View
@@ -115,7 +115,7 @@ class AdminCourseController extends Controller
             $this->notifyAssignedTeacher($course);
         }
 
-        return redirect()->route('admin.courses.edit', $course)->with('success', 'Course updated.');
+        return redirect()->route('admin.courses.index')->with('success', 'Course updated.');
     }
 
     public function destroy(Course $course)

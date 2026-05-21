@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -13,10 +14,16 @@ class AdminDashboardController extends Controller
     public function index(Request $request)
     {
         $rangeAllowed = ['7d', '30d', '12m'];
+        $logTypeAllowed = ['all', 'teacher', 'student', 'admin', 'enrollment', 'course'];
 
         $range = $request->query('range', '7d');
         if (!in_array($range, $rangeAllowed, true)) {
             $range = '7d';
+        }
+
+        $logType = $request->query('log_type', 'all');
+        if (!in_array($logType, $logTypeAllowed, true)) {
+            $logType = 'all';
         }
 
         $rangeDays = match ($range) {
@@ -32,12 +39,13 @@ class AdminDashboardController extends Controller
         $bestSellingCourses = $this->buildBestSellingCourses(10);
         $recentEnrollments = $this->buildRecentEnrollments();
         $systemOverview = $this->buildSystemOverview();
-        $recentActivity = $this->buildRecentActivity();
+        $recentActivity = $this->buildRecentActivity($logType);
         $analytics = $this->buildAnalyticsSeries();
 
         return view('admin.dashboard', [
             'filters' => [
                 'range' => $range,
+                'log_type' => $logType,
             ],
             'stats' => $stats,
             'overview' => $overview,
@@ -54,19 +62,8 @@ class AdminDashboardController extends Controller
     {
         $coursesCount = $this->countTable('courses');
         $enrollmentsCount = $this->countTable('enrollments');
-        $studentsCount = $this->countTable('students');
-        $teachersCount = $this->countTable('teachers');
-
-        if ($teachersCount < 0) {
-            $teachersCount = (int) User::role('Teacher')->count();
-        }
-
-        if ($studentsCount < 0) {
-            $studentsCount = (int) User::role('Student')->count();
-            if ($studentsCount < 0) {
-                $studentsCount = $this->countTable('users');
-            }
-        }
+        $studentsCount = $this->countUsersByAudience('Student', 'students');
+        $teachersCount = $this->countUsersByAudience('Teacher', 'teachers');
 
         return [
             'total_courses' => $coursesCount,
@@ -469,13 +466,13 @@ class AdminDashboardController extends Controller
 
             if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'teacher_id')) {
                 $teachersWithCourses = DB::table('courses')->whereNotNull('teacher_id')->distinct('teacher_id')->count('teacher_id');
-                $totalTeachers = (int) User::role('Teacher')->count();
+                $totalTeachers = $this->countUsersByAudience('Teacher', 'teachers');
                 $teachersWithoutCourses = max(0, $totalTeachers - (int) $teachersWithCourses);
             }
 
             if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'student_id')) {
                 $enrolledStudents = (int) DB::table('enrollments')->distinct('student_id')->count('student_id');
-                $totalStudents = (int) User::role('Student')->count();
+                $totalStudents = $this->countUsersByAudience('Student', 'students');
                 $studentsNotEnrolled = max(0, $totalStudents - $enrolledStudents);
             }
         } catch (\Throwable) {
@@ -489,8 +486,13 @@ class AdminDashboardController extends Controller
         ];
     }
 
-    private function buildRecentActivity(): array
+    private function buildRecentActivity(string $logType = 'all'): array
     {
+        $fromLogs = $this->buildRecentActivityFromLogs($logType);
+        if (!empty($fromLogs)) {
+            return $fromLogs;
+        }
+
         $items = [];
 
         try {
@@ -608,6 +610,82 @@ class AdminDashboardController extends Controller
         usort($items, fn ($a, $b) => strcmp((string) ($b['happened_at'] ?? ''), (string) ($a['happened_at'] ?? '')));
 
         return array_slice($items, 0, 10);
+    }
+
+    private function buildRecentActivityFromLogs(string $logType = 'all'): array
+    {
+        try {
+            if (!Schema::hasTable('activity_logs')) {
+                return [];
+            }
+
+            $query = ActivityLog::query()->with('user');
+
+            $query->when($logType === 'teacher', function ($builder) {
+                $builder->where(function ($q) {
+                    $q->whereHas('user.roles', fn ($roleQ) => $roleQ->where('name', 'Teacher'))
+                        ->orWhere('description', 'like', '%teacher%');
+                });
+            });
+
+            $query->when($logType === 'student', function ($builder) {
+                $builder->where(function ($q) {
+                    $q->whereHas('user.roles', fn ($roleQ) => $roleQ->where('name', 'Student'))
+                        ->orWhere('description', 'like', '%student%');
+                });
+            });
+
+            $query->when($logType === 'admin', function ($builder) {
+                $builder->where(function ($q) {
+                    $q->whereHas('user.roles', fn ($roleQ) => $roleQ->whereNotIn('name', ['Teacher', 'Student']))
+                        ->orWhere('description', 'like', '%admin%');
+                });
+            });
+
+            $query->when($logType === 'enrollment', function ($builder) {
+                $builder->where(function ($q) {
+                    $q->whereIn('resource_type', ['enrollment'])
+                        ->orWhere('event_type', 'like', '%enroll%')
+                        ->orWhere('action', 'like', '%enroll%')
+                        ->orWhere('description', 'like', '%enroll%');
+                });
+            });
+
+            $query->when($logType === 'course', function ($builder) {
+                $builder->where(function ($q) {
+                    $q->whereIn('resource_type', ['course', 'courses'])
+                        ->orWhere('event_type', 'like', '%course%')
+                        ->orWhere('description', 'like', '%course%');
+                });
+            });
+
+            return $query
+                ->latest('created_at')
+                ->take(10)
+                ->get()
+                ->map(function (ActivityLog $log) {
+                    return [
+                        'type' => (string) ($log->resource_type ?: $log->action ?: 'activity'),
+                        'message' => (string) ($log->description ?: $this->formatActivityLogDescription($log)),
+                        'happened_at' => (string) ($log->created_at ?? ''),
+                    ];
+                })
+                ->filter(fn ($item) => $item['message'] !== '')
+                ->values()
+                ->all();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function formatActivityLogDescription(ActivityLog $log): string
+    {
+        $userName = trim((string) data_get($log, 'user.name', ''));
+        $subject = $userName !== '' ? $userName : 'User';
+        $resource = trim((string) ($log->resource_type ?? 'resource'));
+        $action = trim((string) ($log->action ?? 'performed'));
+
+        return sprintf('%s %s %s', $subject, $action, $resource);
     }
 
     private function buildAnalyticsSeries(): array
@@ -805,5 +883,31 @@ class AdminDashboardController extends Controller
         } catch (\Throwable) {
             return 0;
         }
+    }
+
+    private function countUsersByAudience(string $roleName, string $profileTable): int
+    {
+        $roleCount = 0;
+        $profileCount = 0;
+
+        try {
+            $roleCount = (int) User::role($roleName)->count();
+        } catch (\Throwable) {
+            $roleCount = 0;
+        }
+
+        try {
+            $profileCount = $this->countTable($profileTable);
+        } catch (\Throwable) {
+            $profileCount = 0;
+        }
+
+        // Prefer profile-backed counts when those tables exist, because the rest of
+        // the admin UI relies on teacher/student profile records as the source of truth.
+        if (Schema::hasTable($profileTable)) {
+            return $profileCount;
+        }
+
+        return $roleCount;
     }
 }

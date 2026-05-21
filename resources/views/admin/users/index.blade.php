@@ -30,6 +30,7 @@
                     <div class="relative">
                         <i data-lucide="search" class="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
                         <input
+                            id="manageUsersSearch"
                             type="text"
                             name="q"
                             value="{{ $query }}"
@@ -40,11 +41,13 @@
 
                     <div class="relative">
                         <i data-lucide="funnel" class="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                        <select id="role" name="role" class="h-11 min-w-32 rounded-xl border border-slate-300 bg-slate-50 pl-9 pr-8 text-sm text-slate-700 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
+                        <select id="role" name="role" class="h-11 min-w-40 rounded-xl border border-slate-300 bg-slate-50 pl-9 pr-8 text-sm text-slate-700 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
                             <option value="all" {{ $role === 'all' ? 'selected' : '' }}>All Roles</option>
-                            <option value="Admin" {{ $role === 'Admin' ? 'selected' : '' }}>Admin</option>
-                            <option value="Teacher" {{ $role === 'Teacher' ? 'selected' : '' }}>Instructor</option>
-                            <option value="Student" {{ $role === 'Student' ? 'selected' : '' }}>Student</option>
+                            @foreach ($availableRoles ?? [] as $roleName)
+                                <option value="{{ $roleName }}" {{ $role === $roleName ? 'selected' : '' }}>
+                                    {{ $roleName === 'Teacher' ? 'Instructor' : $roleName }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
                 </form>
@@ -116,7 +119,10 @@
                             $initial = strtoupper(substr((string) $fullName, 0, 1));
                         @endphp
 
-                        <tr class="text-slate-700 bg-slate-50/60 hover:bg-slate-100/60 transition-colors">
+                        <tr
+                            class="text-slate-700 bg-slate-50/60 hover:bg-slate-100/60 transition-colors"
+                            data-user-search="{{ strtolower(trim($fullName . ' ' . $user->email . ' ' . $roleId . ' ' . $displayRole)) }}"
+                        >
                             <td class="py-4 px-6">
                                 <div class="flex items-center gap-3">
                                     <div class="h-8 w-8 rounded-full bg-[#eaf0fb] border border-[#c9d7f2] text-[#0b2d6b] flex items-center justify-center text-xs font-semibold">
@@ -192,7 +198,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr>
+                        <tr id="manageUsersEmptyState">
                             <td colspan="6" class="py-10 px-6 text-center text-sm text-slate-500">No users found for this filter.</td>
                         </tr>
                     @endforelse
@@ -211,18 +217,67 @@
     <script>
         const usersFilterForm = document.getElementById('manageUsersFilterForm');
         const roleSelect = document.getElementById('role');
+        const searchInput = document.getElementById('manageUsersSearch');
+        const userRows = Array.from(document.querySelectorAll('tbody tr[data-user-search]'));
+        const emptyStateRow = document.getElementById('manageUsersEmptyState');
+        const resultsSummary = document.querySelector('.px-6.py-4.border-t .text-sm.text-slate-500');
 
         roleSelect?.addEventListener('change', function () {
             usersFilterForm?.submit();
         });
 
-        let searchTimer = null;
-        usersFilterForm?.querySelector('input[name="q"]')?.addEventListener('input', function () {
-            clearTimeout(searchTimer);
-            searchTimer = setTimeout(function () {
-                usersFilterForm.submit();
-            }, 350);
+        function updateVisibleRows() {
+            if (!searchInput) {
+                return;
+            }
+
+            const query = searchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            userRows.forEach(function (row) {
+                const haystack = row.dataset.userSearch || '';
+                const words = haystack
+                    .split(/[^a-z0-9@.\-]+/i)
+                    .map(function (word) { return word.trim(); })
+                    .filter(Boolean);
+
+                const queryParts = query
+                    .split(/\s+/)
+                    .map(function (part) { return part.trim(); })
+                    .filter(Boolean);
+
+                const isMatch = queryParts.length === 0 || queryParts.every(function (part) {
+                    return words.some(function (word) {
+                        return word.startsWith(part);
+                    });
+                });
+                row.classList.toggle('hidden', !isMatch);
+
+                if (isMatch) {
+                    visibleCount += 1;
+                }
+            });
+
+            if (emptyStateRow) {
+                emptyStateRow.classList.toggle('hidden', visibleCount !== 0);
+            }
+
+            if (resultsSummary) {
+                if (query === '') {
+                    resultsSummary.textContent = 'Showing {{ $from }} to {{ $to }} of {{ number_format($total) }} results';
+                } else {
+                    resultsSummary.textContent = 'Showing ' + visibleCount + ' filtered result' + (visibleCount === 1 ? '' : 's');
+                }
+            }
+        }
+
+        searchInput?.addEventListener('input', updateVisibleRows);
+        searchInput?.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+            }
         });
+
+        updateVisibleRows();
     </script>
 @endsection
-

@@ -59,10 +59,15 @@ class AdminUserController extends Controller
             });
         }
 
-        // Load profile relationships for search
+        // Search filter
         if ($search !== '') {
             $query->where(function ($inner) use ($search) {
                 $inner->where('email', 'like', '%' . $search . '%');
+
+                // Search by role name (e.g. "instructor", "catalog admin")
+                $inner->orWhereHas('roles', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                });
 
                 $inner->orWhereHas('student', function ($q) use ($search) {
                     $q->where('first_name', 'like', '%' . $search . '%')
@@ -80,8 +85,19 @@ class AdminUserController extends Controller
                     $q->where('first_name', 'like', '%' . $search . '%')
                         ->orWhere('last_name', 'like', '%' . $search . '%');
                 });
+
+                // Support ADM-XXX format — resolve to user ID
+                if (preg_match('/^ADM-?(\d+)$/i', $search, $matches)) {
+                    $inner->orWhere('id', (int) $matches[1]);
+                }
             });
         }
+
+        // Load all roles for the dropdown
+        $availableRoles = \Spatie\Permission\Models\Role::query()
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->pluck('name');
 
         $users = $query
             ->with(['student', 'teacher', 'admin', 'roles'])
@@ -91,6 +107,7 @@ class AdminUserController extends Controller
 
         return view('admin.users.index', [
             'users' => $users,
+            'availableRoles' => $availableRoles,
             'filters' => [
                 'role' => $role,
                 'status' => $status,

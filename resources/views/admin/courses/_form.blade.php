@@ -55,7 +55,20 @@
 
         <div>
             <label class="{{ $labelClass }}" for="school_year">School Year</label>
-            <input id="school_year" name="school_year" type="text" value="{{ old('school_year', $course->school_year ?? '') }}" placeholder="e.g. 2025-2026" class="{{ $inputClass }}">
+            @php
+                $currentYear = (int) date('Y');
+                $syOptions = [];
+                for ($y = $currentYear - 3; $y <= $currentYear + 5; $y++) {
+                    $syOptions[] = $y . '-' . ($y + 1);
+                }
+                $selectedSY = old('school_year', $course->school_year ?? '');
+            @endphp
+            <select id="school_year" name="school_year" class="{{ $inputClass }}">
+                <option value="">Select school year</option>
+                @foreach ($syOptions as $sy)
+                    <option value="{{ $sy }}" {{ $selectedSY === $sy ? 'selected' : '' }}>{{ $sy }}</option>
+                @endforeach
+            </select>
             @error('school_year')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
     </div>
@@ -133,21 +146,14 @@
         const schoolYear = document.getElementById('school_year');
 
         startDate?.addEventListener('change', function () {
-            if (!this.value) {
-                return;
-            }
+            if (!this.value || !schoolYear) return;
 
             const year = new Date(this.value).getFullYear();
-            if (!Number.isFinite(year)) {
-                return;
-            }
+            if (!Number.isFinite(year)) return;
 
-            const next = year + 1;
-            if (!schoolYear.value || schoolYear.value.trim() === '') {
-                schoolYear.value = `${year}-${next}`;
-            } else {
-                schoolYear.value = `${year}-${next}`;
-            }
+            const target = `${year}-${year + 1}`;
+            const match = Array.from(schoolYear.options).find(o => o.value === target);
+            if (match) schoolYear.value = target;
         });
 
         const courseNumber = document.getElementById('course_number');
