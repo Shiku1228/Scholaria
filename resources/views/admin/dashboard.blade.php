@@ -31,6 +31,7 @@
         $userGrowthHasData = array_sum((array) data_get($analytics, 'user_growth.students', [])) > 0
             || array_sum((array) data_get($analytics, 'user_growth.teachers', [])) > 0;
         $logType = (string) data_get($filters, 'log_type', 'all');
+        $showAllLogs = (bool) data_get($filters, 'show_all_logs', false);
     @endphp
 
     <div class="space-y-6">
@@ -80,7 +81,7 @@
         </section>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200">
+            <section id="recent-activity" class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 scroll-mt-24">
                 <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3">
                     <div class="flex items-start gap-2.5">
                         <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
@@ -94,8 +95,9 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <form method="GET" action="{{ route('admin.dashboard') }}#recent-activity" class="flex items-center gap-2">
+                        <form method="GET" action="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
                             <input type="hidden" name="range" value="{{ $filters['range'] ?? '7d' }}">
+                            <input type="hidden" name="show_all_logs" value="{{ $showAllLogs ? 1 : 0 }}">
                             <label for="recentActivityLogType" class="sr-only">Filter recent activity</label>
                             <select
                                 id="recentActivityLogType"
@@ -112,17 +114,17 @@
                             </select>
                         </form>
                         @if (!empty($recentActivity))
-                            <a href="{{ route('admin.dashboard', ['range' => $filters['range'] ?? '7d', 'log_type' => $logType]) }}#recent-activity" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View All</a>
+                            <a href="{{ route('admin.dashboard', array_merge(request()->query(), ['range' => $filters['range'] ?? '7d', 'log_type' => $logType, 'show_all_logs' => $showAllLogs ? 0 : 1])) }}#recent-activity" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">{{ $showAllLogs ? 'Show Less' : 'View All' }}</a>
                         @endif
                     </div>
                 </div>
-                <div id="recent-activity" class="p-4 sm:p-5">
+                <div class="p-4 sm:p-5">
                     @if (empty($recentActivity))
                         <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
                             No recent activity found for the selected filter.
                         </div>
                     @else
-                        <div class="space-y-3 max-h-[360px] overflow-auto pr-1">
+                        <div class="space-y-3 {{ $showAllLogs ? '' : 'max-h-[360px] overflow-auto pr-1' }}">
                             @php
                                 $activityIconClasses = [
                                     'course' => 'bg-indigo-50 text-indigo-600',
@@ -196,7 +198,7 @@
                         </div>
                     @endif
                 </div>
-            </div>
+            </section>
 
             <div class="xl:col-span-1 h-full rounded-2xl border border-slate-800 bg-gradient-to-br from-[#0a1638] to-[#131b46] text-white p-5 shadow-sm flex flex-col">
                 <div class="flex items-center justify-between">
@@ -240,7 +242,7 @@
         </div>
 
         <div class="grid grid-cols-1 gap-6">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200">
+            <section id="platform-overview" class="bg-white rounded-2xl shadow-sm border border-slate-200 scroll-mt-24">
                 <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <div class="text-sm font-semibold text-slate-900">Platform Overview</div>
@@ -248,6 +250,7 @@
                     </div>
 
                     <form id="overviewFilterForm" method="GET" action="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
+                        <input type="hidden" name="log_type" value="{{ $logType }}">
                         <select name="range" id="rangeSelect" class="h-10 rounded-lg border-slate-300 text-sm focus:border-[#0b2d6b] focus:ring-[#0b2d6b]">
                             <option value="7d" {{ $filters['range'] === '7d' ? 'selected' : '' }}>Last 7 days</option>
                             <option value="30d" {{ $filters['range'] === '30d' ? 'selected' : '' }}>Last 30 days</option>
@@ -266,7 +269,7 @@
                         </div>
                     @endif
                 </div>
-            </div>
+            </section>
 
         </div>
 

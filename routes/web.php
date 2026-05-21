@@ -101,6 +101,7 @@ Route::prefix('admin')
     ->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::post('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');
+        Route::delete('/users/{user}/force-delete', [AdminUserController::class, 'forceDestroy'])->name('users.force-destroy');
         Route::resource('/users', AdminUserController::class);
 
         // Security Dashboard Routes

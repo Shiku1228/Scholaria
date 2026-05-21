@@ -26,6 +26,9 @@ class AdminDashboardController extends Controller
             $logType = 'all';
         }
 
+        $showAllLogs = $request->boolean('show_all_logs');
+        $recentActivityLimit = $showAllLogs ? 50 : 10;
+
         $rangeDays = match ($range) {
             '7d' => 7,
             '30d' => 30,
@@ -39,13 +42,14 @@ class AdminDashboardController extends Controller
         $bestSellingCourses = $this->buildBestSellingCourses(10);
         $recentEnrollments = $this->buildRecentEnrollments();
         $systemOverview = $this->buildSystemOverview();
-        $recentActivity = $this->buildRecentActivity($logType);
+        $recentActivity = $this->buildRecentActivity($logType, $recentActivityLimit);
         $analytics = $this->buildAnalyticsSeries();
 
         return view('admin.dashboard', [
             'filters' => [
                 'range' => $range,
                 'log_type' => $logType,
+                'show_all_logs' => $showAllLogs,
             ],
             'stats' => $stats,
             'overview' => $overview,
@@ -486,9 +490,9 @@ class AdminDashboardController extends Controller
         ];
     }
 
-    private function buildRecentActivity(string $logType = 'all'): array
+    private function buildRecentActivity(string $logType = 'all', int $limit = 10): array
     {
-        $fromLogs = $this->buildRecentActivityFromLogs($logType);
+        $fromLogs = $this->buildRecentActivityFromLogs($logType, $limit);
         if (!empty($fromLogs)) {
             return $fromLogs;
         }
@@ -519,7 +523,7 @@ class AdminDashboardController extends Controller
                             DB::raw("$col as happened_at"),
                         ])
                         ->orderByDesc('happened_at')
-                        ->limit(10)
+                        ->limit($limit)
                         ->get();
 
                     foreach ($rows as $r) {
@@ -544,7 +548,7 @@ class AdminDashboardController extends Controller
                             'courses.created_at as happened_at',
                         ])
                         ->orderByDesc('courses.created_at')
-                        ->limit(10)
+                        ->limit($limit)
                         ->get();
 
                     foreach ($rows as $r) {
@@ -570,7 +574,7 @@ class AdminDashboardController extends Controller
                             DB::raw("$submittedCol as happened_at"),
                         ])
                         ->orderByDesc('happened_at')
-                        ->limit(10)
+                        ->limit($limit)
                         ->get();
 
                     foreach ($rows as $r) {
@@ -593,7 +597,7 @@ class AdminDashboardController extends Controller
                         'announcements.created_at as happened_at',
                     ])
                     ->orderByDesc('announcements.created_at')
-                    ->limit(10)
+                    ->limit($limit)
                     ->get();
 
                 foreach ($rows as $r) {
@@ -609,10 +613,10 @@ class AdminDashboardController extends Controller
 
         usort($items, fn ($a, $b) => strcmp((string) ($b['happened_at'] ?? ''), (string) ($a['happened_at'] ?? '')));
 
-        return array_slice($items, 0, 10);
+        return array_slice($items, 0, $limit);
     }
 
-    private function buildRecentActivityFromLogs(string $logType = 'all'): array
+    private function buildRecentActivityFromLogs(string $logType = 'all', int $limit = 10): array
     {
         try {
             if (!Schema::hasTable('activity_logs')) {
@@ -661,7 +665,7 @@ class AdminDashboardController extends Controller
 
             return $query
                 ->latest('created_at')
-                ->take(10)
+                ->take($limit)
                 ->get()
                 ->map(function (ActivityLog $log) {
                     return [

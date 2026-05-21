@@ -12,6 +12,7 @@
         $from = $users->firstItem() ?? 0;
         $to = $users->lastItem() ?? 0;
         $showRoleId = in_array($role, ['all', 'Student', 'Teacher'], true);
+        $deletedUsers = $deletedUsers ?? collect();
     @endphp
 
     <div class="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
@@ -212,6 +213,130 @@
                 {{ $users->onEachSide(1)->links() }}
             </div>
         </div>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 shadow-sm overflow-hidden">
+        <div class="px-6 py-6 border-b border-slate-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <div class="flex items-center gap-2 text-xl font-semibold text-slate-900">
+                        <i data-lucide="archive-restore" class="h-5 w-5 text-amber-600"></i>
+                        <span>Deleted Users</span>
+                    </div>
+                    <div class="mt-1 text-sm text-slate-500">Restore suspended users from here when needed.</div>
+                </div>
+                <div class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                    {{ $deletedUsers->count() }} deleted {{ $deletedUsers->count() === 1 ? 'user' : 'users' }}
+                </div>
+            </div>
+        </div>
+
+        @if ($deletedUsers->isEmpty())
+            <div class="px-6 py-10 text-center text-sm text-slate-500">
+                No deleted users available to restore.
+            </div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-100">
+                        <tr class="text-left text-xs font-semibold tracking-wide text-slate-500 uppercase border-b border-slate-200">
+                            <th class="py-4 px-6">User</th>
+                            <th class="py-4 px-6">Role ID</th>
+                            <th class="py-4 px-6">Role</th>
+                            <th class="py-4 px-6">Deleted Date</th>
+                            <th class="py-4 px-6 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        @foreach ($deletedUsers as $deletedUser)
+                            @php
+                                $deletedUserRoles = method_exists($deletedUser, 'getRoleNames') ? $deletedUser->getRoleNames() : collect();
+                                $deletedHasAdminRoleSpatie = false;
+                                $deletedHasTeacherRoleSpatie = false;
+
+                                foreach ($deletedUserRoles as $deletedRoleName) {
+                                    if ($deletedRoleName === 'Teacher') {
+                                        $deletedHasTeacherRoleSpatie = true;
+                                    } elseif ($deletedRoleName !== 'Student') {
+                                        $deletedHasAdminRoleSpatie = true;
+                                    }
+                                }
+
+                                $deletedHasAdminProfile = $deletedUser->relationLoaded('admin') ? ($deletedUser->admin !== null) : false;
+                                $deletedHasTeacherProfile = $deletedUser->relationLoaded('teacher') ? ($deletedUser->teacher !== null) : false;
+
+                                $deletedLabelRole = $deletedHasAdminRoleSpatie || $deletedHasAdminProfile
+                                    ? 'Admin'
+                                    : (($deletedHasTeacherRoleSpatie || $deletedHasTeacherProfile) ? 'Teacher' : 'Student');
+
+                                $deletedDisplayRole = $deletedLabelRole === 'Admin'
+                                    ? ($deletedUserRoles->diff(['Teacher', 'Student'])->first() ?? 'Admin')
+                                    : ($deletedLabelRole === 'Teacher' ? 'Instructor' : 'Student');
+
+                                $deletedProfile = $deletedUser->profile;
+                                $deletedFullName = $deletedProfile?->full_name ?? $deletedUser->name;
+                                $deletedRoleId = match($deletedLabelRole) {
+                                    'Student' => $deletedUser->student?->student_number ?? '--',
+                                    'Teacher' => $deletedUser->teacher?->employee_id ?? '--',
+                                    'Admin' => 'ADM-' . str_pad((string) $deletedUser->id, 3, '0', STR_PAD_LEFT),
+                                    default => '--',
+                                };
+                                $deletedInitial = strtoupper(substr((string) $deletedFullName, 0, 1));
+                            @endphp
+
+                            <tr class="text-slate-700 bg-slate-50/60 hover:bg-slate-100/60 transition-colors">
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-8 w-8 rounded-full bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center text-xs font-semibold">
+                                            {{ $deletedInitial !== '' ? $deletedInitial : 'U' }}
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-slate-900 leading-tight">{{ $deletedFullName }}</div>
+                                            <div class="text-xs text-slate-500">{{ $deletedUser->email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6 text-xs text-slate-500 font-medium">{{ $deletedRoleId }}</td>
+                                <td class="py-4 px-6">
+                                    <span @class([
+                                        'inline-flex items-center h-7 px-3 rounded-lg border text-xs font-medium',
+                                        'bg-[#eaf0fb] text-[#0b2d6b] border-[#c9d7f2]' => $deletedLabelRole === 'Admin',
+                                        'bg-blue-50 text-blue-700 border-blue-200' => $deletedLabelRole === 'Teacher',
+                                        'bg-slate-100 text-slate-700 border-slate-200' => $deletedLabelRole === 'Student',
+                                    ])>
+                                        {{ $deletedDisplayRole }}
+                                    </span>
+                                </td>
+                                <td class="py-4 px-6 text-slate-500">{{ optional($deletedUser->deleted_at)->format('Y-m-d H:i') }}</td>
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center justify-center gap-2">
+                                        @can('users.delete')
+                                            @if (!(method_exists($deletedUser, 'hasRole') && $deletedUser->hasRole('Admin')))
+                                                <form method="POST" action="{{ route('admin.users.restore', $deletedUser) }}" onsubmit="return confirm('Restore this user?');">
+                                                    @csrf
+                                                    <button type="submit" class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+                                                        <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
+                                                        <span>Restore</span>
+                                                    </button>
+                                                </form>
+                                                <form method="POST" action="{{ route('admin.users.force-destroy', $deletedUser) }}" onsubmit="return confirm('Permanently delete this user? This cannot be undone.');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+                                                        <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                                        <span>Delete Permanently</span>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        @endcan
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
     </div>
 
     <script>

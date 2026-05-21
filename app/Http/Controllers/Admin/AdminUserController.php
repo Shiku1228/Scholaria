@@ -105,8 +105,14 @@ class AdminUserController extends Controller
             ->paginate(7)
             ->withQueryString();
 
+        $deletedUsers = User::onlyTrashed()
+            ->with(['student', 'teacher', 'admin', 'roles'])
+            ->orderByDesc('deleted_at')
+            ->get();
+
         return view('admin.users.index', [
             'users' => $users,
+            'deletedUsers' => $deletedUsers,
             'availableRoles' => $availableRoles,
             'filters' => [
                 'role' => $role,
@@ -525,5 +531,43 @@ class AdminUserController extends Controller
         }
 
         return redirect()->route('admin.users.index');
+    }
+
+    public function forceDestroy($user): RedirectResponse
+    {
+        $user = User::withTrashed()->with(['student', 'teacher', 'admin', 'roles'])->findOrFail($user);
+
+        if (method_exists($user, 'getRoleNames')) {
+            $hasAdminRole = $user->getRoleNames()->diff(['Teacher', 'Student'])->isNotEmpty();
+            if ($hasAdminRole) {
+                abort(403);
+            }
+        }
+
+        if (!$user->trashed()) {
+            return redirect()->route('admin.users.index')->with('error', 'Only deleted users can be permanently removed.');
+        }
+
+        DB::transaction(function () use ($user) {
+            if ($user->relationLoaded('student') && $user->student) {
+                $user->student->delete();
+            }
+
+            if ($user->relationLoaded('teacher') && $user->teacher) {
+                $user->teacher->delete();
+            }
+
+            if ($user->relationLoaded('admin') && $user->admin) {
+                $user->admin->delete();
+            }
+
+            if (method_exists($user, 'roles')) {
+                $user->roles()->detach();
+            }
+
+            $user->forceDelete();
+        });
+
+        return redirect()->route('admin.users.index')->with('success', 'User permanently deleted.');
     }
 }
