@@ -201,15 +201,22 @@ class TwoFactorAuthController extends Controller
 
             // Redirect based on user role
             $user = Auth::user();
-            if ($user->hasRole('Admin')) {
-                return redirect()->intended(route('admin.dashboard'));
-            } elseif ($user->hasRole('Teacher')) {
-                return redirect()->intended(route('teacher.dashboard'));
-            } elseif ($user->hasRole('Student')) {
-                return redirect()->intended(route('student.dashboard'));
+            $redirectUrl = route('student.dashboard');
+
+            if (method_exists($user, 'getRoleNames')) {
+                $roles = $user->getRoleNames();
+                if ($roles->isNotEmpty()) {
+                    if ($roles->diff(['Teacher', 'Student'])->isNotEmpty()) {
+                        $redirectUrl = route('admin.dashboard');
+                    } elseif ($roles->contains('Teacher')) {
+                        $redirectUrl = route('teacher.dashboard');
+                    } elseif ($roles->contains('Student')) {
+                        $redirectUrl = route('student.dashboard');
+                    }
+                }
             }
 
-            return redirect()->intended(route('student.dashboard'));
+            return redirect()->intended($redirectUrl);
         }
 
         return redirect()->back()->with('error', 'Invalid verification code. Please try again.');
