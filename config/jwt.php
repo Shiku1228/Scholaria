@@ -146,7 +146,35 @@ return [
     |
     */
     'providers' => [
-        //
+        /*
+        |--------------------------------------------------------------------------
+        | JWT Provider
+        |--------------------------------------------------------------------------
+        |
+        | The provider used to create and decode tokens.
+        |
+        */
+        'jwt' => Tymon\JWTAuth\Providers\JWT\Lcobucci::class,
+
+        /*
+        |--------------------------------------------------------------------------
+        | Authentication Provider
+        |--------------------------------------------------------------------------
+        |
+        | The provider used to authenticate users.
+        |
+        */
+        'auth' => Tymon\JWTAuth\Providers\Auth\Illuminate::class,
+
+        /*
+        |--------------------------------------------------------------------------
+        | Storage Provider
+        |--------------------------------------------------------------------------
+        |
+        | The provider used to store blacklisted tokens.
+        |
+        */
+        'storage' => Tymon\JWTAuth\Providers\Storage\Illuminate::class,
     ],
 
     /*

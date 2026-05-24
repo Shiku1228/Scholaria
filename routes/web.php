@@ -36,7 +36,6 @@ use App\Http\Controllers\Student\StudentAnnouncementController;
 use App\Http\Controllers\Student\StudentNotificationController;
 use App\Http\Controllers\TwoFactorAuthController;
 use App\Http\Controllers\Messaging\CourseMessagingController;
-use App\Http\Controllers\JwtAuthController;
 use App\Http\Controllers\JwtTestController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\Calendar\TeacherCalendarController;
@@ -309,19 +308,6 @@ Route::prefix('student')
 // OAuth Authentication Routes
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('auth.callback');
-
-// API Routes with JWT Authentication (bypass CSRF)
-Route::prefix('api')->middleware('api')->group(function () {
-    Route::post('/login', [JwtAuthController::class, 'login'])->name('api.login');
-    Route::post('/refresh', [JwtAuthController::class, 'refresh'])->name('api.refresh');
-    Route::post('/logout', [JwtAuthController::class, 'logout'])->name('api.logout');
-
-    Route::middleware('jwt')->group(function () {
-        Route::get('/me', [JwtAuthController::class, 'me'])->name('api.me');
-        Route::get('/validate', [JwtAuthController::class, 'validate'])->name('api.validate');
-    });
-});
-
 // Security and Session Management Routes
 Route::middleware(['auth', 'session.tracking'])->prefix('security')->group(function () {
     Route::get('/sessions', [SessionController::class, 'index'])->name('security.sessions');
