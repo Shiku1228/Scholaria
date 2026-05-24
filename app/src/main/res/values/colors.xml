@@ -14,7 +14,7 @@
     <color name="dash_subject_btn">#1A2F4B</color>
     <color name="dash_teal">#00D1A0</color>
     <color name="dash_card_white">#F5F5F5</color>
-    <color name="dash_text_gray">#757575</color>
+    <color name="dash_text_gray">#475569</color>
 
     <!-- Dashboard Semantic -->
     <color name="dash_text_primary">#000000</color>
@@ -25,6 +25,25 @@
     <color name="dash_card_assignment_bg">#F8F9FA</color>
     <color name="dash_badge_bg">#1A2F4B</color>
     <color name="dash_badge_text">#FFFFFF</color>
+
+    <!-- Tasks Dashboard -->
+    <color name="tasks_surface">#FFFFFF</color>
+    <color name="tasks_surface_soft">#F7FAFC</color>
+    <color name="tasks_border">#E5E7EB</color>
+    <color name="tasks_text_primary">#111827</color>
+    <color name="tasks_text_secondary">#667085</color>
+    <color name="tasks_accent_blue">#2563EB</color>
+    <color name="tasks_accent_sage">#0F766E</color>
+    <color name="tasks_accent_purple">#7C3AED</color>
+    <color name="tasks_accent_amber">#D97706</color>
+    <color name="tasks_state_done_bg">#DCFCE7</color>
+    <color name="tasks_state_done_text">#166534</color>
+    <color name="tasks_state_overdue_bg">#FEE2E2</color>
+    <color name="tasks_state_overdue_text">#B91C1C</color>
+    <color name="tasks_state_pending_bg">#DBEAFE</color>
+    <color name="tasks_state_pending_text">#1D4ED8</color>
+    <color name="tasks_state_upcoming_bg">#EDE9FE</color>
+    <color name="tasks_state_upcoming_text">#6D28D9</color>
 
     <!-- UI Elements Semantic -->
     <color name="card_surface">#FFFFFF</color>
@@ -42,7 +61,7 @@
     <color name="fixed_card_bg_blue">#F0F4FF</color>
     <color name="fixed_card_bg_mint">#C7F9E1</color>
     <color name="fixed_card_text_primary">#1A2F4B</color>
-    <color name="fixed_card_text_secondary">#757575</color>
+    <color name="fixed_card_text_secondary">#475569</color>
     <color name="fixed_card_badge_bg">#1A2F4B</color>
     <color name="fixed_card_badge_text">#FFFFFF</color>
 

@@ -1,40 +1,73 @@
 package com.example.scholaria.networks
 
+import android.content.Context
+import com.example.scholaria.BuildConfig
+import com.example.scholaria.utils.TokenManager
 import okhttp3.CookieJar
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object ApiClient {
-    private const val BASE_URL = "http://192.168.1.117:8000/api/"
+    @JvmStatic
+    fun getInstance(): ApiService {
+        return createService(ApiConfig.defaultBaseUrl(), null)
+    }
 
-    fun getInstance(token: String? = null): ApiService {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
+    @JvmStatic
+    fun getInstance(token: String): ApiService {
+        return createService(ApiConfig.defaultBaseUrl(), token)
+    }
 
+    @JvmStatic
+    fun getInstance(context: Context): ApiService {
+        val token = TokenManager(context.applicationContext).getToken()
+        return createService(ApiConfig.defaultBaseUrl(), token)
+    }
+
+    @JvmStatic
+    fun getInstance(context: Context, token: String?): ApiService {
+        val resolvedToken = token ?: TokenManager(context.applicationContext).getToken()
+        return createService(ApiConfig.defaultBaseUrl(), resolvedToken)
+    }
+
+    @JvmStatic
+    fun getInstance(baseUrl: String, token: String? = null): ApiService {
+        return createService(baseUrl, token)
+    }
+
+    private fun createService(baseUrl: String, token: String?): ApiService {
         val clientBuilder = OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .cookieJar(CookieJar.NO_COOKIES) // Step 1: Explicitly disable cookies
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .cookieJar(CookieJar.NO_COOKIES)
 
         clientBuilder.addInterceptor { chain ->
             val requestBuilder = chain.request().newBuilder()
-                .addHeader("User-Agent", "ScholariaAndroid/1.0")
-                .addHeader("Accept", "application/json")
-                .addHeader("Content-Type", "application/json")
-                .addHeader("X-Requested-With", "XMLHttpRequest")
-                .removeHeader("Cookie") // Step 2: Ensure no cookies are sent
+                .header("Accept", "application/json")
+                .header("X-Requested-With", "XMLHttpRequest")
 
             if (token != null) {
-                requestBuilder.addHeader("Authorization", "Bearer $token")
+                requestBuilder.header("Authorization", "Bearer $token")
             }
 
             chain.proceed(requestBuilder.build())
         }
 
+        val logging = HttpLoggingInterceptor().apply {
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+        }
+        clientBuilder.addInterceptor(logging)
+
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(baseUrl)
             .client(clientBuilder.build())
             .addConverterFactory(GsonConverterFactory.create())
             .build()

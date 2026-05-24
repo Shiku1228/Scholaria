@@ -44,9 +44,9 @@ public class MyCoursesActivity extends AppCompatActivity {
     private void setupCourses() {
         RecyclerView rv = findViewById(R.id.rvMyCourses);
         List<Course> list = new ArrayList<>();
-        list.add(new Course("Application Development", "CC106", "1st Semester", "2026-2027", 75, "12/15 assignments"));
-        list.add(new Course("Web Systems", "WS067", "1st Semester", "2026-2027", 40, "5/12 assignments"));
-        list.add(new Course("Data Structures", "CS201", "1st Semester", "2026-2027", 10, "1/10 assignments"));
+        list.add(new Course("CRS-106", "Application Development", "CC106", "1st Semester", "2026-2027", 75, 12, 15, "Prof. Santos", "Enrolled", R.drawable.course_banner_placeholder));
+        list.add(new Course("CRS-067", "Web Systems", "WS067", "1st Semester", "2026-2027", 40, 5, 12, "Prof. Reyes", "Enrolled", R.drawable.course_banner_placeholder));
+        list.add(new Course("CRS-201", "Data Structures", "CS201", "1st Semester", "2026-2027", 10, 1, 10, "Prof. Lim", "Enrolled", R.drawable.course_banner_placeholder));
 
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(new CourseAdapter(list));

@@ -7,6 +7,10 @@ android {
     namespace = "com.example.scholaria"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.example.scholaria"
         minSdk = 34

@@ -30,11 +30,27 @@
             android:exported="false" />
 
         <activity
+            android:name=".activities.FeatureHubActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".activities.FeatureListActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".activities.MyCoursesActivity"
             android:exported="false" />
 
         <activity
             android:name=".activities.AssignmentActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".activities.TaskDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".activities.TaskFlowActivity"
             android:exported="false" />
 
         <activity

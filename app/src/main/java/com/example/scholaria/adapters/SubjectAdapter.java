@@ -36,9 +36,11 @@ public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.ViewHold
 
         View.OnClickListener viewSubjectListener = v -> {
             Intent intent = new Intent(v.getContext(), CourseDetailsActivity.class);
-            intent.putExtra("COURSE_TITLE", subject.getName());
-            intent.putExtra("COURSE_CODE", subject.getCode() + " | " + subject.getClassNumber());
-            intent.putExtra("COURSE_PROGRESS", 0);
+            if (subject.getCourseId() != null && !subject.getCourseId().trim().isEmpty()) {
+                intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_ID, subject.getCourseId());
+            }
+            intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_NAME, subject.getName());
+            intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_NUMBER, subject.getCode());
             v.getContext().startActivity(intent);
         };
 

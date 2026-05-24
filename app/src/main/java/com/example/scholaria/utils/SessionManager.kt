@@ -1,24 +1,23 @@
 package com.example.scholaria.utils
 
 import android.content.Context
-import android.content.SharedPreferences
 
 class SessionManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
+    private val tokenManager = TokenManager(context)
 
     fun saveAuthToken(token: String) {
-        val editor = prefs.edit()
-        editor.putString("token", token)
-        editor.apply()
+        tokenManager.saveToken(token)
     }
 
     fun fetchAuthToken(): String? {
-        return prefs.getString("token", null)
+        return tokenManager.getToken()
     }
 
     fun clearAuthToken() {
-        val editor = prefs.edit()
-        editor.remove("token")
-        editor.apply()
+        tokenManager.clearToken()
+    }
+
+    fun isLoggedIn(): Boolean {
+        return tokenManager.isLoggedIn()
     }
 }

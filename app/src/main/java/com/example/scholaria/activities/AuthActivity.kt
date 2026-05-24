@@ -17,7 +17,7 @@ import com.example.scholaria.utils.TokenManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
-import java.net.CookieManager
+import org.json.JSONObject
 
 class AuthActivity : AppCompatActivity() {
 
@@ -29,17 +29,7 @@ class AuthActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Initialize CookieManager globally
-        CookieManager.setDefault(CookieManager())
-
         tokenManager = TokenManager(this)
-
-        // Check if already logged in
-        if (tokenManager.isLoggedIn()) {
-            goToMain(false)
-            return
-        }
 
         enableEdgeToEdge()
         setContentView(R.layout.activity_auth)
@@ -58,6 +48,11 @@ class AuthActivity : AppCompatActivity() {
 
         btnLogin.setOnClickListener {
             performLogin()
+        }
+
+        if (tokenManager.isLoggedIn()) {
+            validateExistingSession()
+            return
         }
     }
 
@@ -79,21 +74,61 @@ class AuthActivity : AppCompatActivity() {
 
                 if (response.isSuccessful) {
                     val loginResponse = response.body()
-                    if (loginResponse?.success == true && loginResponse.token != null) {
-                        tokenManager.saveToken(loginResponse.token)
-                        val isTeacher = loginResponse.user?.roles?.contains("teacher") == true
+                    val token = loginResponse?.resolvedToken()
+                    if (loginResponse?.success == true && !token.isNullOrBlank()) {
+                        tokenManager.saveToken(token)
+
+                        val authedApi = ApiClient.getInstance(this@AuthActivity)
+                        val meResponse = authedApi.getCurrentUser()
+                        val currentUser = if (meResponse.isSuccessful) {
+                            meResponse.body()?.resolvedUser()
+                        } else {
+                            null
+                        }
+
+                        val isTeacher = currentUser?.roles?.contains("teacher") == true
+                            || loginResponse.resolvedUser()?.roles?.contains("teacher") == true
+
                         Toast.makeText(this@AuthActivity, "Login Successful!", Toast.LENGTH_SHORT).show()
                         goToMain(isTeacher)
                     } else {
                         Toast.makeText(this@AuthActivity, "Login failed: Invalid credentials", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    Toast.makeText(this@AuthActivity, "Error: ${response.code()}", Toast.LENGTH_SHORT).show()
+                    // Extract server error message
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        JSONObject(errorBody ?: "").getString("message")
+                    } catch (e: Exception) {
+                        "Server Error: ${response.code()}"
+                    }
+                    Toast.makeText(this@AuthActivity, errorMessage, Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
                 Toast.makeText(this@AuthActivity, "Network Error: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 setLoading(false)
+            }
+        }
+    }
+
+    private fun validateExistingSession() {
+        lifecycleScope.launch {
+            try {
+                val authedApi = ApiClient.getInstance(this@AuthActivity)
+                val meResponse = authedApi.getCurrentUser()
+
+                if (meResponse.isSuccessful && meResponse.body()?.resolvedUser() != null) {
+                    val currentUser = meResponse.body()?.resolvedUser()
+                    val isTeacher = currentUser?.roles?.contains("teacher") == true
+                    goToMain(isTeacher)
+                } else {
+                    tokenManager.clearToken()
+                    btnLogin.isEnabled = true
+                }
+            } catch (e: Exception) {
+                tokenManager.clearToken()
+                btnLogin.isEnabled = true
             }
         }
     }

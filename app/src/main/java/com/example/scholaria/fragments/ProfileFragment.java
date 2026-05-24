@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.example.scholaria.R;
 import com.example.scholaria.activities.AuthActivity;
+import com.example.scholaria.activities.MainActivity;
 import com.example.scholaria.utils.TokenManager;
 import com.google.android.material.button.MaterialButton;
 
@@ -33,18 +34,21 @@ public class ProfileFragment extends Fragment {
         btnEditProfile.setOnClickListener(v -> Toast.makeText(getContext(), "Edit Profile Clicked", Toast.LENGTH_SHORT).show());
 
         btnLogout.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Logging out...", Toast.LENGTH_SHORT).show();
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).logout();
+            } else {
+                Toast.makeText(getContext(), "Logging out...", Toast.LENGTH_SHORT).show();
 
-            // Clear the token
-            if (tokenManager != null) {
-                tokenManager.clearToken();
-            }
+                if (tokenManager != null) {
+                    tokenManager.clearToken();
+                }
 
-            Intent intent = new Intent(getActivity(), AuthActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            if (getActivity() != null) {
-                getActivity().finish();
+                Intent intent = new Intent(getActivity(), AuthActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                if (getActivity() != null) {
+                    getActivity().finish();
+                }
             }
         });
 

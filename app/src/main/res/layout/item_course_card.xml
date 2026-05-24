@@ -14,16 +14,15 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Top Section -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="128dp"
             android:background="@color/fixed_card_bg_blue">
 
             <ImageView
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:alpha="0.3"
+                android:alpha="0.25"
                 android:src="@android:drawable/ic_menu_gallery"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -36,7 +35,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="14dp"
                 android:background="@drawable/badge_bg_dark"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="4dp"
@@ -51,8 +50,8 @@
                 android:id="@+id/tvYearBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginEnd="14dp"
                 android:background="@drawable/badge_bg_dark"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="4dp"
@@ -62,10 +61,8 @@
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
-
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- Bottom Section -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -87,7 +84,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Teacher • PHY120"
+                android:text="Teacher | PHY120"
                 android:textColor="@color/fixed_card_text_secondary"
                 android:textSize="14sp" />
 
@@ -129,8 +126,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                android:orientation="horizontal"
-                android:baselineAligned="false">
+                android:baselineAligned="false"
+                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnOpenCourse"
@@ -139,13 +136,13 @@
                     android:layout_marginEnd="6dp"
                     android:layout_weight="1"
                     android:backgroundTint="@color/dash_subject_btn"
+                    android:insetBottom="0dp"
+                    android:insetTop="0dp"
+                    android:paddingVertical="14dp"
                     android:text="Open Course"
                     android:textAllCaps="false"
                     android:textColor="@color/white"
                     android:textSize="12sp"
-                    android:paddingVertical="14dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
                     app:cornerRadius="12dp" />
 
                 <com.google.android.material.button.MaterialButton
@@ -155,17 +152,16 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
                     android:layout_weight="1"
+                    android:insetBottom="0dp"
+                    android:insetTop="0dp"
+                    android:paddingVertical="14dp"
                     android:text="Assignments"
                     android:textAllCaps="false"
                     android:textColor="@color/fixed_card_text_primary"
                     android:textSize="12sp"
-                    android:paddingVertical="14dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
                     app:cornerRadius="12dp"
                     app:strokeColor="@color/dash_subject_btn" />
             </LinearLayout>
-
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

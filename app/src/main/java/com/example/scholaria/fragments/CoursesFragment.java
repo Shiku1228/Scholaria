@@ -4,31 +4,38 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.scholaria.R;
 import com.example.scholaria.adapters.CourseAdapter;
 import com.example.scholaria.models.Course;
+import com.example.scholaria.networks.ApiClient;
+import com.example.scholaria.networks.StudentApiResponse;
+import com.example.scholaria.networks.StudentCourseDto;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.chip.ChipGroup;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class CoursesFragment extends Fragment {
 
     private RecyclerView rvMyCourses;
     private CourseAdapter adapter;
     private MaterialButton btnCycleView;
-    private ChipGroup chipGroupFilter;
     private int currentViewMode = CourseAdapter.VIEW_TYPE_LARGE;
 
-    private List<Course> allCoursesList = new ArrayList<>();
-    private List<Course> filteredList = new ArrayList<>();
+    private final List<Course> allCoursesList = new ArrayList<>();
 
     @Nullable
     @Override
@@ -37,35 +44,16 @@ public class CoursesFragment extends Fragment {
 
         rvMyCourses = view.findViewById(R.id.rvMyCourses);
         btnCycleView = view.findViewById(R.id.btnCycleView);
-        chipGroupFilter = view.findViewById(R.id.chipGroupFilter);
 
-        initData();
         setupRecyclerView();
         setupViewSwitchers();
-        setupFilterChips();
-
-        // Initial Filter
-        filterCourses(R.id.chipCurrent);
+        loadCourses();
 
         return view;
     }
 
-    private void initData() {
-        allCoursesList.clear();
-        // Current Semester
-        allCoursesList.add(new Course("Application Development", "CC106", "1st Semester", "2026-2027", 75, "12/15 assignments"));
-        allCoursesList.add(new Course("Web Systems", "WS067", "1st Semester", "2026-2027", 40, "5/12 assignments"));
-        allCoursesList.add(new Course("Data Structures", "CS201", "1st Semester", "2026-2027", 10, "1/10 assignments"));
-
-        // Last Semester
-        allCoursesList.add(new Course("Computer Programming 2", "CC102", "2nd Semester", "2025-2026", 100, "20/20 assignments"));
-        allCoursesList.add(new Course("Discrete Mathematics", "MATH103", "2nd Semester", "2025-2026", 100, "15/15 assignments"));
-        allCoursesList.add(new Course("Networking 1", "IT201", "2nd Semester", "2025-2026", 100, "10/10 assignments"));
-    }
-
     private void setupRecyclerView() {
-        filteredList = new ArrayList<>(allCoursesList);
-        adapter = new CourseAdapter(filteredList);
+        adapter = new CourseAdapter(allCoursesList);
         rvMyCourses.setLayoutManager(new LinearLayoutManager(getContext()));
         rvMyCourses.setAdapter(adapter);
     }
@@ -82,33 +70,54 @@ public class CoursesFragment extends Fragment {
         });
     }
 
-    private void setupFilterChips() {
-        chipGroupFilter.setOnCheckedChangeListener((group, checkedId) -> {
-            filterCourses(checkedId);
-        });
-    }
-
-    private void filterCourses(int checkedId) {
-        filteredList.clear();
-        if (checkedId == R.id.chipCurrent) {
-            // Filter for 1st Semester 2026-2027 (mocking current)
-            for (Course c : allCoursesList) {
-                if (c.getSemester().equals("1st Semester") && c.getYear().equals("2026-2027")) {
-                    filteredList.add(c);
-                }
-            }
-        } else if (checkedId == R.id.chipLast) {
-            // Filter for 2nd Semester 2025-2026 (mocking last)
-            for (Course c : allCoursesList) {
-                if (c.getSemester().equals("2nd Semester") && c.getYear().equals("2025-2026")) {
-                    filteredList.add(c);
-                }
-            }
-        } else {
-            // View All
-            filteredList.addAll(allCoursesList);
+    private void loadCourses() {
+        if (getContext() == null) {
+            return;
         }
 
+        ApiClient.getInstance(requireContext())
+                .getStudentCoursesCall()
+                .enqueue(new Callback<StudentApiResponse<List<StudentCourseDto>>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<StudentApiResponse<List<StudentCourseDto>>> call, @NonNull Response<StudentApiResponse<List<StudentCourseDto>>> response) {
+                        if (!isAdded()) {
+                            return;
+                        }
+
+                        if (!response.isSuccessful() || response.body() == null || response.body().getData() == null) {
+                            showToast("Unable to load courses.");
+                            return;
+                        }
+
+                        bindCourses(response.body().getData());
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<StudentApiResponse<List<StudentCourseDto>>> call, @NonNull Throwable t) {
+                        if (isAdded()) {
+                            showToast("Course sync failed.");
+                        }
+                    }
+                });
+    }
+
+    private void bindCourses(List<StudentCourseDto> data) {
+        allCoursesList.clear();
+        for (StudentCourseDto dto : data) {
+            allCoursesList.add(new Course(
+                    String.valueOf(dto.getCourseId()),
+                    safe(dto.getCourseName(), "Course"),
+                    safe(dto.getCourseNumber(), "Code"),
+                    safe(dto.getSemester(), "Semester"),
+                    safe(dto.getSchoolYear(), "School Year"),
+                    dto.getProgress(),
+                    dto.getAssignmentsSubmitted(),
+                    dto.getAssignmentsTotal(),
+                    safe(dto.getTeacherName(), "Instructor"),
+                    safe(dto.getEnrollmentStatus(), "Enrolled"),
+                    R.drawable.course_banner_placeholder
+            ));
+        }
         adapter.notifyDataSetChanged();
     }
 
@@ -126,5 +135,15 @@ public class CoursesFragment extends Fragment {
             rvMyCourses.setLayoutManager(new LinearLayoutManager(getContext()));
             btnCycleView.setIconResource(R.drawable.ic_view_mode_large);
         }
+    }
+
+    private void showToast(String message) {
+        if (getContext() != null) {
+            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String safe(String value, String fallback) {
+        return value == null || value.trim().isEmpty() ? fallback : value;
     }
 }

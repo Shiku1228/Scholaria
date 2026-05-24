@@ -19,7 +19,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder
     public static final int VIEW_TYPE_SMALL = 1;
     public static final int VIEW_TYPE_LIST = 2;
 
-    private List<Course> courses;
+    private final List<Course> courses;
     private int currentViewType = VIEW_TYPE_LARGE;
 
     public CourseAdapter(List<Course> courses) {
@@ -54,10 +54,10 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Course course = courses.get(position);
-        if (holder.tvTitle != null) holder.tvTitle.setText(course.getTitle());
-        if (holder.tvSubtitle != null) holder.tvSubtitle.setText(course.getSubtitle());
+        if (holder.tvTitle != null) holder.tvTitle.setText(course.getCourseName());
+        if (holder.tvSubtitle != null) holder.tvSubtitle.setText(course.getTeacherName() + " | " + course.getCourseNumber());
         if (holder.tvSemester != null) holder.tvSemester.setText(course.getSemester());
-        if (holder.tvYear != null) holder.tvYear.setText(course.getYear());
+        if (holder.tvYear != null) holder.tvYear.setText(course.getSchoolYear());
         if (holder.tvProgressPercent != null) {
             if (currentViewType == VIEW_TYPE_LIST) {
                 holder.tvProgressPercent.setText(course.getProgress() + "%");
@@ -65,14 +65,23 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder
                 holder.tvProgressPercent.setText(course.getProgress() + "% Completed");
             }
         }
-        if (holder.tvAssignmentsCount != null) holder.tvAssignmentsCount.setText(course.getAssignments());
+        if (holder.tvAssignmentsCount != null) {
+            holder.tvAssignmentsCount.setText(course.getAssignmentsSubmitted() + "/" + course.getAssignmentsTotal() + " assignments");
+        }
         if (holder.progressIndicator != null) holder.progressIndicator.setProgress(course.getProgress());
 
         View.OnClickListener openCourseListener = v -> {
             Intent intent = new Intent(v.getContext(), CourseDetailsActivity.class);
-            intent.putExtra("COURSE_TITLE", course.getTitle());
-            intent.putExtra("COURSE_CODE", course.getSubtitle() + " | " + course.getSemester() + " " + course.getYear());
-            intent.putExtra("COURSE_PROGRESS", course.getProgress());
+            intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_ID, course.getCourseId());
+            intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_NAME, course.getCourseName());
+            intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_NUMBER, course.getCourseNumber());
+            intent.putExtra(CourseDetailsActivity.EXTRA_TEACHER_NAME, course.getTeacherName());
+            intent.putExtra(CourseDetailsActivity.EXTRA_COVER_RES, course.getCoverImageRes());
+            intent.putExtra(CourseDetailsActivity.EXTRA_PROGRESS, course.getProgress());
+            intent.putExtra(CourseDetailsActivity.EXTRA_ASSIGNMENTS_TOTAL, course.getAssignmentsTotal());
+            intent.putExtra(CourseDetailsActivity.EXTRA_ASSIGNMENTS_SUBMITTED, course.getAssignmentsSubmitted());
+            intent.putExtra(CourseDetailsActivity.EXTRA_SEMESTER, course.getSemester());
+            intent.putExtra(CourseDetailsActivity.EXTRA_SCHOOL_YEAR, course.getSchoolYear());
             v.getContext().startActivity(intent);
         };
 
@@ -80,15 +89,35 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder
         if (holder.btnOpenCourse != null) {
             holder.btnOpenCourse.setOnClickListener(openCourseListener);
         }
+        if (holder.btnViewAssignments != null) {
+            holder.btnViewAssignments.setOnClickListener(v -> {
+                Intent intent = new Intent(v.getContext(), CourseDetailsActivity.class);
+                intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_ID, course.getCourseId());
+                intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_NAME, course.getCourseName());
+                intent.putExtra(CourseDetailsActivity.EXTRA_COURSE_NUMBER, course.getCourseNumber());
+                intent.putExtra(CourseDetailsActivity.EXTRA_TEACHER_NAME, course.getTeacherName());
+                intent.putExtra(CourseDetailsActivity.EXTRA_COVER_RES, course.getCoverImageRes());
+                intent.putExtra(CourseDetailsActivity.EXTRA_PROGRESS, course.getProgress());
+                intent.putExtra(CourseDetailsActivity.EXTRA_ASSIGNMENTS_TOTAL, course.getAssignmentsTotal());
+                intent.putExtra(CourseDetailsActivity.EXTRA_ASSIGNMENTS_SUBMITTED, course.getAssignmentsSubmitted());
+                intent.putExtra(CourseDetailsActivity.EXTRA_SEMESTER, course.getSemester());
+                intent.putExtra(CourseDetailsActivity.EXTRA_SCHOOL_YEAR, course.getSchoolYear());
+                intent.putExtra(CourseDetailsActivity.EXTRA_INITIAL_TAB, 1);
+                v.getContext().startActivity(intent);
+            });
+        }
     }
 
     @Override
-    public int getItemCount() { return courses.size(); }
+    public int getItemCount() {
+        return courses.size();
+    }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvSubtitle, tvSemester, tvYear, tvProgressPercent, tvAssignmentsCount;
         LinearProgressIndicator progressIndicator;
         MaterialButton btnOpenCourse;
+        MaterialButton btnViewAssignments;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -100,6 +129,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.ViewHolder
             tvAssignmentsCount = itemView.findViewById(R.id.tvAssignmentsCount);
             progressIndicator = itemView.findViewById(R.id.courseProgress);
             btnOpenCourse = itemView.findViewById(R.id.btnOpenCourse);
+            btnViewAssignments = itemView.findViewById(R.id.btnViewAssignments);
         }
     }
 }

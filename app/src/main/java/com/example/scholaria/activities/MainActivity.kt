@@ -1,8 +1,6 @@
 package com.example.scholaria.activities
 
-import android.content.Context
 import android.content.Intent
-import android.net.ConnectivityManager
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
@@ -18,9 +16,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.example.scholaria.R
 import com.example.scholaria.adapters.MainPagerAdapter
+import com.example.scholaria.activities.FeatureHubActivity
+import com.example.scholaria.activities.FeatureListActivity
 import com.example.scholaria.networks.ApiClient
-import com.example.scholaria.networks.LoginRequest
 import com.example.scholaria.utils.TokenManager
+import com.example.scholaria.utils.FeatureRoutes
 import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.launch
 
@@ -60,40 +60,13 @@ class MainActivity : AppCompatActivity() {
 
         val tokenManager = TokenManager(this)
 
-        // Test Login with Real Data
-        if (isNetworkAvailable()) {
-            lifecycleScope.launch {
-                try {
-                    // Test with a real user (you'll need to create one first)
-                    val loginRequest = LoginRequest("test@example.com", "password123")
-                    val response = ApiClient.getInstance().login(loginRequest)
-
-                    if (response.isSuccessful) {
-                        val loginResponse = response.body()
-                        if (loginResponse?.success == true && loginResponse.token != null) {
-                            tokenManager.saveToken(loginResponse.token)
-                            Toast.makeText(this@MainActivity,
-                                "Welcome ${loginResponse.user?.name}!",
-                                Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(this@MainActivity, "Login failed", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Toast.makeText(this@MainActivity, "HTTP Error: ${response.code()}", Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(this@MainActivity, "Network Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } else {
-            Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show()
+        if (!tokenManager.isLoggedIn()) {
+            Toast.makeText(this, "Session expired. Please log in again.", Toast.LENGTH_SHORT).show()
+            redirectToAuth()
+            return
         }
-    }
 
-    private fun isNetworkAvailable(): Boolean {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork = connectivityManager.activeNetworkInfo
-        return activeNetwork?.isConnectedOrConnecting == true
+        validateSession()
     }
 
     private fun initViews() {
@@ -101,6 +74,8 @@ class MainActivity : AppCompatActivity() {
         navigationView = findViewById(R.id.navView)
         viewPager = findViewById(R.id.mainViewPager)
         navIndicator = findViewById(R.id.navIndicator)
+        navigationView.menu.clear()
+        navigationView.inflateMenu(if (isTeacher) R.menu.drawer_menu_teacher else R.menu.drawer_menu)
 
         navIcons = mutableListOf()
         navIcons.add(findViewById(R.id.navHome))
@@ -136,6 +111,26 @@ class MainActivity : AppCompatActivity() {
             val id = item.itemId
             if (id == R.id.nav_logout) {
                 logout()
+            } else if (id == R.id.nav_files || id == R.id.nav_teacher_courses) {
+                openFeatureList("Courses", "Active and archived classes", FeatureRoutes.ROUTE_COURSES)
+            } else if (id == R.id.nav_activities || id == R.id.nav_teacher_assignments) {
+                openFeatureList("Assignments", "Tasks and submissions", FeatureRoutes.ROUTE_ASSIGNMENTS)
+            } else if (id == R.id.nav_grades) {
+                openFeatureList("Grades", "Marks and released results", FeatureRoutes.ROUTE_GRADES)
+            } else if (id == R.id.nav_calendar) {
+                openFeatureList("Calendar", "Important academic dates", FeatureRoutes.ROUTE_CALENDAR)
+            } else if (id == R.id.nav_teacher_students) {
+                openFeatureList("Students", "Roster and progress", FeatureRoutes.ROUTE_STUDENTS)
+            } else if (id == R.id.nav_teacher_enrollments) {
+                openFeatureList("Enrollments", "Class membership records", FeatureRoutes.ROUTE_ENROLLMENTS)
+            } else if (id == R.id.nav_teacher_announcements) {
+                openFeatureList("Announcements", "Broadcast class updates", FeatureRoutes.ROUTE_ANNOUNCEMENTS)
+            } else if (id == R.id.nav_teacher_messages) {
+                openFeatureList("Messages", "Instructor and student conversations", FeatureRoutes.ROUTE_MESSAGES)
+            } else if (id == R.id.nav_settings) {
+                openFeatureList("Settings", "App and account preferences", FeatureRoutes.ROUTE_SETTINGS)
+            } else if (id == R.id.nav_help) {
+                openHub()
             } else {
                 Toast.makeText(this, "Opening " + item.title, Toast.LENGTH_SHORT).show()
             }
@@ -144,12 +139,59 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun logout() {
+    fun logout() {
         Toast.makeText(this, "Logging out...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch {
+            try {
+                val api = ApiClient.getInstance(this@MainActivity)
+                api.logout()
+            } catch (_: Exception) {
+                // Clear local session even when the server call fails.
+            } finally {
+                TokenManager(this@MainActivity).clearToken()
+                redirectToAuth()
+            }
+        }
+    }
+
+    private fun validateSession() {
+        lifecycleScope.launch {
+            try {
+                val api = ApiClient.getInstance(this@MainActivity)
+                val response = api.getCurrentUser()
+
+                if (!response.isSuccessful || response.body()?.resolvedUser() == null) {
+                    TokenManager(this@MainActivity).clearToken()
+                    redirectToAuth()
+                }
+            } catch (_: Exception) {
+                TokenManager(this@MainActivity).clearToken()
+                redirectToAuth()
+            }
+        }
+    }
+
+    private fun redirectToAuth() {
         val intent = Intent(this@MainActivity, AuthActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
+    }
+
+    private fun openHub() {
+        val intent = Intent(this, FeatureHubActivity::class.java)
+        intent.putExtra(FeatureRoutes.EXTRA_ROLE, if (isTeacher) FeatureRoutes.ROLE_TEACHER else FeatureRoutes.ROLE_STUDENT)
+        startActivity(intent)
+    }
+
+    private fun openFeatureList(title: String, subtitle: String, route: String) {
+        val intent = Intent(this, FeatureListActivity::class.java)
+        intent.putExtra(FeatureRoutes.EXTRA_TITLE, title)
+        intent.putExtra(FeatureRoutes.EXTRA_SUBTITLE, subtitle)
+        intent.putExtra(FeatureRoutes.EXTRA_ROUTE, route)
+        intent.putExtra(FeatureRoutes.EXTRA_ROLE, if (isTeacher) FeatureRoutes.ROLE_TEACHER else FeatureRoutes.ROLE_STUDENT)
+        startActivity(intent)
     }
 
     private fun setupViewPager() {

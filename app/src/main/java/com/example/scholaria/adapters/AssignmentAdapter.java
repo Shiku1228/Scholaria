@@ -28,8 +28,19 @@ public class AssignmentAdapter extends RecyclerView.Adapter<AssignmentAdapter.Vi
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position){
         Assignment assignment = assignments.get(position);
-        holder.tvAssignmentName.setText(assignment.getSubject()); // Using subject as primary title based on current design
-        holder.tvAssignmentDue.setText(assignment.getDeadline());
+        holder.tvAssignmentName.setText(assignment.getTitle() != null && !assignment.getTitle().trim().isEmpty()
+                ? assignment.getTitle()
+                : assignment.getSubject());
+
+        String subject = assignment.getSubject() != null ? assignment.getSubject().trim() : "";
+        String deadline = assignment.getDeadline() != null ? assignment.getDeadline().trim() : "";
+        if (!subject.isEmpty() && !deadline.isEmpty()) {
+            holder.tvAssignmentDue.setText(subject + " | " + deadline);
+        } else if (!subject.isEmpty()) {
+            holder.tvAssignmentDue.setText(subject);
+        } else {
+            holder.tvAssignmentDue.setText(deadline);
+        }
     }
 
     @Override
