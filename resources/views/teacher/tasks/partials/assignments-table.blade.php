@@ -67,14 +67,22 @@
             </td>
             <td class="py-4 px-6">
                 <div class="flex items-center gap-2">
-                    <a href="#" class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                    <a href="{{ route('teacher.assignments.show', [$assignment->course_id, $assignment]) }}" class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                         <i data-lucide="eye" class="h-3 w-3 mr-1"></i>
                         View
                     </a>
-                    <a href="#" class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                    <a href="{{ route('teacher.assignments.edit', [$assignment->course_id, $assignment]) }}" class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                         <i data-lucide="edit" class="h-3 w-3 mr-1"></i>
                         Edit
                     </a>
+                    <form method="POST" action="{{ route('teacher.assignments.destroy', [$assignment->course_id, $assignment]) }}" onsubmit="return confirm('Delete this assignment?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-red-200 bg-red-50 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors">
+                            <i data-lucide="trash-2" class="h-3 w-3 mr-1"></i>
+                            Delete
+                        </button>
+                    </form>
                 </div>
             </td>
         </tr>

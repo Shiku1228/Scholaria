@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Create API middleware group without CSRF
         $middleware->group('api', [
             \App\Http\Middleware\ApiMiddleware::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
         
         // Remove CSRF from API routes

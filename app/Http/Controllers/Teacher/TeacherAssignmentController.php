@@ -190,7 +190,17 @@ class TeacherAssignmentController extends Controller
             abort(404);
         }
 
-        $assignment->delete();
+        DB::transaction(function () use ($assignment): void {
+            if (Schema::hasTable('grades') && Schema::hasColumn('grades', 'assignment_id')) {
+                DB::table('grades')->where('assignment_id', $assignment->id)->delete();
+            }
+
+            if (Schema::hasTable('submissions') && Schema::hasColumn('submissions', 'assignment_id')) {
+                DB::table('submissions')->where('assignment_id', $assignment->id)->delete();
+            }
+
+            $assignment->delete();
+        });
 
         return redirect()->route('teacher.assignments.index', $course)->with('success', 'Assignment deleted.');
     }

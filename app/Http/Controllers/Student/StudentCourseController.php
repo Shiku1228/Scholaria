@@ -306,6 +306,7 @@ class StudentCourseController extends Controller
         ]);
 
         $parentId = (int) ($validated['parent_id'] ?? 0);
+        $parent = null;
         if ($parentId > 0) {
             $parent = CourseDiscussion::query()
                 ->where('id', $parentId)

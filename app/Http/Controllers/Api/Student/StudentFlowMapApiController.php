@@ -1,0 +1,165 @@
+<?php
+
+namespace App\Http\Controllers\Api\Student;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+
+class StudentFlowMapApiController extends Controller
+{
+    public function index(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'flow_version' => 'student-parity-v1',
+                'entry_points' => [
+                    'web' => [
+                        'login' => 'login',
+                        'dashboard' => 'student.dashboard',
+                        'courses' => 'student.courses.index',
+                        'tasks' => 'student.tasks.index',
+                        'announcements' => 'student.announcements.index',
+                        'grades' => 'student.grades.index',
+                        'messages' => 'messages.index',
+                        'notifications' => 'student.notifications.read-all',
+                        'calendar' => 'student.calendar',
+                        'next_up' => 'student.next-up',
+                    ],
+                    'mobile' => [
+                        'login',
+                        'home',
+                        'courses',
+                        'course_detail',
+                        'tasks',
+                        'assignments',
+                        'assignment_detail',
+                        'assignment_submit',
+                        'announcements',
+                        'grades',
+                        'messages',
+                        'notifications',
+                        'calendar',
+                        'next_up',
+                        'exams',
+                        'exam_detail',
+                        'exam_taking',
+                        'quizzes',
+                        'quiz_detail',
+                        'quiz_taking',
+                        'office_hours',
+                    ],
+                ],
+                'primary_flow' => [
+                    'login',
+                    'dashboard',
+                    'courses',
+                    'course_detail',
+                    'tasks',
+                    'announcements',
+                    'grades',
+                    'messages',
+                    'notifications',
+                    'calendar',
+                    'next_up',
+                ],
+                'sections' => [
+                    [
+                        'key' => 'auth',
+                        'title' => 'Authentication',
+                        'web' => ['login', 'logout', 'refresh', 'me', 'validate'],
+                        'api' => ['/api/login', '/api/logout', '/api/refresh', '/api/me', '/api/validate', '/api/profile'],
+                        'mobile_screens' => ['login'],
+                    ],
+                    [
+                        'key' => 'dashboard',
+                        'title' => 'Student Home',
+                        'web' => ['student.dashboard', 'student.calendar', 'student.next-up'],
+                        'api' => ['/api/student/dashboard', '/api/student/profile'],
+                        'mobile_screens' => ['home', 'calendar', 'next_up'],
+                        'notes' => 'This is the first post-login screen and should summarize courses, tasks, and announcements.',
+                    ],
+                    [
+                        'key' => 'courses',
+                        'title' => 'Courses',
+                        'web' => ['student.courses.index', 'student.courses.show'],
+                        'api' => ['/api/student/courses', '/api/student/courses/{course}', '/api/student/enrollments'],
+                        'mobile_screens' => ['courses', 'course_detail'],
+                        'subflows' => [
+                            'overview',
+                            'tasks',
+                            'resources',
+                            'discussion',
+                            'live_qna',
+                        ],
+                    ],
+                    [
+                        'key' => 'tasks',
+                        'title' => 'Tasks Hub',
+                        'web' => ['student.tasks.index', 'student.assignments.index', 'student.exams.index', 'student.quizzes.index'],
+                        'api' => ['/api/student/tasks', '/api/student/assignments', '/api/student/exams', '/api/student/quizzes'],
+                        'mobile_screens' => ['tasks', 'assignments', 'assignment_detail', 'assignment_submit', 'exams', 'exam_detail', 'exam_taking', 'quizzes', 'quiz_detail', 'quiz_taking'],
+                        'subflows' => [
+                            'assignment_view',
+                            'assignment_submit',
+                            'exam_start',
+                            'exam_submit',
+                            'quiz_start',
+                            'quiz_submit',
+                        ],
+                    ],
+                    [
+                        'key' => 'content',
+                        'title' => 'Announcements and Grades',
+                        'web' => ['student.announcements.index', 'student.grades.index'],
+                        'api' => ['/api/student/announcements', '/api/student/grades'],
+                        'mobile_screens' => ['announcements', 'grades'],
+                    ],
+                    [
+                        'key' => 'messages',
+                        'title' => 'Messages',
+                        'web' => ['messages.index', 'messages.courses.show', 'messages.courses.conversations.show'],
+                        'api' => ['/api/student/messages', '/api/student/courses/{course}/messages', '/api/student/conversations/{conversation}/messages'],
+                        'mobile_screens' => ['messages', 'conversation_list', 'conversation_detail'],
+                    ],
+                    [
+                        'key' => 'notifications',
+                        'title' => 'Notifications',
+                        'web' => ['student.notifications.read-all', 'student.notifications.open'],
+                        'api' => ['/api/student/notifications', '/api/student/notifications/read-all'],
+                        'mobile_screens' => ['notifications'],
+                    ],
+                    [
+                        'key' => 'office_hours',
+                        'title' => 'Office Hours',
+                        'web' => ['student.courses.office-hours.index', 'student.courses.office-hours.question.store'],
+                        'api' => ['/api/student/courses/{course}/office-hours', '/api/student/courses/{course}/office-hours/{officeHour}/question'],
+                        'mobile_screens' => ['office_hours'],
+                    ],
+                ],
+                'feature_parity_checklist' => [
+                    'dashboard',
+                    'calendar',
+                    'next_up',
+                    'courses',
+                    'course_overview',
+                    'course_resources',
+                    'course_discussions',
+                    'live_qna',
+                    'tasks',
+                    'assignments',
+                    'assignment_submission',
+                    'exams',
+                    'exam_taking',
+                    'quizzes',
+                    'quiz_taking',
+                    'announcements',
+                    'grades',
+                    'messages',
+                    'notifications',
+                    'office_hours',
+                ],
+            ],
+        ]);
+    }
+}

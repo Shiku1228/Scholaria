@@ -259,11 +259,25 @@ class TeacherQuizController extends Controller
             abort(403);
         }
 
-        // Delete related questions and attempts first
-        $quiz->questions()->delete();
-        $quiz->attempts()->delete();
+        DB::transaction(function () use ($quiz): void {
+            if (Schema::hasTable('quiz_attempts') && Schema::hasColumn('quiz_attempts', 'quiz_id')) {
+                $attemptIds = DB::table('quiz_attempts')
+                    ->where('quiz_id', $quiz->id)
+                    ->pluck('id');
 
-        $quiz->delete();
+                if ($attemptIds->isNotEmpty() && Schema::hasTable('quiz_answers') && Schema::hasColumn('quiz_answers', 'attempt_id')) {
+                    DB::table('quiz_answers')->whereIn('attempt_id', $attemptIds->all())->delete();
+                }
+
+                DB::table('quiz_attempts')->where('quiz_id', $quiz->id)->delete();
+            }
+
+            if (Schema::hasTable('quiz_questions') && Schema::hasColumn('quiz_questions', 'quiz_id')) {
+                DB::table('quiz_questions')->where('quiz_id', $quiz->id)->delete();
+            }
+
+            $quiz->delete();
+        });
 
         return redirect()->route('teacher.quizzes.index')->with('success', 'Quiz deleted successfully.');
     }

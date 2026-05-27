@@ -446,7 +446,7 @@
                 const response = await fetch(`/messages/conversations/${id}/messages`, { headers: { 'Accept': 'application/json' } });
                 if (!response.ok) return;
                 const data = await response.json();
-                messages = data.messages || [];
+                messages = (data.data && data.data.messages) || [];
                 lastMessageId = messages.length ? messages[messages.length - 1].id : 0;
 
                 selectedConversation.unread_count = 0;
@@ -481,8 +481,8 @@
                 });
                 if (!response.ok) return;
                 const data = await response.json();
-                if (data.message) {
-                    upsertMessage(data.message);
+                if (data.data && data.data.message) {
+                    upsertMessage(data.data.message);
                 }
             }
 
@@ -497,8 +497,8 @@
                 });
                 if (!response.ok) return;
                 const data = await response.json();
-                if (data.message) {
-                    upsertMessage(data.message);
+                if (data.data && data.data.message) {
+                    upsertMessage(data.data.message);
                 }
             }
 
@@ -524,7 +524,7 @@
                 const response = await fetch(`/messages/courses/${courseId}/conversations`, { headers: { 'Accept': 'application/json' } });
                 if (!response.ok) return;
                 const data = await response.json();
-                const updated = Array.isArray(data.conversations) ? data.conversations : [];
+                const updated = (data.data && Array.isArray(data.data.conversations)) ? data.data.conversations : [];
 
                 updated.forEach(item => {
                     const prev = previousUnreadMap[item.id] || 0;
@@ -552,7 +552,7 @@
                 const response = await fetch(`/messages/conversations/${selectedConversation.id}/messages?after_id=${lastMessageId}`, { headers: { 'Accept': 'application/json' } });
                 if (!response.ok) return;
                 const data = await response.json();
-                const chunk = data.messages || [];
+                const chunk = (data.data && data.data.messages) || [];
                 if (chunk.length) {
                     messages = messages.concat(chunk);
                     lastMessageId = messages[messages.length - 1].id;
@@ -598,9 +598,9 @@
                     return;
                 }
                 const data = await response.json();
-                if (data.message) {
-                    messages.push(data.message);
-                    lastMessageId = data.message.id;
+                if (data.data && data.data.message) {
+                    messages.push(data.data.message);
+                    lastMessageId = data.data.message.id;
                     inputEl.value = '';
                     attachmentInput.value = '';
                     attachmentMeta.classList.add('hidden');

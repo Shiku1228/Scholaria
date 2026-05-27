@@ -197,6 +197,14 @@ Example:
 - `GET /api/announcements`
 - `GET /api/courses/{id}/announcements`
 
+### Messages
+
+- `GET /api/student/messages`
+- `GET /api/student/courses/{id}/messages`
+- `GET /api/student/courses/{id}/messages/conversations`
+- `GET /api/student/conversations/{id}/messages`
+- `POST /api/student/conversations/{id}/messages`
+
 ### Assignments
 
 - `GET /api/assignments`
@@ -259,4 +267,4 @@ When updating this file later, include:
 - Android can reach the Laravel backend over LAN
 - API client is already set up in Android
 - next step is exposing more Laravel data as JSON endpoints
-
+- messaging endpoints are now available for Android API use

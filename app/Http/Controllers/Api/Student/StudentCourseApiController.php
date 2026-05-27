@@ -42,7 +42,7 @@ class StudentCourseApiController extends Controller
                     }
 
                     $select = [
-                        'courses.id as course_id',
+                        'courses.id',
                         'courses.' . $courseNameColumn . ' as course_name',
                     ];
 
@@ -65,7 +65,7 @@ class StudentCourseApiController extends Controller
                         ->orderByDesc('courses.id')
                         ->get();
 
-                    $courseIds = $rows->pluck('course_id')->map(fn ($value) => (int) $value)->filter()->values()->all();
+                    $courseIds = $rows->pluck('id')->map(fn ($value) => (int) $value)->filter()->values()->all();
                     $assignmentTotals = [];
                     $submissionTotals = [];
 
@@ -96,13 +96,13 @@ class StudentCourseApiController extends Controller
                     }
 
                     $courses = $rows->map(function ($row) use ($assignmentTotals, $submissionTotals) {
-                        $courseId = (int) ($row->course_id ?? 0);
+                        $courseId = (int) ($row->id ?? 0);
                         $total = (int) ($assignmentTotals[$courseId] ?? 0);
                         $done = (int) ($submissionTotals[$courseId] ?? 0);
                         $progress = $total > 0 ? (int) round(min(100, max(0, ($done / $total) * 100))) : 0;
 
                         return [
-                            'course_id' => $courseId,
+                            'id' => $courseId,
                             'course_name' => (string) ($row->course_name ?? ''),
                             'course_number' => (string) ($row->course_number ?? ''),
                             'semester' => (string) ($row->semester ?? ''),

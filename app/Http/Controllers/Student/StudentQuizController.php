@@ -40,7 +40,6 @@ class StudentQuizController extends Controller
             abort(403, 'You are not enrolled in this course.');
         }
 
-        // Check start date window
         if ($quiz->start_date && $quiz->start_date->isFuture()) {
             return back()->with('error', 'This quiz is not open yet. It starts on ' . $quiz->start_date->format('M j, Y g:i A'));
         }
@@ -117,7 +116,6 @@ class StudentQuizController extends Controller
             return back()->with('error', 'This quiz is not available.');
         }
 
-        // Check start date window
         if ($quiz->start_date && $quiz->start_date->isFuture()) {
             return back()->with('error', 'This quiz is not open yet.');
         }
@@ -202,10 +200,10 @@ class StudentQuizController extends Controller
             
             if ($question->question_type === 'short_answer') {
                 $isCorrect = strtolower(trim($submittedAnswer ?? '')) === strtolower(trim($question->correct_answer ?? ''));
-                $pointsEarned = $isCorrect ? $question->points : 0;
+                $pointsEarned = $isCorrect ? (int) $question->points : 0;
             } elseif (in_array($question->question_type, ['multiple_choice', 'true_false'])) {
                 $isCorrect = $question->correct_answer === $submittedAnswer;
-                $pointsEarned = $isCorrect ? $question->points : 0;
+                $pointsEarned = $isCorrect ? (int) $question->points : 0;
             } else {
                 $isCorrect = false;
                 $pointsEarned = 0;

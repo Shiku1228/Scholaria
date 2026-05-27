@@ -21,6 +21,13 @@
             <a href="{{ route('teacher.assignments.edit', [$course, $assignment]) }}" class="inline-flex items-center justify-center h-11 px-4 rounded-lg bg-gradient-to-r from-[#0b2d6b] to-[#0a275c] text-white text-sm font-semibold hover:shadow-lg transition-all">
                 <i data-lucide="pencil" class="h-4 w-4 mr-2"></i>Edit
             </a>
+            <form method="POST" action="{{ route('teacher.assignments.destroy', [$course, $assignment]) }}" onsubmit="return confirm('Delete this assignment? This cannot be undone.');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="inline-flex items-center justify-center h-11 px-4 rounded-lg border border-red-200 bg-red-50 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors shadow-sm">
+                    <i data-lucide="trash-2" class="h-4 w-4 mr-2"></i>Delete
+                </button>
+            </form>
         </div>
     </div>
 
@@ -293,4 +300,3 @@
         </div>
     </div>
 @endsection
-

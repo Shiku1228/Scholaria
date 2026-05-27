@@ -44,12 +44,13 @@ class TeacherTaskController extends Controller
                     ->leftJoin('users', 'submissions.student_id', '=', 'users.id')
                     ->select(
                         'assignments.*',
+                        'courses.id as course_id',
                         'courses.title as course_title',
                         'courses.course_number',
                         DB::raw('COUNT(DISTINCT submissions.id) as submission_count'),
                         DB::raw('COUNT(DISTINCT CASE WHEN submissions.submitted_at IS NOT NULL THEN submissions.id END) as completed_count')
                     )
-                    ->groupBy('assignments.id', 'courses.title', 'courses.course_number');
+                    ->groupBy('assignments.id', 'courses.id', 'courses.title', 'courses.course_number');
 
                 if ($courseId > 0) {
                     $assignmentsQuery->where('assignments.course_id', $courseId);
@@ -76,12 +77,13 @@ class TeacherTaskController extends Controller
                     ->leftJoin('student_exam_attempts', 'exams.id', '=', 'student_exam_attempts.exam_id')
                     ->select(
                         'exams.*',
+                        'courses.id as course_id',
                         'courses.title as course_title',
                         'courses.course_number',
                         DB::raw('COUNT(DISTINCT student_exam_attempts.id) as submission_count'),
                         DB::raw('COUNT(DISTINCT CASE WHEN student_exam_attempts.status IN (\'submitted\', \'graded\') THEN student_exam_attempts.id END) as completed_count')
                     )
-                    ->groupBy('exams.id', 'courses.title', 'courses.course_number');
+                    ->groupBy('exams.id', 'courses.id', 'courses.title', 'courses.course_number');
 
                 if ($courseId > 0) {
                     $examsQuery->where('exams.course_id', $courseId);
@@ -108,12 +110,13 @@ class TeacherTaskController extends Controller
                     ->leftJoin('quiz_attempts', 'quizzes.id', '=', 'quiz_attempts.quiz_id')
                     ->select(
                         'quizzes.*',
+                        'courses.id as course_id',
                         'courses.title as course_title',
                         'courses.course_number',
                         DB::raw('COUNT(DISTINCT quiz_attempts.id) as submission_count'),
                         DB::raw('COUNT(DISTINCT CASE WHEN quiz_attempts.status = \'submitted\' THEN quiz_attempts.id END) as completed_count')
                     )
-                    ->groupBy('quizzes.id', 'courses.title', 'courses.course_number');
+                    ->groupBy('quizzes.id', 'courses.id', 'courses.title', 'courses.course_number');
 
                 if ($courseId > 0) {
                     $quizzesQuery->where('quizzes.course_id', $courseId);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Student\Concerns\ResolvesStudentEnrollment;
 use App\Models\Quiz;
 use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Schema;
 
 class StudentQuizApiController extends Controller
 {
+    use ResolvesStudentEnrollment;
+
     public function index(Request $request): JsonResponse
     {
         $studentId = (int) $request->user()->id;
@@ -43,11 +46,8 @@ class StudentQuizApiController extends Controller
     {
         $studentId = (int) $request->user()->id;
 
-        if (!$this->isStudentEnrolled($studentId, (int) $quiz->course_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not enrolled in this course.',
-            ], 403);
+        if (!$this->hasStudentEnrollmentAccess($studentId, (int) $quiz->course_id)) {
+            return $this->enrollmentDeniedResponse($studentId, (int) $quiz->course_id);
         }
 
         if ($quiz->start_date && $quiz->start_date->isFuture()) {
@@ -71,6 +71,7 @@ class StudentQuizApiController extends Controller
         $activeAttempt = $attempts->where('status', 'in_progress')->first();
         $selectedAttempt = null;
         $questions = collect();
+        $questionsCount = $quiz->questions()->count();
         $state = 'available';
 
         if ($activeAttempt) {
@@ -81,6 +82,9 @@ class StudentQuizApiController extends Controller
                 : $quiz->questions()->whereIn('id', $questionIds)->get()->sortBy(fn ($question) => array_search($question->id, $questionIds))->values();
             $selectedAttempt = $activeAttempt;
         } else {
+            // Load questions for preview/detail even if not started
+            $questions = $quiz->questions()->orderBy('order')->get();
+
             $selectedAttemptId = $request->query('attempt_id');
             if ($selectedAttemptId) {
                 $selectedAttempt = $quiz->attempts()
@@ -100,7 +104,7 @@ class StudentQuizApiController extends Controller
             'success' => true,
             'data' => [
                 'state' => $state,
-                'quiz' => $this->mapQuiz($quiz, null),
+                'quiz' => $this->mapQuiz($quiz, null, $questionsCount),
                 'attempts' => $attempts->map(fn ($attempt) => $this->mapAttempt($attempt))->values()->all(),
                 'selected_attempt' => $selectedAttempt ? $this->mapAttemptDetailed($selectedAttempt) : null,
                 'questions' => $questions->map(fn ($question) => $this->mapQuestion($question, $state === 'in_progress'))->values()->all(),
@@ -112,11 +116,8 @@ class StudentQuizApiController extends Controller
     {
         $studentId = (int) $request->user()->id;
 
-        if (!$this->isStudentEnrolled($studentId, (int) $quiz->course_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not enrolled in this course.',
-            ], 403);
+        if (!$this->hasStudentEnrollmentAccess($studentId, (int) $quiz->course_id)) {
+            return $this->enrollmentDeniedResponse($studentId, (int) $quiz->course_id);
         }
 
         if (!$quiz->is_published) {
@@ -251,7 +252,7 @@ class StudentQuizApiController extends Controller
         ]);
     }
 
-    private function mapQuiz(Quiz $quiz, ?QuizAttempt $attempt): array
+    private function mapQuiz(Quiz $quiz, ?QuizAttempt $attempt, ?int $questionsCount = null): array
     {
         return [
             'id' => (int) $quiz->id,
@@ -277,6 +278,7 @@ class StudentQuizApiController extends Controller
                 'course_number' => (string) ($quiz->course->course_number ?? ''),
             ] : null,
             'attempt' => $attempt ? $this->mapAttempt($attempt) : null,
+            'questions_count' => $questionsCount ?? (int) $quiz->questions()->count(),
         ];
     }
 
@@ -321,7 +323,7 @@ class StudentQuizApiController extends Controller
             'quiz_id' => (int) $question->quiz_id,
             'question_text' => (string) ($question->question_text ?? ''),
             'question_type' => (string) ($question->question_type ?? ''),
-            'options' => $question->options ?? [],
+            'options' => is_array($question->options) ? $question->options : json_decode($question->options ?? '[]', true),
             'correct_answer' => $hideCorrectAnswer ? null : ($question->correct_answer ?? null),
             'explanation' => $includeExplanation ? ($question->explanation ?? null) : null,
             'points' => (int) ($question->points ?? 0),
@@ -329,24 +331,4 @@ class StudentQuizApiController extends Controller
         ];
     }
 
-    private function isStudentEnrolled(int $studentId, int $courseId): bool
-    {
-        try {
-            if (!Schema::hasTable('enrollments') || !Schema::hasColumn('enrollments', 'student_id') || !Schema::hasColumn('enrollments', 'course_id')) {
-                return false;
-            }
-
-            $query = DB::table('enrollments')
-                ->where('student_id', $studentId)
-                ->where('course_id', $courseId);
-
-            if (Schema::hasColumn('enrollments', 'status')) {
-                $query->whereRaw('LOWER(status) = ?', ['active']);
-            }
-
-            return $query->exists();
-        } catch (\Throwable) {
-            return false;
-        }
-    }
 }

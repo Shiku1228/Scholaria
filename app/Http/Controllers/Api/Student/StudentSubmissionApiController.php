@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Student\Concerns\ResolvesStudentEnrollment;
 use App\Models\Assignment;
 use App\Models\Submission;
 use Illuminate\Http\JsonResponse;
@@ -14,15 +15,108 @@ use Illuminate\Support\Str;
 
 class StudentSubmissionApiController extends Controller
 {
+    use ResolvesStudentEnrollment;
+
+    public function index(Request $request): JsonResponse
+    {
+        $studentId = (int) $request->user()->id;
+        $courseId = (int) $request->query('course_id', 0);
+        $submissions = [];
+
+        try {
+            if (!Schema::hasTable('submissions') || !Schema::hasColumn('submissions', 'student_id')) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'submissions' => [],
+                        'filters' => ['course_id' => $courseId],
+                    ],
+                ]);
+            }
+
+            $query = DB::table('submissions')
+                ->where('submissions.student_id', $studentId);
+
+            $hasAssignments = Schema::hasTable('assignments') && Schema::hasColumn('submissions', 'assignment_id');
+            if ($hasAssignments) {
+                $query->leftJoin('assignments', 'assignments.id', '=', 'submissions.assignment_id');
+            }
+
+            $courseNameColumn = $this->courseNameColumn();
+            $hasCourseJoin = $courseNameColumn && $hasAssignments && Schema::hasTable('courses') && Schema::hasColumn('assignments', 'course_id');
+            if ($hasCourseJoin) {
+                $query->leftJoin('courses', 'courses.id', '=', 'assignments.course_id');
+            }
+
+            if ($courseId > 0 && $hasAssignments && Schema::hasColumn('assignments', 'course_id')) {
+                $query->where('assignments.course_id', $courseId);
+            } elseif ($courseId > 0) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'submissions' => [],
+                        'filters' => ['course_id' => $courseId],
+                    ],
+                ]);
+            }
+
+            $select = [
+                'submissions.id as submission_id',
+                'submissions.assignment_id as assignment_id',
+                'submissions.student_id as student_id',
+            ];
+
+            foreach (['submission_type', 'content', 'file_path', 'submitted_at', 'score', 'feedback', 'created_at', 'updated_at'] as $column) {
+                if (Schema::hasColumn('submissions', $column)) {
+                    $select[] = 'submissions.' . $column . ' as ' . $column;
+                }
+            }
+
+            if ($hasAssignments && Schema::hasColumn('assignments', 'title')) {
+                $select[] = 'assignments.title as assignment_title';
+            }
+
+            if ($hasAssignments && Schema::hasColumn('assignments', 'due_date')) {
+                $select[] = 'assignments.due_date as due_date';
+            }
+
+            if ($hasAssignments && Schema::hasColumn('assignments', 'max_score')) {
+                $select[] = 'assignments.max_score as max_score';
+            }
+
+            if ($hasCourseJoin) {
+                $select[] = 'courses.' . $courseNameColumn . ' as course_name';
+            }
+
+            if ($hasAssignments && Schema::hasColumn('assignments', 'course_id')) {
+                $select[] = 'assignments.course_id as course_id';
+            }
+
+            $rows = $query
+                ->select($select)
+                ->orderByDesc(Schema::hasColumn('submissions', 'submitted_at') ? 'submissions.submitted_at' : 'submissions.id')
+                ->limit(300)
+                ->get();
+
+            $submissions = $rows->map(fn ($row) => $this->mapSubmissionRow($row))->values()->all();
+        } catch (\Throwable) {
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'submissions' => $submissions,
+                'filters' => ['course_id' => $courseId],
+            ],
+        ]);
+    }
+
     public function create(Request $request, Assignment $assignment): JsonResponse
     {
         $studentId = (int) $request->user()->id;
 
-        if (!$this->isStudentEnrolled($studentId, (int) $assignment->course_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not enrolled in this course.',
-            ], 403);
+        if (!$this->hasStudentEnrollmentAccess($studentId, (int) $assignment->course_id)) {
+            return $this->enrollmentDeniedResponse($studentId, (int) $assignment->course_id);
         }
 
         $submission = null;
@@ -64,11 +158,8 @@ class StudentSubmissionApiController extends Controller
     {
         $studentId = (int) $request->user()->id;
 
-        if (!$this->isStudentEnrolled($studentId, (int) $assignment->course_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not enrolled in this course.',
-            ], 403);
+        if (!$this->hasStudentEnrollmentAccess($studentId, (int) $assignment->course_id)) {
+            return $this->enrollmentDeniedResponse($studentId, (int) $assignment->course_id);
         }
 
         if (!Schema::hasTable('submissions')) {
@@ -145,24 +236,61 @@ class StudentSubmissionApiController extends Controller
         ]);
     }
 
-    private function isStudentEnrolled(int $studentId, int $courseId): bool
+    private function mapSubmissionRow(object $row): array
     {
-        try {
-            if (!Schema::hasTable('enrollments') || !Schema::hasColumn('enrollments', 'student_id') || !Schema::hasColumn('enrollments', 'course_id')) {
-                return false;
-            }
+        $score = $row->score ?? null;
+        $feedback = (string) ($row->feedback ?? '');
+        $submittedAt = (string) ($row->submitted_at ?? '');
+        $filePath = (string) ($row->file_path ?? '');
 
-            $query = DB::table('enrollments')
-                ->where('student_id', $studentId)
-                ->where('course_id', $courseId);
-
-            if (Schema::hasColumn('enrollments', 'status')) {
-                $query->whereRaw('LOWER(status) = ?', ['active']);
-            }
-
-            return $query->exists();
-        } catch (\Throwable) {
-            return false;
-        }
+        return [
+            'submission_id' => (int) ($row->submission_id ?? 0),
+            'assignment_id' => (int) ($row->assignment_id ?? 0),
+            'student_id' => (int) ($row->student_id ?? 0),
+            'course_id' => (int) ($row->course_id ?? 0),
+            'course_name' => (string) ($row->course_name ?? ''),
+            'assignment_title' => (string) ($row->assignment_title ?? ''),
+            'submission_type' => (string) ($row->submission_type ?? ''),
+            'content' => $row->content ?? null,
+            'file_path' => $filePath !== '' ? $filePath : null,
+            'file_url' => $filePath !== '' ? Storage::disk('public')->url($filePath) : null,
+            'due_date' => (string) ($row->due_date ?? ''),
+            'max_score' => $row->max_score !== null ? (int) $row->max_score : null,
+            'submitted_at' => $submittedAt !== '' ? $submittedAt : null,
+            'score' => $score !== null ? (int) $score : null,
+            'feedback' => $feedback !== '' ? $feedback : null,
+            'status' => $this->resolveStatus($row),
+            'created_at' => (string) ($row->created_at ?? ''),
+            'updated_at' => (string) ($row->updated_at ?? ''),
+        ];
     }
+
+    private function resolveStatus(object $row): string
+    {
+        if (($row->score ?? null) !== null || !empty($row->feedback)) {
+            return 'graded';
+        }
+
+        if (!empty($row->submitted_at)) {
+            return 'submitted';
+        }
+
+        return 'draft';
+    }
+
+    private function courseNameColumn(): ?string
+    {
+        if (!Schema::hasTable('courses')) {
+            return null;
+        }
+
+        foreach (['title', 'name', 'course_name'] as $column) {
+            if (Schema::hasColumn('courses', $column)) {
+                return $column;
+            }
+        }
+
+        return null;
+    }
+
 }

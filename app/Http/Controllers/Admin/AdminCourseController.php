@@ -11,6 +11,7 @@ use App\Notifications\CourseEventNotification;
 use App\Services\CourseChatGroupService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -120,7 +121,83 @@ class AdminCourseController extends Controller
 
     public function destroy(Course $course)
     {
-        $course->delete();
+        DB::transaction(function () use ($course): void {
+            $courseId = (int) $course->id;
+
+            if (Schema::hasTable('assignments') && Schema::hasColumn('assignments', 'course_id')) {
+                $assignmentIds = DB::table('assignments')->where('course_id', $courseId)->pluck('id');
+
+                if ($assignmentIds->isNotEmpty()) {
+                    if (Schema::hasTable('grades') && Schema::hasColumn('grades', 'assignment_id')) {
+                        DB::table('grades')->whereIn('assignment_id', $assignmentIds->all())->delete();
+                    }
+
+                    if (Schema::hasTable('submissions') && Schema::hasColumn('submissions', 'assignment_id')) {
+                        DB::table('submissions')->whereIn('assignment_id', $assignmentIds->all())->delete();
+                    }
+                }
+
+                DB::table('assignments')->where('course_id', $courseId)->delete();
+            }
+
+            if (Schema::hasTable('quizzes') && Schema::hasColumn('quizzes', 'course_id')) {
+                $quizIds = DB::table('quizzes')->where('course_id', $courseId)->pluck('id');
+
+                if ($quizIds->isNotEmpty()) {
+                    if (Schema::hasTable('quiz_attempts') && Schema::hasColumn('quiz_attempts', 'quiz_id')) {
+                        $quizAttemptIds = DB::table('quiz_attempts')->whereIn('quiz_id', $quizIds->all())->pluck('id');
+                        if ($quizAttemptIds->isNotEmpty() && Schema::hasTable('quiz_answers') && Schema::hasColumn('quiz_answers', 'attempt_id')) {
+                            DB::table('quiz_answers')->whereIn('attempt_id', $quizAttemptIds->all())->delete();
+                        }
+                        DB::table('quiz_attempts')->whereIn('quiz_id', $quizIds->all())->delete();
+                    }
+
+                    if (Schema::hasTable('quiz_questions') && Schema::hasColumn('quiz_questions', 'quiz_id')) {
+                        DB::table('quiz_questions')->whereIn('quiz_id', $quizIds->all())->delete();
+                    }
+                }
+
+                DB::table('quizzes')->where('course_id', $courseId)->delete();
+            }
+
+            if (Schema::hasTable('exams') && Schema::hasColumn('exams', 'course_id')) {
+                $examIds = DB::table('exams')->where('course_id', $courseId)->pluck('id');
+
+                if ($examIds->isNotEmpty()) {
+                    if (Schema::hasTable('student_exam_attempts') && Schema::hasColumn('student_exam_attempts', 'exam_id')) {
+                        $examAttemptIds = DB::table('student_exam_attempts')->whereIn('exam_id', $examIds->all())->pluck('id');
+                        if ($examAttemptIds->isNotEmpty() && Schema::hasTable('exam_answers') && Schema::hasColumn('exam_answers', 'attempt_id')) {
+                            DB::table('exam_answers')->whereIn('attempt_id', $examAttemptIds->all())->delete();
+                        }
+                        DB::table('student_exam_attempts')->whereIn('exam_id', $examIds->all())->delete();
+                    }
+
+                    if (Schema::hasTable('exam_questions') && Schema::hasColumn('exam_questions', 'exam_id')) {
+                        DB::table('exam_questions')->whereIn('exam_id', $examIds->all())->delete();
+                    }
+                }
+
+                DB::table('exams')->where('course_id', $courseId)->delete();
+            }
+
+            if (Schema::hasTable('announcements') && Schema::hasColumn('announcements', 'course_id')) {
+                DB::table('announcements')->where('course_id', $courseId)->delete();
+            }
+
+            if (Schema::hasTable('course_resources') && Schema::hasColumn('course_resources', 'course_id')) {
+                DB::table('course_resources')->where('course_id', $courseId)->delete();
+            }
+
+            if (Schema::hasTable('course_discussions') && Schema::hasColumn('course_discussions', 'course_id')) {
+                DB::table('course_discussions')->where('course_id', $courseId)->delete();
+            }
+
+            if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'course_id')) {
+                DB::table('enrollments')->where('course_id', $courseId)->delete();
+            }
+
+            $course->delete();
+        });
 
         return redirect()->route('admin.courses.index')->with('success', 'Course deleted.');
     }

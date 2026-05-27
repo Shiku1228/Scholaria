@@ -23,7 +23,7 @@ class CourseMessagingController extends Controller
     {
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $user = $request->user();
         $courses = $this->accessibleCourses($user);
@@ -51,10 +51,20 @@ class CourseMessagingController extends Controller
             ];
         })->values();
 
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Messages loaded successfully.',
+                'data' => [
+                    'courses' => $courseCards,
+                ],
+            ]);
+        }
+
         return view('messages.index', ['courses' => $courseCards]);
     }
 
-    public function course(Request $request, Course $course): View
+    public function course(Request $request, Course $course): View|JsonResponse
     {
         $this->ensureCourseAccess($request->user(), $course);
         $space = $this->chatService->syncCourseMembers($course);
@@ -103,6 +113,27 @@ class CourseMessagingController extends Controller
             ])
             ->values();
 
+        $payload = [
+            'success' => true,
+            'message' => 'Course messages loaded successfully.',
+            'data' => [
+                'course' => [
+                    'id' => (int) $course->id,
+                    'course_number' => (string) ($course->course_number ?? ''),
+                    'title' => (string) ($course->title ?? ''),
+                ],
+                'conversationItems' => $conversationItems->values(),
+                'selectedConversation' => $selected,
+                'messages' => $selectedModel ? $this->messagesCollection($selectedModel) : collect(),
+                'courseMemberCount' => (int) $space->members()->count(),
+                'courseMemberSamples' => $memberSamples,
+            ],
+        ];
+
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json($payload);
+        }
+
         return view('messages.course', [
             'course' => $course,
             'conversationItems' => $conversationItems->values(),
@@ -124,7 +155,13 @@ class CourseMessagingController extends Controller
             ->orderBy('users.name')
             ->get();
 
-        return response()->json(['members' => $members]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Course members loaded successfully.',
+            'data' => [
+                'members' => $members,
+            ],
+        ]);
     }
 
     public function conversations(Request $request, Course $course): JsonResponse
@@ -149,7 +186,13 @@ class CourseMessagingController extends Controller
             }
         }
 
-        return response()->json(['conversations' => $items->values()]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Conversations loaded successfully.',
+            'data' => [
+                'conversations' => $items->values(),
+            ],
+        ]);
     }
 
     public function startPrivate(Request $request, Course $course, User $user): JsonResponse
@@ -163,7 +206,11 @@ class CourseMessagingController extends Controller
         $this->authorize('view', $conversation);
 
         return response()->json([
-            'conversation' => $this->serializeConversationItem($conversation, (int) $request->user()->id, (string) $user->name),
+            'success' => true,
+            'message' => 'Private conversation ready.',
+            'data' => [
+                'conversation' => $this->serializeConversationItem($conversation, (int) $request->user()->id, (string) $user->name),
+            ],
         ]);
     }
 
@@ -176,7 +223,11 @@ class CourseMessagingController extends Controller
         $this->authorize('view', $conversation);
 
         return response()->json([
-            'conversation' => $this->serializeConversationItem($conversation, (int) $request->user()->id),
+            'success' => true,
+            'message' => 'Conversation loaded successfully.',
+            'data' => [
+                'conversation' => $this->serializeConversationItem($conversation, (int) $request->user()->id),
+            ],
         ]);
     }
 
@@ -197,7 +248,13 @@ class CourseMessagingController extends Controller
         $messages = $query->limit(100)->get()->map(fn (ChatMessage $m) => $this->serializeMessage($m));
         $conversation->participants()->updateExistingPivot((int) $request->user()->id, ['last_read_at' => now()]);
 
-        return response()->json(['messages' => $messages]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Messages loaded successfully.',
+            'data' => [
+                'messages' => $messages,
+            ],
+        ]);
     }
 
     public function storeMessage(StoreChatMessageRequest $request, ChatConversation $conversation): JsonResponse
@@ -228,7 +285,13 @@ class CourseMessagingController extends Controller
 
         $conversation->participants()->updateExistingPivot((int) $request->user()->id, ['last_read_at' => now()]);
 
-        return response()->json(['message' => $this->serializeMessage($message)], 201);
+        return response()->json([
+            'success' => true,
+            'message' => 'Message sent successfully.',
+            'data' => [
+                'message' => $this->serializeMessage($message),
+            ],
+        ], 201);
     }
 
     public function updateMessage(UpdateChatMessageRequest $request, ChatMessage $message): JsonResponse
@@ -241,7 +304,11 @@ class CourseMessagingController extends Controller
         ]);
 
         return response()->json([
-            'message' => $this->serializeMessage($message->fresh(['user:id,name', 'reactions:user_id,emoji,chat_message_id'])),
+            'success' => true,
+            'message' => 'Message updated successfully.',
+            'data' => [
+                'message' => $this->serializeMessage($message->fresh(['user:id,name', 'reactions:user_id,emoji,chat_message_id'])),
+            ],
         ]);
     }
 
@@ -259,7 +326,11 @@ class CourseMessagingController extends Controller
         ]);
 
         return response()->json([
-            'message' => $this->serializeMessage($message->fresh(['user:id,name', 'reactions:user_id,emoji,chat_message_id'])),
+            'success' => true,
+            'message' => 'Message deleted successfully.',
+            'data' => [
+                'message' => $this->serializeMessage($message->fresh(['user:id,name', 'reactions:user_id,emoji,chat_message_id'])),
+            ],
         ]);
     }
 
@@ -431,7 +502,11 @@ class CourseMessagingController extends Controller
             'message' => (string) ($message->message ?? ''),
             'attachment_name' => $message->attachment_name,
             'attachment_type' => $message->attachment_type,
-            'attachment_url' => $message->attachment_path ? route('messages.attachment', $message) : null,
+            'attachment_url' => $message->attachment_path
+                ? (request()->is('api/*')
+                    ? route('api.student.messages.attachment', $message)
+                    : route('messages.attachment', $message))
+                : null,
             'is_system' => (bool) $message->is_system,
             'is_deleted' => $message->deleted_at !== null,
             'is_edited' => $message->edited_at !== null,

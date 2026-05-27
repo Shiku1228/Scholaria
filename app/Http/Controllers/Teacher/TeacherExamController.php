@@ -281,7 +281,25 @@ class TeacherExamController extends Controller
             abort(403);
         }
 
-        $exam->delete();
+        DB::transaction(function () use ($exam): void {
+            if (Schema::hasTable('student_exam_attempts') && Schema::hasColumn('student_exam_attempts', 'exam_id')) {
+                $attemptIds = DB::table('student_exam_attempts')
+                    ->where('exam_id', $exam->id)
+                    ->pluck('id');
+
+                if ($attemptIds->isNotEmpty() && Schema::hasTable('exam_answers') && Schema::hasColumn('exam_answers', 'attempt_id')) {
+                    DB::table('exam_answers')->whereIn('attempt_id', $attemptIds->all())->delete();
+                }
+
+                DB::table('student_exam_attempts')->where('exam_id', $exam->id)->delete();
+            }
+
+            if (Schema::hasTable('exam_questions') && Schema::hasColumn('exam_questions', 'exam_id')) {
+                DB::table('exam_questions')->where('exam_id', $exam->id)->delete();
+            }
+
+            $exam->delete();
+        });
         \Log::debug('Exam ' . $exam->id . ' deleted successfully');
 
         return redirect()->route('teacher.exams.index')->with('success', 'Exam deleted successfully.');

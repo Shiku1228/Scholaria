@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
@@ -26,6 +27,8 @@ class JwtMiddleware
 
             // Add user to request for easy access in controllers
             $request->merge(['auth_user' => $user]);
+            $request->setUserResolver(fn () => $user);
+            Auth::setUser($user);
 
             return $next($request);
 

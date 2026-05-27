@@ -77,7 +77,7 @@ class StudentDashboardApiController extends Controller
                         }
 
                         $select = [
-                            'courses.id as course_id',
+                            'courses.id',
                             'courses.' . $nameCol . ' as course_name',
                         ];
 
@@ -101,7 +101,7 @@ class StudentDashboardApiController extends Controller
                             ->limit(12)
                             ->get();
 
-                        $courseIds = $courseRows->pluck('course_id')->map(fn ($value) => (int) $value)->filter()->values()->all();
+                        $courseIds = $courseRows->pluck('id')->map(fn ($value) => (int) $value)->filter()->values()->all();
 
                         $assignmentTotals = [];
                         $submissionTotals = [];
@@ -134,13 +134,13 @@ class StudentDashboardApiController extends Controller
 
                         $myCourses = $courseRows
                             ->map(function ($row) use ($assignmentTotals, $submissionTotals) {
-                                $courseId = (int) ($row->course_id ?? 0);
+                                $courseId = (int) ($row->id ?? 0);
                                 $total = (int) ($assignmentTotals[$courseId] ?? 0);
                                 $done = (int) ($submissionTotals[$courseId] ?? 0);
                                 $progress = $total > 0 ? (int) round(min(100, max(0, ($done / $total) * 100))) : 0;
 
                                 return [
-                                    'course_id' => $courseId,
+                                    'id' => $courseId,
                                     'course_name' => (string) ($row->course_name ?? ''),
                                     'course_number' => (string) ($row->course_number ?? ''),
                                     'semester' => (string) ($row->semester ?? ''),
@@ -158,7 +158,7 @@ class StudentDashboardApiController extends Controller
 
                         $learningProgress = collect($myCourses)
                             ->map(fn (array $course) => [
-                                'course_id' => (int) ($course['course_id'] ?? 0),
+                                'id' => (int) ($course['id'] ?? 0),
                                 'course_name' => (string) ($course['course_name'] ?? ''),
                                 'progress' => (int) ($course['progress'] ?? 0),
                             ])

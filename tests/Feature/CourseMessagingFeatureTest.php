@@ -71,7 +71,7 @@ class CourseMessagingFeatureTest extends TestCase
         $this->actingAs($student)
             ->postJson('/messages/courses/' . $courseA->id . '/private-chat/' . $teacher->id)
             ->assertOk()
-            ->assertJsonPath('conversation.type', 'private');
+            ->assertJsonPath('data.conversation.type', 'private');
     }
 
     public function test_user_cannot_start_private_chat_with_someone_outside_course(): void
@@ -110,7 +110,7 @@ class CourseMessagingFeatureTest extends TestCase
         $this->actingAs($student)
             ->postJson('/messages/conversations/' . $conversation->id . '/messages', ['message' => 'Hello group'])
             ->assertCreated()
-            ->assertJsonPath('message.message', 'Hello group');
+            ->assertJsonPath('data.message.message', 'Hello group');
     }
 
     public function test_default_group_conversation_is_auto_created_per_course(): void

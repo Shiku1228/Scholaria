@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Student\Concerns\ResolvesStudentEnrollment;
 use App\Models\Assignment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Schema;
 
 class StudentAssignmentApiController extends Controller
 {
+    use ResolvesStudentEnrollment;
+
     public function index(Request $request): JsonResponse
     {
         $studentId = (int) $request->user()->id;
@@ -30,6 +33,9 @@ class StudentAssignmentApiController extends Controller
 
             $enrolledCourseIds = DB::table('enrollments')
                 ->where('student_id', $studentId)
+                ->when(Schema::hasColumn('enrollments', 'status'), function ($query): void {
+                    $query->whereRaw('LOWER(COALESCE(status, ?)) <> ?', ['dropped', 'dropped']);
+                })
                 ->pluck('course_id')
                 ->map(fn ($value) => (int) $value)
                 ->filter()
@@ -41,10 +47,7 @@ class StudentAssignmentApiController extends Controller
             }
 
             if ($courseId > 0 && !in_array($courseId, $enrolledCourseIds, true)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not enrolled in this course.',
-                ], 403);
+                return $this->enrollmentDeniedResponse($studentId, $courseId);
             }
 
             $query = DB::table('assignments');
@@ -136,13 +139,13 @@ class StudentAssignmentApiController extends Controller
                     $isEnrolled = DB::table('enrollments')
                         ->where('student_id', $studentId)
                         ->where('course_id', $courseId)
+                        ->when(Schema::hasColumn('enrollments', 'status'), function ($query): void {
+                            $query->whereRaw('LOWER(COALESCE(status, ?)) <> ?', ['dropped', 'dropped']);
+                        })
                         ->exists();
 
                     if (!$isEnrolled) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'You are not enrolled in this course.',
-                        ], 403);
+                        return $this->enrollmentDeniedResponse($studentId, (int) $assignment->course_id);
                     }
                 }
             }

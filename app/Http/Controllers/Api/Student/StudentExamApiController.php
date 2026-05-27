@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Student\Concerns\ResolvesStudentEnrollment;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Models\ExamQuestion;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Schema;
 
 class StudentExamApiController extends Controller
 {
+    use ResolvesStudentEnrollment;
+
     public function index(Request $request): JsonResponse
     {
         $studentId = (int) $request->user()->id;
@@ -33,7 +36,9 @@ class StudentExamApiController extends Controller
             ->get()
             ->unique('exam_id')
             ->keyBy('exam_id');
-
+        
+        // Note: index doesn't easily have question counts without heavy queries,
+        // so we rely on show() for detailed question metadata.
         return response()->json([
             'success' => true,
             'data' => [
@@ -52,11 +57,8 @@ class StudentExamApiController extends Controller
     {
         $studentId = (int) $request->user()->id;
 
-        if (!$this->isStudentEnrolled($studentId, (int) $exam->course_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not enrolled in this course.',
-            ], 403);
+        if (!$this->hasStudentEnrollmentAccess($studentId, (int) $exam->course_id)) {
+            return $this->enrollmentDeniedResponse($studentId, (int) $exam->course_id);
         }
 
         if ($exam->exam_date && $exam->exam_date->isFuture()) {
@@ -81,6 +83,7 @@ class StudentExamApiController extends Controller
         $activeAttempt = $attempts->where('status', 'in_progress')->first();
         $selectedAttempt = null;
         $questions = collect();
+        $questionsCount = $exam->questions()->count();
         $state = 'available';
 
         if ($activeAttempt) {
@@ -94,6 +97,9 @@ class StudentExamApiController extends Controller
         } elseif ($exam->due_date && $exam->due_date->isPast() && $attempts->isEmpty()) {
             $state = 'missed';
         } else {
+            // Load questions for preview/detail even if not started
+            $questions = $exam->questions()->orderBy('order')->get();
+
             $selectedAttemptId = $request->query('attempt_id');
             if ($selectedAttemptId) {
                 $selectedAttempt = StudentExamAttempt::query()
@@ -114,7 +120,7 @@ class StudentExamApiController extends Controller
             'success' => true,
             'data' => [
                 'state' => $state,
-                'exam' => $this->mapExam($exam),
+                'exam' => $this->mapExam($exam, null, $questionsCount),
                 'attempts' => $attempts->map(fn ($attempt) => $this->mapAttempt($attempt))->values()->all(),
                 'selected_attempt' => $selectedAttempt ? $this->mapAttemptDetailed($selectedAttempt) : null,
                 'questions' => $questions->map(fn ($question) => $this->mapQuestion($question, $state === 'in_progress'))->values()->all(),
@@ -126,11 +132,8 @@ class StudentExamApiController extends Controller
     {
         $studentId = (int) $request->user()->id;
 
-        if (!$this->isStudentEnrolled($studentId, (int) $exam->course_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not enrolled in this course.',
-            ], 403);
+        if (!$this->hasStudentEnrollmentAccess($studentId, (int) $exam->course_id)) {
+            return $this->enrollmentDeniedResponse($studentId, (int) $exam->course_id);
         }
 
         if (!$exam->is_published || !$exam->isOnline()) {
@@ -264,7 +267,7 @@ class StudentExamApiController extends Controller
         ]);
     }
 
-    private function mapExam(Exam $exam, ?StudentExamAttempt $attempt = null): array
+    private function mapExam(Exam $exam, ?StudentExamAttempt $attempt = null, ?int $questionsCount = null): array
     {
         return [
             'id' => (int) $exam->id,
@@ -291,6 +294,7 @@ class StudentExamApiController extends Controller
                 'course_number' => (string) ($exam->course->course_number ?? ''),
             ] : null,
             'attempt' => $attempt ? $this->mapAttempt($attempt) : null,
+            'questions_count' => $questionsCount ?? (int) $exam->questions()->count(),
         ];
     }
 
@@ -335,7 +339,7 @@ class StudentExamApiController extends Controller
             'exam_id' => (int) $question->exam_id,
             'question_text' => (string) ($question->question_text ?? ''),
             'question_type' => (string) ($question->question_type ?? ''),
-            'options' => $question->options ?? [],
+            'options' => is_array($question->options) ? $question->options : json_decode($question->options ?? '[]', true),
             'correct_answer' => $hideCorrectAnswer ? null : ($question->correct_answer ?? null),
             'explanation' => $includeExplanation ? ($question->explanation ?? null) : null,
             'points' => (int) ($question->points ?? 0),
@@ -343,24 +347,4 @@ class StudentExamApiController extends Controller
         ];
     }
 
-    private function isStudentEnrolled(int $studentId, int $courseId): bool
-    {
-        try {
-            if (!Schema::hasTable('enrollments') || !Schema::hasColumn('enrollments', 'student_id') || !Schema::hasColumn('enrollments', 'course_id')) {
-                return false;
-            }
-
-            $query = DB::table('enrollments')
-                ->where('student_id', $studentId)
-                ->where('course_id', $courseId);
-
-            if (Schema::hasColumn('enrollments', 'status')) {
-                $query->whereRaw('LOWER(status) = ?', ['active']);
-            }
-
-            return $query->exists();
-        } catch (\Throwable) {
-            return false;
-        }
-    }
 }
