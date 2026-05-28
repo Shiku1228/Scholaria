@@ -462,26 +462,29 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
 
                     <View style={styles.sectionBlockInner}>
                       <Text style={[styles.sectionTitle, { color: theme.text }]}>Assignments</Text>
-                      {assignments.length ? (
-                        assignments.map((assignment, index) => (
-                          // Ensure assignment is not null/undefined before rendering its properties
+                      {assignments.length > 0 ? (
+                        assignments.map((assignment, index) =>
                           assignment ? (
                             <Pressable
-                              key={`assignment-${index}-${getItemKey(assignment, ['assignment_id', 'id'], 'no-id')}`}
-                              onPress={() => { setSelectedItem(assignment); setActiveTab('assignmentSubmit'); }}
+                              key={getItemKey(assignment, ['assignment_id', 'id'], `assignment-${index}`)}
+                              onPress={() => {
+                                setSelectedItem(assignment);
+                                setActiveTab('assignmentSubmit');
+                              }}
                               style={[styles.activityCard, { backgroundColor: theme.input, borderColor: theme.border }]}
                             >
                               <View style={styles.activityTopRow}>
                                 <View style={styles.activityTextWrap}>
-                                  <Text style={[styles.activityTitle, { color: theme.text }]}>{assignment.title}</Text>
+                                  <Text style={[styles.activityTitle, { color: theme.text }]}>
+                                    {assignment.title}
+                                  </Text>
                                   <Text style={[styles.activityMeta, { color: theme.muted }]}>
                                     {assignment.due_date || 'No due date'} •{' '}
                                     {assignment.submission_id ? 'Submitted' : 'Pending'}
                                   </Text>
                                 </View>
 
-                                <View
-                                  style={[styles.submitButtonSmall, { backgroundColor: theme.accentSoftAlt }]}
+                                <View style={[styles.submitButtonSmall, { backgroundColor: theme.accentSoftAlt }]}
                                 >
                                   <Text style={[styles.submitButtonSmallText, { color: '#FFFFFF' }]}>
                                     {assignment.submission_id ? 'Resubmit' : 'Open'}
@@ -489,8 +492,8 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
                                 </View>
                               </View>
                             </Pressable>
-                          ) : null // Render nothing if assignment is null/undefined
-                        ))
+                          ) : null
+                        )
                       ) : (
                         <Text style={[styles.emptyText, { color: theme.muted }]}>No assignments yet.</Text>
                       )}
@@ -498,26 +501,31 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
 
                     <View style={styles.sectionBlockInner}>
                       <Text style={[styles.sectionTitle, { color: theme.text }]}>Exams</Text>
-                      {currentCourse.exams?.length ? (
-                        currentCourse.exams.map((exam, index) => ( // Changed View to Pressable
-                          <Pressable
-                            key={getItemKey(exam, ['id', 'exam_id'], `exam-${index}`)}
-                            onPress={() => { setSelectedItem(exam); setActiveTab('exam'); }}
-                            style={[styles.activityCard, { backgroundColor: theme.input, borderColor: theme.border }]}
-                          >
-                            <View style={styles.activityTopRow}>
-                              <View style={styles.activityTextWrap}>
-                                <Text style={[styles.activityTitle, { color: theme.text }]}>{exam.title}</Text>
-                                <Text style={[styles.activityMeta, { color: theme.muted }]}>
-                                  {exam.exam_date || exam.due_date || 'No date'} • {exam.attempts?.length ? 'Has attempts' : 'No attempt yet'}
-                                </Text>
+                      {currentCourse.exams?.length > 0 ? (
+                        currentCourse.exams.map((exam, index) =>
+                          exam ? (
+                            <Pressable
+                              key={getItemKey(exam, ['id', 'exam_id'], `exam-${index}`)}
+                              onPress={() => {
+                                setSelectedItem(exam);
+                                setActiveTab('exam');
+                              }}
+                              style={[styles.activityCard, { backgroundColor: theme.input, borderColor: theme.border }]}
+                            >
+                              <View style={styles.activityTopRow}>
+                                <View style={styles.activityTextWrap}>
+                                  <Text style={[styles.activityTitle, { color: theme.text }]}>{exam.title}</Text>
+                                  <Text style={[styles.activityMeta, { color: theme.muted }]}>
+                                    {exam.exam_date || exam.due_date || 'No date'} • {exam.attempts?.length ? 'Has attempts' : 'No attempt yet'}
+                                  </Text>
+                                </View>
+                                <View style={[styles.linkPill, { backgroundColor: theme.accentSoftAlt }]}>
+                                  <Text style={[styles.linkPillText, { color: theme.accent }]}>Exam</Text>
+                                </View>
                               </View>
-                              <View style={[styles.linkPill, { backgroundColor: theme.accentSoftAlt }]}>
-                                <Text style={[styles.linkPillText, { color: theme.accent }]}>Exam</Text>
-                              </View>
-                            </View>
-                          </Pressable>
-                        ))
+                            </Pressable>
+                          ) : null
+                        )
                       ) : (
                         <Text style={[styles.emptyText, { color: theme.muted }]}>No exams yet.</Text>
                       )}
@@ -525,26 +533,33 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
 
                     <View style={styles.sectionBlockInner}>
                       <Text style={[styles.sectionTitle, { color: theme.text }]}>Quizzes</Text>
-                      {currentCourse.quizzes?.length ? (
-                        currentCourse.quizzes.map((quiz, index) => ( // Changed View to Pressable
-                          <Pressable
-                            key={getItemKey(quiz, ['id', 'quiz_id'], `quiz-${index}`)}
-                            onPress={() => { setSelectedItem(quiz); setActiveTab('quiz'); }}
-                            style={[styles.activityCard, { backgroundColor: theme.input, borderColor: theme.border }]}
-                          >
-                            <View style={styles.activityTopRow}>
-                              <View style={styles.activityTextWrap}>
-                                <Text style={[styles.activityTitle, { color: theme.text }]}>{quiz.title}</Text>
-                                <Text style={[styles.activityMeta, { color: theme.muted }]}>
-                                  {quiz.due_date || quiz.start_date || 'No date'} • {quiz.attempts?.length ? 'Has attempts' : 'No attempt yet'}
-                                </Text>
+
+                      {currentCourse.quizzes?.length > 0 ? (
+                        currentCourse.quizzes.map((quiz, index) =>
+                          quiz ? (
+                            <Pressable
+                              key={getItemKey(quiz, ['id', 'quiz_id'], `quiz-${index}`)}
+                              onPress={() => {
+                                setSelectedItem(quiz);
+                                setActiveTab('quiz');
+                              }}
+                              style={[styles.activityCard, { backgroundColor: theme.input, borderColor: theme.border }]}
+                            >
+                              <View style={styles.activityTopRow}>
+                                <View style={styles.activityTextWrap}>
+                                  <Text style={[styles.activityTitle, { color: theme.text }]}>{quiz.title}</Text>
+                                  <Text style={[styles.activityMeta, { color: theme.muted }]}>
+                                    {quiz.due_date || quiz.start_date || 'No date'} •{' '}
+                                    {quiz.attempts?.length ? 'Has attempts' : 'No attempt yet'}
+                                  </Text>
+                                </View>
+                                <View style={[styles.linkPill, { backgroundColor: theme.accentSoftAlt }]}>
+                                  <Text style={[styles.linkPillText, { color: theme.accent }]}>Quiz</Text>
+                                </View>
                               </View>
-                              <View style={[styles.linkPill, { backgroundColor: theme.accentSoftAlt }]}>
-                                <Text style={[styles.linkPillText, { color: theme.accent }]}>Quiz</Text>
-                              </View>
-                            </View>
-                          </Pressable>
-                        ))
+                            </Pressable>
+                          ) : null
+                        )
                       ) : (
                         <Text style={[styles.emptyText, { color: theme.muted }]}>No quizzes yet.</Text>
                       )}
