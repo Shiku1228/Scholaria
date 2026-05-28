@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use PragmaRX\Google2FA\Google2FA;
+use Illuminate\Support\Facades\Crypt;
 
 class JwtAuthController extends Controller
 {
@@ -46,7 +48,72 @@ class JwtAuthController extends Controller
         }
 
         $user = auth()->user();
-        
+
+        // Check if MFA is enabled for the user
+        if ($user->google2fa_enabled && $user->google2fa_secret) {
+            return response()->json([
+                'success' => true,
+                'requires_mfa' => true,
+                'message' => 'MFA verification required',
+                'temp_token' => $token,
+                'user_id' => $user->id
+            ]);
+        }
+
+        return $this->respondWithToken($token);
+    }
+
+    /**
+     * Step 2: Verify MFA code and return final response
+     */
+    public function verifyMfa(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'mfa_code' => 'required|string|size:6',
+            'temp_token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Use the temp_token to identify the user
+            $user = JWTAuth::setToken($request->temp_token)->toUser();
+
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            }
+
+            $google2fa = new Google2FA();
+            $secret = Crypt::decryptString($user->google2fa_secret);
+
+            if ($google2fa->verifyKey($secret, $request->mfa_code)) {
+                return $this->respondWithToken($request->temp_token);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid verification code'
+            ], 401);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'MFA verification failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper to return consistent token response
+     */
+    protected function respondWithToken($token)
+    {
+        $user = auth()->user();
         return response()->json([
             'success' => true,
             'token' => $token,
@@ -56,7 +123,7 @@ class JwtAuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'roles' => $user->getRoleNames()
+                'roles' => method_exists($user, 'getRoleNames') ? $user->getRoleNames() : []
             ]
         ]);
     }

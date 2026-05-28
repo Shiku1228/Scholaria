@@ -20,6 +20,7 @@ use App\Http\Controllers\Messaging\CourseMessagingController;
 Route::middleware('api')->group(function () {
     Route::post('/login', [JwtAuthController::class, 'login'])->name('api.login');
     Route::get('/login', [JwtAuthController::class, 'login'])->name('api.login.get');
+    Route::post('/verify-mfa', [JwtAuthController::class, 'verifyMfa'])->name('api.verify-mfa');
     Route::post('/logout', [JwtAuthController::class, 'logout'])->name('api.logout');
     Route::get('/logout', [JwtAuthController::class, 'logout'])->name('logout.get');
     Route::post('/refresh', [JwtAuthController::class, 'refresh'])->name('refresh');
