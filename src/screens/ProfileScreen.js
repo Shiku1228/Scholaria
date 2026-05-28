@@ -67,7 +67,7 @@ export default function ProfileScreen({ user, onLogout, setActiveTab, theme }) {
         <InfoRow theme={theme} icon={<SchoolIcon color={theme.accent} />} label="School" value="Scholaria University" />
         <InfoRow theme={theme} icon={<CalendarIcon color={theme.accent} />} label="Joined" value="2024" />
 
-        <View style={styles.statsCard}>
+          <View style={styles.statsCard}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Account Actions</Text>
           <Pressable style={[styles.logoutButton, { backgroundColor: theme.accentSoft, borderColor: theme.danger }]} onPress={onLogout}>
             <Text style={[styles.logoutButtonText, { color: theme.danger }]}>Log Out</Text>

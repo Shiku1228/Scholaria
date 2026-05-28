@@ -118,31 +118,31 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
       ...(courseData || {}),
       assignments: mergeTasksForCourse(
         [
-          ...extractTaskItems(courseData, ['assignments', 'assignment', 'assignment_list', 'tasks']),
-          ...extractTaskItems(tasksData, ['assignments', 'assignment', 'assignment_list', 'tasks']),
+          ...extractTaskItems(courseData, ['assignments', 'assignment_list', 'tasks']),
+          ...extractTaskItems(tasksData, ['assignments', 'assignment_list', 'tasks']),
         ],
         courseIds
       ),
       exams: mergeTasksForCourse(
         [
-          ...extractTaskItems(courseData, ['exams', 'exam', 'exam_list']),
-          ...extractTaskItems(tasksData, ['exams', 'exam', 'exam_list']),
+          ...extractTaskItems(courseData, ['exams', 'exam_list']),
+          ...extractTaskItems(tasksData, ['exams', 'exam_list']),
         ],
         courseIds
       ),
       quizzes: mergeTasksForCourse(
         [
-          ...extractTaskItems(courseData, ['quizzes', 'quiz', 'quizs', 'quiz_list', 'assessments']),
-          ...extractTaskItems(tasksData, ['quizzes', 'quiz', 'quizs', 'quiz_list', 'assessments']),
-          ...extractTaskItems(quizTasksData, ['quizzes', 'quiz', 'quizs', 'quiz_list', 'assessments']),
-          ...extractTaskItems(quizAliasData, ['quizzes', 'quiz', 'quizs', 'quiz_list', 'assessments']),
+          ...extractTaskItems(courseData, ['quizzes', 'quiz_list', 'assessments']),
+          ...extractTaskItems(tasksData, ['quizzes', 'quiz_list', 'assessments']),
+          ...extractTaskItems(quizTasksData, ['quizzes', 'quiz_list', 'assessments']),
+          ...extractTaskItems(quizAliasData, ['quizzes', 'quiz_list', 'assessments']),
         ],
         courseIds
       ),
       resources: mergeTasksForCourse(
         [
-          ...extractTaskItems(courseData, ['resources', 'resource', 'files', 'materials']),
-          ...extractTaskItems(tasksData, ['resources', 'resource', 'files', 'materials']),
+          ...extractTaskItems(courseData, ['resources', 'files', 'materials']),
+          ...extractTaskItems(tasksData, ['resources', 'files', 'materials']),
         ],
         courseIds
       ),
@@ -700,8 +700,9 @@ function SummaryChip({ label, value, theme }) {
 }
 
 function prettyBytes(value) {
-  const size = Number(value || 0);
-  if (!size) return 'Unknown size';
+  const size = Number(value);
+  if (isNaN(size)) return 'Unknown size';
+  if (size === 0) return '0 B';
   if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   if (size >= 1024) return `${Math.round(size / 1024)} KB`;
   return `${size} B`;
@@ -799,19 +800,13 @@ function mergeTasksForCourse(items, courseIds) {
     return [];
   }
 
-  // Build a set of target course IDs
   const targetIds = new Set(collectCourseIds(courseIds));
 
-  // Filter items that belong to the given course IDs
   const filtered = items.filter((item) => {
-    const itemIds = collectCourseIds(item);
-    if (!itemIds.length) {
-      return true;
-    }
-    return itemIds.some((id) => targetIds.has(id));
+    const cid = item?.course_id || item?.course?.id;
+    return !cid || targetIds.has(String(cid));
   });
 
-  // Deduplicate items based on their unique id (fallback to JSON string)
   const seen = new Set();
   const deduped = [];
   for (const itm of filtered) {
