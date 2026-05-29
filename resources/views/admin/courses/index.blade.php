@@ -23,7 +23,7 @@
         <form id="courseFilterForm" method="GET" action="{{ route('admin.courses.index') }}" class="mt-6 flex flex-col lg:flex-row lg:items-end gap-4">
             <div class="flex-1">
                 <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600" for="search">Search</label>
-                <input id="search" name="search" type="text" value="{{ $search }}" placeholder="Search by course number or title" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" class="mt-2 w-full h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
+                <input id="search" name="search" type="text" value="{{ $search }}" placeholder="Search by course number, code, or title" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" class="mt-2 w-full h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#0b2d6b] focus:ring-[#0b2d6b]" />
             </div>
 
             <div class="w-full sm:w-52">
@@ -51,6 +51,7 @@
                 <thead>
                 <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-200">
                     <th class="py-4 px-4">Course #</th>
+                    <th class="py-4 px-4">Code</th>
                     <th class="py-4 px-4">Title</th>
                     <th class="py-4 px-4">Semester</th>
                     <th class="py-4 px-4">School Year</th>
@@ -71,10 +72,12 @@
                     <tr
                         class="text-slate-700 course-row"
                         data-course-number="{{ strtolower((string) $course->course_number) }}"
+                        data-course-code="{{ strtolower((string) $course->course_code) }}"
                         data-course-title="{{ strtolower((string) $course->title) }}"
                         data-course-semester="{{ strtolower((string) $course->semester) }}"
                     >
                         <td class="py-4 px-4 font-semibold text-slate-900">{{ $course->course_number }}</td>
+                        <td class="py-4 px-4 font-medium text-slate-700">{{ $course->course_code }}</td>
                         <td class="py-4 px-4">{{ $course->title }}</td>
                         <td class="py-4 px-4">{{ $semesterLabel }}</td>
                         <td class="py-4 px-4">{{ $course->school_year ?? '--' }}</td>
@@ -103,7 +106,7 @@
                     </tr>
                 @empty
                     <tr id="coursesEmptyRow">
-                        <td colspan="6" class="py-14 px-4 text-center text-sm text-slate-500">No courses yet.</td>
+                        <td colspan="7" class="py-14 px-4 text-center text-sm text-slate-500">No courses yet.</td>
                     </tr>
                 @endforelse
                 </tbody>
@@ -130,7 +133,7 @@
                 if (!row && tbody) {
                     row = document.createElement('tr');
                     row.id = 'coursesNoMatchRow';
-                    row.innerHTML = '<td colspan="6" class="py-10 px-4 text-center text-sm text-slate-500">No matching courses found.</td>';
+                    row.innerHTML = '<td colspan="7" class="py-10 px-4 text-center text-sm text-slate-500">No matching courses found.</td>';
                     tbody.appendChild(row);
                 }
                 return row;
@@ -144,11 +147,13 @@
 
                 rows.forEach((row) => {
                     const number = row.dataset.courseNumber || '';
+                    const code = row.dataset.courseCode || '';
                     const title = row.dataset.courseTitle || '';
                     const rowSemester = row.dataset.courseSemester || '';
 
                     const matchesSearch = search === ''
                         || number.startsWith(search)
+                        || code.startsWith(search)
                         || title.startsWith(search);
                     const matchesSemester = semester === '' || rowSemester === semester;
 

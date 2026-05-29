@@ -79,7 +79,7 @@
                     @foreach ($courses as $course)
                         <option value="{{ $course->id }}"
                             {{ (string) $filterCourse === (string) $course->id ? 'selected' : '' }}>
-                            {{ $course->course_number }}{{ !empty($course->course_code) ? ' — ' . $course->course_code : '' }} – {{ $course->title }}
+                            {{ !empty($course->course_code) ? $course->course_code . ' — ' : '' }}{{ $course->title }} — CN: {{ $course->course_number }}
                         </option>
                     @endforeach
                 </select>
@@ -116,7 +116,7 @@
         <div class="bg-[#0b2d6b]/5 border-b border-[#c9d7f2] px-5 py-3 flex items-center gap-2">
             <i data-lucide="book-marked" style="width:14px;height:14px;" class="text-[#0b2d6b] flex-shrink-0"></i>
             <span class="text-sm font-semibold text-[#0b2d6b] truncate">
-                {{ $selectedCourse->course_number }}{{ !empty($selectedCourse->course_code) ? ' — ' . $selectedCourse->course_code : '' }} – {{ $selectedCourse->title }}
+                {{ !empty($selectedCourse->course_code) ? $selectedCourse->course_code . ' — ' : '' }}{{ $selectedCourse->title }} — CN: {{ $selectedCourse->course_number }}
             </span>
         </div>
         <div class="p-5 flex flex-wrap items-center justify-between gap-4">
@@ -223,7 +223,7 @@
                             <td class="py-3 px-4">
                                 <div class="font-medium text-gray-900">{{ $row->course_name }}</div>
                                 <div class="text-xs text-gray-400 mt-0.5">
-                                    {{ $row->course_number }}{{ !empty($row->course_code) ? ' — ' . $row->course_code : '' }}
+                                    {{ !empty($row->course_code) ? $row->course_code . ' — ' : '' }}CN: {{ $row->course_number }}
                                 </div>
                             </td>
                             <td class="py-3 px-4 text-gray-600">{{ $row->teacher_name }}</td>
@@ -281,7 +281,7 @@
                             <div class="min-w-0">
                                 <div class="text-sm font-semibold text-gray-900">{{ $row->course_name }}</div>
                                 <div class="text-xs text-gray-400">
-                                    {{ $row->course_number }}{{ !empty($row->course_code) ? ' — ' . $row->course_code : '' }}
+                                    {{ !empty($row->course_code) ? $row->course_code . ' — ' : '' }}CN: {{ $row->course_number }}
                                 </div>
                                 <div class="text-xs text-gray-500 mt-0.5">{{ $row->teacher_name }}</div>
                                 @if ($schedParts)

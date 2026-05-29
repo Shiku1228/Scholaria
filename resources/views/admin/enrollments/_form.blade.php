@@ -37,7 +37,7 @@
                 {{ $selectedCourseId === (string) $course->id ? 'selected' : '' }}
                 {{ $hasTeacher ? '' : 'disabled' }}
             >
-                {{ $course->course_number }}{{ !empty($course->course_code) ? ' — ' . $course->course_code : '' }} – {{ $course->title }}{{ $hasTeacher ? '' : ' (no teacher assigned)' }}
+                {{ !empty($course->course_code) ? $course->course_code . ' — ' : '' }}{{ $course->title }} — CN: {{ $course->course_number }}{{ $hasTeacher ? '' : ' (no teacher assigned)' }}
             </option>
         @endforeach
     </select>

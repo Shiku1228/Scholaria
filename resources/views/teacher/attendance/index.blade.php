@@ -29,7 +29,7 @@
                     @foreach ($courses as $c)
                         <option value="{{ $c->id }}"
                             {{ (string) $selectedCourseId === (string) $c->id ? 'selected' : '' }}>
-                            {{ $c->course_number }}{{ !empty($c->course_code) ? ' — ' . $c->course_code : '' }} – {{ $c->title }}
+                            {{ !empty($c->course_code) ? $c->course_code . ' — ' : '' }}{{ $c->title }} — CN: {{ $c->course_number }}
                         </option>
                     @endforeach
                 </select>

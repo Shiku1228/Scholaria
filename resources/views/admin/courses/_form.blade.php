@@ -16,16 +16,17 @@
     <div class="text-sm font-semibold uppercase tracking-wide text-slate-500">Course Information</div>
 
     <div>
-        <label class="{{ $labelClass }}" for="course_number">Course Number</label>
-        <input id="course_number" name="course_number" type="text" value="{{ old('course_number', $course->course_number ?? '') }}" class="{{ $inputClass }}" required>
+        <label class="{{ $labelClass }}" for="course_number">Course Number / CN</label>
+        <input id="course_number" name="course_number" type="text" value="{{ old('course_number', $course->course_number ?? '') }}" class="{{ $inputClass }}" required placeholder="e.g. 40190">
+        <div class="mt-1.5 text-xs text-slate-500">Course Number/CN must be unique. Example: 40190</div>
         <div id="courseNumberLiveMessage" class="mt-2 text-sm hidden"></div>
         @error('course_number')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
     </div>
 
     <div>
         <label class="{{ $labelClass }}" for="course_code">Course Code</label>
-        <input id="course_code" name="course_code" type="text" value="{{ old('course_code', $course->course_code ?? '') }}" class="{{ $inputClass }}" required placeholder="e.g. BSCS, IT, CS">
-        <div class="mt-1.5 text-xs text-slate-500">Course Code can be reused by other departments. Only Course Number must be unique.</div>
+        <input id="course_code" name="course_code" type="text" value="{{ old('course_code', $course->course_code ?? '') }}" class="{{ $inputClass }}" required placeholder="e.g. ITE101, CSC101, IS101">
+        <div class="mt-1.5 text-xs text-slate-500">Course Code can be reused by other departments. Example: ITE101</div>
         @error('course_code')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
     </div>
 
@@ -70,7 +71,7 @@
                 }
                 $selectedSY = old('school_year', $course->school_year ?? '');
             @endphp
-            <select id="school_year" name="school_year" class="{{ $inputClass }}">
+            <select id="school_year" name="school_year" class="{{ $inputClass }}" required>
                 <option value="">Select school year</option>
                 @foreach ($syOptions as $sy)
                     <option value="{{ $sy }}" {{ $selectedSY === $sy ? 'selected' : '' }}>{{ $sy }}</option>
@@ -83,13 +84,13 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
             <label class="{{ $labelClass }}" for="start_date">Start Date</label>
-            <input id="start_date" name="start_date" type="date" value="{{ old('start_date', optional($course->start_date ?? null)?->format('Y-m-d')) }}" class="{{ $inputClass }}">
+            <input id="start_date" name="start_date" type="date" value="{{ old('start_date', optional($course->start_date ?? null)?->format('Y-m-d')) }}" class="{{ $inputClass }}" required>
             @error('start_date')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
 
         <div>
             <label class="{{ $labelClass }}" for="end_date">End Date</label>
-            <input id="end_date" name="end_date" type="date" value="{{ old('end_date', optional($course->end_date ?? null)?->format('Y-m-d')) }}" class="{{ $inputClass }}">
+            <input id="end_date" name="end_date" type="date" value="{{ old('end_date', optional($course->end_date ?? null)?->format('Y-m-d')) }}" class="{{ $inputClass }}" required>
             @error('end_date')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
     </div>
@@ -97,13 +98,13 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
             <label class="{{ $labelClass }}" for="class_time_start">Class Time Start</label>
-            <input id="class_time_start" name="class_time_start" type="time" value="{{ old('class_time_start', $course->start_time ?? '') }}" class="{{ $inputClass }}">
+            <input id="class_time_start" name="class_time_start" type="time" value="{{ old('class_time_start', $course->start_time ? substr($course->start_time, 0, 5) : '') }}" class="{{ $inputClass }}" required>
             @error('class_time_start')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
 
         <div>
             <label class="{{ $labelClass }}" for="class_time_end">Class Time End</label>
-            <input id="class_time_end" name="class_time_end" type="time" value="{{ old('class_time_end', $course->end_time ?? '') }}" class="{{ $inputClass }}">
+            <input id="class_time_end" name="class_time_end" type="time" value="{{ old('class_time_end', $course->end_time ? substr($course->end_time, 0, 5) : '') }}" class="{{ $inputClass }}" required>
             @error('class_time_end')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
     </div>
@@ -198,9 +199,9 @@
                 const data = await res.json();
 
                 if (data && data.exists) {
-                    setMsg('Course number already exists. Please use a different course number.', 'error');
+                    setMsg('Course Number/CN already exists. Please use a different Course Number/CN.', 'error');
                 } else {
-                    setMsg('Course number is available.', 'ok');
+                    setMsg('Course Number/CN is available.', 'ok');
                 }
             } catch (e) {
                 setMsg('Unable to validate course number right now.', 'muted');
