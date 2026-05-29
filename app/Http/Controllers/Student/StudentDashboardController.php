@@ -45,10 +45,16 @@ class StudentDashboardController extends Controller
             }
 
             if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'student_id')) {
-                $enrolledCourses = (int) DB::table('enrollments')->where('student_id', $userId)->count();
+                $enrollmentBaseQuery = DB::table('enrollments')->where('student_id', $userId);
 
                 if (Schema::hasColumn('enrollments', 'status')) {
-                    $inProgress = (int) DB::table('enrollments')->where('student_id', $userId)->where('status', 'active')->count();
+                    $enrollmentBaseQuery->whereRaw('LOWER(enrollments.status) = ?', ['active']);
+                }
+
+                $enrolledCourses = (int) (clone $enrollmentBaseQuery)->count();
+
+                if (Schema::hasColumn('enrollments', 'status')) {
+                    $inProgress = (int) (clone $enrollmentBaseQuery)->count();
                     $completed = (int) DB::table('enrollments')->where('student_id', $userId)->where('status', 'completed')->count();
                 }
 
@@ -65,6 +71,10 @@ class StudentDashboardController extends Controller
                         $enrollmentsQuery = DB::table('enrollments')
                             ->join('courses', 'courses.id', '=', 'enrollments.course_id')
                             ->where('enrollments.student_id', $userId);
+
+                        if (Schema::hasColumn('enrollments', 'status')) {
+                            $enrollmentsQuery->whereRaw('LOWER(enrollments.status) = ?', ['active']);
+                        }
 
                         $hasTeacherJoin = Schema::hasColumn('courses', 'teacher_id')
                             && Schema::hasTable('users')

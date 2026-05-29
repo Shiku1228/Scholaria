@@ -284,10 +284,13 @@
                 </button>
             @endif
 
-            <a href="{{ route('web.logout') }}" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
-                <i data-lucide="log-out" style="width:20px;height:20px;"></i>
-                <span class="sr-only">Logout</span>
-            </a>
+            <form method="POST" action="{{ route('web.logout') }}">
+                @csrf
+                <button type="submit" class="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
+                    <i data-lucide="log-out" style="width:20px;height:20px;"></i>
+                    <span class="sr-only">Logout</span>
+                </button>
+            </form>
 
             <button id="sidebarExpandToggle" type="button" aria-expanded="false" class="hidden min-[992px]:flex w-12 h-12 items-center justify-center rounded-full bg-white shadow-md border border-gray-200">
                 <i data-lucide="menu" style="width:18px;height:18px;"></i>
@@ -396,5 +399,4 @@
 <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>
-
 

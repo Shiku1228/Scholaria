@@ -32,7 +32,8 @@ class CheckIsAdmin
         }
 
         // Fallback for legacy role column or presence of admin profile
-        if (data_get($user, 'role') === 'admin' || (method_exists($user, 'admin') && $user->admin()->exists())) {
+        if (strtolower((string) data_get($user, 'role', '')) === 'admin'
+            || (method_exists($user, 'admin') && $user->admin()->exists())) {
             return $next($request);
         }
 

@@ -25,19 +25,22 @@ class SessionTracking
         // Only track authenticated users
         if (Auth::check()) {
             $user = Auth::user();
-            $sessionId = session()->getId();
+            $sessionId = $request->session()->getId();
 
             // Create session if it doesn't exist
             if (!$this->hasActiveSession($user->id, $sessionId)) {
-                $this->sessionManager->createSession($user, $sessionId);
+                $this->sessionManager->createSession($request, $user, $sessionId);
             } else {
                 // Update session activity
                 $this->sessionManager->updateActivity($sessionId);
             }
 
             // Validate session security
-            if (!$this->sessionManager->isSessionValid($sessionId, $user->id)) {
+            if (!$this->sessionManager->isSessionValid($request, $sessionId, $user->id)) {
                 Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
                 return redirect()->route('login')
                     ->with('error', 'Session expired or invalid. Please login again.');
             }

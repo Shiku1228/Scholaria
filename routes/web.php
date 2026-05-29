@@ -40,6 +40,10 @@ use App\Http\Controllers\JwtTestController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\Calendar\TeacherCalendarController;
 use App\Http\Controllers\Calendar\StudentCalendarController;
+use App\Http\Controllers\Teacher\TeacherAttendanceController;
+use App\Http\Controllers\Student\StudentAttendanceController;
+use App\Models\User;
+use Illuminate\Http\Request;
 
 
 Route::get('/jwt-test', [JwtTestController::class, 'index'])->name('jwt.test');
@@ -73,6 +77,35 @@ Route::get('/', function () {
     return redirect()->route('student.dashboard');
 });
 
+Route::get('/dashboard', function (Request $request) {
+    /** @var User $user */
+    $user = $request->user();
+
+    if (method_exists($user, 'getRoleNames')) {
+        $roles = $user->getRoleNames();
+
+        if ($roles->isNotEmpty()) {
+            if ($roles->diff(['Teacher', 'Student'])->isNotEmpty()) {
+                return redirect()->route('admin.dashboard');
+            }
+
+            if ($roles->contains('Teacher')) {
+                return redirect()->route('teacher.dashboard');
+            }
+        }
+    }
+
+    if (strtolower((string) data_get($user, 'role', '')) === 'admin') {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if (strtolower((string) data_get($user, 'role', '')) === 'teacher') {
+        return redirect()->route('teacher.dashboard');
+    }
+
+    return redirect()->route('student.dashboard');
+})->middleware('auth')->name('dashboard');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
@@ -83,7 +116,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
 });
 
-Route::match(['GET', 'POST'], '/logout', [AuthenticatedSessionController::class, 'destroy'])->name('web.logout');
+Route::get('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('web.logout.get');
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('web.logout');
 
 Route::middleware(['auth'])->prefix('2fa')->name('2fa.')->group(function () {
     Route::get('/setup', [TwoFactorAuthController::class, 'showSetup'])->name('setup');
@@ -254,6 +288,10 @@ Route::prefix('teacher')
         Route::post('/question-banks/{bank}/questions', [TeacherQuestionBankController::class, 'addQuestion'])->name('question-banks.questions.add');
         Route::delete('/question-banks/{bank}/questions/{question}', [TeacherQuestionBankController::class, 'removeQuestion'])->name('question-banks.questions.remove');
 
+        Route::get('/attendance', [TeacherAttendanceController::class, 'index'])->name('attendance.index');
+        Route::post('/attendance', [TeacherAttendanceController::class, 'store'])->name('attendance.store');
+        Route::post('/attendance/bulk', [TeacherAttendanceController::class, 'storeBulk'])->name('attendance.bulk');
+
         Route::view('/settings', 'teacher.settings')->name('settings');
         Route::post('/notifications/read-all', [TeacherNotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::get('/notifications/{notification}/open', [TeacherNotificationController::class, 'open'])->name('notifications.open');
@@ -299,6 +337,8 @@ Route::prefix('student')
         Route::get('/quizzes/{quiz}', [StudentQuizController::class, 'show'])->name('quizzes.show');
         Route::post('/quizzes/{quiz}/start', [StudentQuizController::class, 'start'])->name('quizzes.start');
         Route::post('/quizzes/{quiz}/submit', [StudentQuizController::class, 'submit'])->name('quizzes.submit');
+
+        Route::get('/attendance', [StudentAttendanceController::class, 'index'])->name('attendance.index');
 
         Route::post('/notifications/read-all', [StudentNotificationController::class, 'readAll'])->name('notifications.read-all');
         Route::get('/notifications/{notification}/open', [StudentNotificationController::class, 'open'])->name('notifications.open');

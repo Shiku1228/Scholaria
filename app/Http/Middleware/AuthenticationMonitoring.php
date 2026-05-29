@@ -100,7 +100,10 @@ class AuthenticationMonitoring
      */
     private function monitorLoginAttempt(Request $request, $response): void
     {
-        $credentials = $request->only(['email', 'username', 'password']);
+        $credentials = [
+            'login' => $request->input('login', $request->input('email', $request->input('username'))),
+            'password' => $request->input('password'),
+        ];
 
         // Check if authentication failed
         if ($this->isAuthenticationFailure($request, $response)) {

@@ -37,7 +37,7 @@
                 {{ $selectedCourseId === (string) $course->id ? 'selected' : '' }}
                 {{ $hasTeacher ? '' : 'disabled' }}
             >
-                {{ $course->course_number }} - {{ $course->title }}{{ $hasTeacher ? '' : ' (no teacher assigned)' }}
+                {{ $course->course_number }}{{ !empty($course->course_code) ? ' — ' . $course->course_code : '' }} – {{ $course->title }}{{ $hasTeacher ? '' : ' (no teacher assigned)' }}
             </option>
         @endforeach
     </select>
@@ -47,7 +47,7 @@
 <div>
     <div class="block text-sm font-medium text-gray-700">Teacher</div>
     <div id="teacherDisplay" class="mt-2 h-11 rounded-xl border border-gray-200 bg-gray-50 px-4 flex items-center text-sm text-gray-700">
-        â€”
+        &mdash;
     </div>
 </div>
 
@@ -79,7 +79,7 @@
             const name = opt?.dataset?.teacherName || '';
 
             if (!teacherDisplay) return;
-            teacherDisplay.textContent = name ? name : 'â€”';
+            teacherDisplay.textContent = name ? name : '—';
         }
 
         courseSelect?.addEventListener('change', updateTeacher);

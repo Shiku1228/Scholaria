@@ -23,6 +23,13 @@
     </div>
 
     <div>
+        <label class="{{ $labelClass }}" for="course_code">Course Code</label>
+        <input id="course_code" name="course_code" type="text" value="{{ old('course_code', $course->course_code ?? '') }}" class="{{ $inputClass }}" required placeholder="e.g. BSCS, IT, CS">
+        <div class="mt-1.5 text-xs text-slate-500">Course Code can be reused by other departments. Only Course Number must be unique.</div>
+        @error('course_code')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
+    </div>
+
+    <div>
         <label class="{{ $labelClass }}" for="course_title">Course Title</label>
         <input id="course_title" name="course_title" type="text" value="{{ old('course_title', $course->title ?? '') }}" class="{{ $inputClass }}" required>
         @error('course_title')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror

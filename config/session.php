@@ -2,6 +2,29 @@
 
 use Illuminate\Support\Str;
 
+/*
+|--------------------------------------------------------------------------
+| Session Testing Notes
+|--------------------------------------------------------------------------
+|
+| ngrok and other HTTPS tunnels need Laravel to trust forwarded proxy
+| headers. For local tunnel testing, keep SESSION_DOMAIN empty and use
+| SESSION_SAME_SITE=lax so the browser stores a host-only secure cookie.
+|
+*/
+
+$sessionDomain = env('SESSION_DOMAIN');
+
+if (is_string($sessionDomain)) {
+    $trimmedSessionDomain = trim($sessionDomain);
+
+    if ($trimmedSessionDomain === '' || strtolower($trimmedSessionDomain) === 'null') {
+        $sessionDomain = null;
+    } else {
+        $sessionDomain = $trimmedSessionDomain;
+    }
+}
+
 return [
 
     /*
@@ -156,7 +179,7 @@ return [
     |
     */
 
-    'domain' => env('SESSION_DOMAIN'),
+    'domain' => $sessionDomain,
 
     /*
     |--------------------------------------------------------------------------
@@ -169,6 +192,8 @@ return [
     |
     */
 
+    // Allow secure cookies for ngrok HTTPS while still working locally if the
+    // env flag is omitted.
     'secure' => env('SESSION_SECURE_COOKIE'),
 
     /*

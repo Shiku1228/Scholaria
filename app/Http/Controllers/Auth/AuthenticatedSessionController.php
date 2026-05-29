@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
@@ -46,36 +46,18 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
+        $roleDefaultRedirect = $this->roleRedirectFor($user);
+
+        Log::info('Successful login redirect prepared', [
+            'user_id' => $user?->id,
+            'session_id' => $request->session()->getId(),
+            'redirect_to' => $roleDefaultRedirect,
+            'ip_address' => $request->ip(),
+        ]);
 
         // Check if user has 2FA enabled
         if ($user->google2fa_enabled) {
             return redirect()->route('2fa.verify.show');
-        }
-
-        $roleDefaultRedirect = route('student.dashboard');
-
-        if (method_exists($user, 'getRoleNames')) {
-            $roles = $user->getRoleNames();
-            if ($roles->isNotEmpty()) {
-                if ($roles->diff(['Teacher', 'Student'])->isNotEmpty()) {
-                    $roleDefaultRedirect = route('admin.dashboard');
-                } elseif ($roles->contains('Teacher')) {
-                    $roleDefaultRedirect = route('teacher.dashboard');
-                } elseif ($roles->contains('Student')) {
-                    $roleDefaultRedirect = route('student.dashboard');
-                }
-            }
-        }
-
-        if (method_exists($user, 'getRoleNames') && $user->getRoleNames()->isEmpty()) {
-            $legacyRole = (string) data_get($user, 'role', '');
-            if ($legacyRole === 'admin') {
-                $roleDefaultRedirect = route('admin.dashboard');
-            } elseif ($legacyRole === 'teacher') {
-                $roleDefaultRedirect = route('teacher.dashboard');
-            } elseif ($legacyRole === 'student') {
-                $roleDefaultRedirect = route('student.dashboard');
-            }
         }
 
         $intended = $request->session()->pull('url.intended');
@@ -84,6 +66,34 @@ class AuthenticatedSessionController extends Controller
         }
 
         return redirect()->to($roleDefaultRedirect);
+    }
+
+    private function roleRedirectFor($user): string
+    {
+        if (method_exists($user, 'getRoleNames')) {
+            $roles = $user->getRoleNames();
+            if ($roles->isNotEmpty()) {
+                if ($roles->diff(['Teacher', 'Student'])->isNotEmpty()) {
+                    return route('admin.dashboard');
+                }
+
+                if ($roles->contains('Teacher')) {
+                    return route('teacher.dashboard');
+                }
+
+                if ($roles->contains('Student')) {
+                    return route('student.dashboard');
+                }
+            }
+        }
+
+        $legacyRole = strtolower((string) data_get($user, 'role', ''));
+
+        return match ($legacyRole) {
+            'admin' => route('admin.dashboard'),
+            'teacher' => route('teacher.dashboard'),
+            default => route('student.dashboard'),
+        };
     }
 
     private function intendedMatchesRole(string $url, $user): bool

@@ -61,6 +61,7 @@ class AdminCourseController extends Controller
 
         $course = Course::create([
             'course_number' => $validated['course_number'],
+            'course_code' => $validated['course_code'],
             'title' => $validated['course_title'],
             'description' => $validated['course_description'] ?? null,
             'semester' => $validated['semester'],
@@ -97,6 +98,7 @@ class AdminCourseController extends Controller
 
         $course->update([
             'course_number' => $validated['course_number'],
+            'course_code' => $validated['course_code'],
             'title' => $validated['course_title'],
             'description' => $validated['course_description'] ?? null,
             'semester' => $validated['semester'],

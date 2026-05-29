@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,6 +13,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust ngrok / reverse-proxy forwarded headers so Laravel keeps the
+        // original HTTPS scheme and client metadata during local tunnel testing.
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_PREFIX
+        );
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
@@ -38,5 +50,30 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->remove(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class, 'api');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Redirect role-based 403s to the user's correct dashboard instead of showing a blank error
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException|\Illuminate\Auth\Access\AuthorizationException|\Spatie\Permission\Exceptions\UnauthorizedException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return null;
+            }
+
+            $user = $request->user();
+
+            if (!$user) {
+                return redirect()->route('login');
+            }
+
+            if (method_exists($user, 'hasRole')) {
+                if ($user->hasRole(['Admin', 'Super Admin', 'Content Admin', 'User Admin', 'Report Admin', 'Settings Admin', 'Catalog Admin'])) {
+                    return redirect()->route('admin.dashboard')->with('error', 'You do not have access to that page.');
+                }
+                if ($user->hasRole('Teacher')) {
+                    return redirect()->route('teacher.dashboard')->with('error', 'You do not have access to that page.');
+                }
+                if ($user->hasRole('Student')) {
+                    return redirect()->route('student.dashboard')->with('error', 'You do not have access to that page.');
+                }
+            }
+
+            return redirect()->route('login');
+        });
     })->create();

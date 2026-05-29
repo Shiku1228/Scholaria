@@ -3,34 +3,31 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\UserSession;
 use App\Models\SecurityAudit;
-use Illuminate\Support\Facades\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\UserSession;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class SessionManager
 {
     /**
      * Create a new user session.
      */
-    public function createSession(User $user, string $sessionId = null): UserSession
+    public function createSession(Request $request, User $user, ?string $sessionId = null): UserSession
     {
-        $request = request();
-        
         // Check for existing active sessions and enforce limits
         $this->enforceSessionLimit($user);
-        
+
         $userAgent = $request->userAgent() ?? 'Unknown';
         $ipAddress = $request->ip() ?? '127.0.0.1';
-        
+        $resolvedSessionId = $sessionId ?? $request->session()->getId();
+
         // Parse user agent to extract device info
         $deviceInfo = $this->parseUserAgent($userAgent);
-        
+
         $sessionData = [
             'user_id' => $user->id,
-            'session_id' => $sessionId ?? session()->getId(),
+            'session_id' => $resolvedSessionId,
             'ip_address' => $ipAddress,
             'user_agent' => $userAgent,
             'device_type' => $deviceInfo['device_type'],
@@ -44,8 +41,13 @@ class SessionManager
                 'location' => $this->getLocationFromIp($ipAddress),
             ],
         ];
-        
-        $session = UserSession::create($sessionData);
+
+        // Reuse an existing row for the same Laravel session ID instead of
+        // blindly inserting and tripping the unique constraint.
+        $session = UserSession::updateOrCreate(
+            ['session_id' => $resolvedSessionId],
+            $sessionData
+        );
         
         // Log the session creation
         \App\Models\ActivityLog::log([
@@ -156,29 +158,29 @@ class SessionManager
     /**
      * Check if session is valid and active.
      */
-    public function isSessionValid(string $sessionId, int $userId): bool
+    public function isSessionValid(Request $request, string $sessionId, int $userId): bool
     {
         $session = UserSession::where('session_id', $sessionId)
             ->where('user_id', $userId)
             ->where('is_active', true)
             ->first();
-            
+
         if (!$session) {
             return false;
         }
-        
+
         // Check session timeout
         $timeout = config('security.session.timeout', 120);
         $lastActivity = $session->last_activity_at;
-        
+
         if ($lastActivity->diffInMinutes(now()) > $timeout) {
             $this->endSession($sessionId, 'timeout');
             return false;
         }
-        
+
         // Check IP consistency if required
         if (config('security.session.require_ip_consistency', true)) {
-            $currentIp = Request::ip() ?? '127.0.0.1';
+            $currentIp = $request->ip() ?? '127.0.0.1';
             if ($session->ip_address !== $currentIp) {
                 $this->endSession($sessionId, 'ip_mismatch');
                 SecurityAudit::logSuspiciousActivity([
@@ -193,10 +195,10 @@ class SessionManager
                 return false;
             }
         }
-        
+
         // Check user agent consistency if required
         if (config('security.session.require_user_agent_consistency', true)) {
-            $currentUserAgent = Request::userAgent() ?? 'Unknown';
+            $currentUserAgent = $request->userAgent() ?? 'Unknown';
             if ($session->user_agent !== $currentUserAgent) {
                 $this->endSession($sessionId, 'user_agent_mismatch');
                 SecurityAudit::logSuspiciousActivity([

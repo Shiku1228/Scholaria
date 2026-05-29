@@ -8,7 +8,7 @@
         ['label' => 'Question Banks', 'route' => 'teacher.question-banks.*', 'href' => route('teacher.question-banks.index')],
         ['label' => 'Messages', 'route' => 'teacher.messages', 'href' => route('teacher.messages')],
         ['label' => 'Calendar', 'route' => 'teacher.calendar', 'href' => route('teacher.calendar')],
-        ['label' => 'Settings', 'route' => 'teacher.settings', 'href' => route('teacher.settings')],
+        ['label' => 'Attendance', 'route' => 'teacher.attendance.*', 'href' => route('teacher.attendance.index')],
     ];
 
     $icons = [
@@ -19,8 +19,8 @@
         'Announcements' => 'megaphone',
         'Question Banks' => 'database',
         'Messages' => 'message-circle',
-        'Calendar' => 'calendar',
-        'Settings' => 'settings',
+        'Calendar'   => 'calendar',
+        'Attendance' => 'clipboard-check',
     ];
 @endphp
 

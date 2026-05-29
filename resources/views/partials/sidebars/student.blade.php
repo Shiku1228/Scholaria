@@ -4,6 +4,7 @@
         ['label' => 'Courses', 'route' => 'student.courses.index', 'href' => route('student.courses.index')],
         ['label' => 'Tasks', 'route' => 'student.tasks.index', 'href' => route('student.tasks.index')],
         ['label' => 'Grades', 'route' => 'student.grades.index', 'href' => route('student.grades.index')],
+        ['label' => 'Attendance', 'route' => 'student.attendance.*', 'href' => route('student.attendance.index')],
         ['label' => 'Messages', 'route' => 'student.messages', 'href' => route('student.messages')],
         ['label' => 'Calendar', 'route' => 'student.calendar', 'href' => route('student.calendar')],
     ];
@@ -12,8 +13,9 @@
         'Dashboard' => 'layout-dashboard',
         'Courses' => 'book-open',
         'Tasks' => 'clipboard-list',
-        'Grades' => 'graduation-cap',
-        'Messages' => 'message-circle',
+        'Grades'     => 'graduation-cap',
+        'Attendance' => 'clipboard-check',
+        'Messages'   => 'message-circle',
         'Calendar' => 'calendar',
     ];
 @endphp

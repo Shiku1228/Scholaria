@@ -20,7 +20,11 @@ return [
     'session' => [
         'timeout' => env('SESSION_TIMEOUT_MINUTES', 120),
         'max_concurrent_sessions' => env('MAX_CONCURRENT_SESSIONS', 3),
+        // Local/ngrok testing may need this disabled because the apparent
+        // client IP can legitimately change behind a trusted proxy.
         'require_ip_consistency' => env('REQUIRE_IP_CONSISTENCY', true),
+        // Keep user-agent checks enabled by default; only relax if your proxy
+        // setup proves it causes false logouts too.
         'require_user_agent_consistency' => env('REQUIRE_USER_AGENT_CONSISTENCY', true),
     ],
 
