@@ -16,10 +16,16 @@ class Enrollment extends Model
         'teacher_id',
         'status',
         'enrolled_at',
+        'completed_at',
+        'dropped_at',
+        'unenrolled_at',
     ];
 
     protected $casts = [
-        'enrolled_at' => 'datetime',
+        'enrolled_at'   => 'datetime',
+        'completed_at'  => 'datetime',
+        'dropped_at'    => 'datetime',
+        'unenrolled_at' => 'datetime',
     ];
 
     public function student(): \Illuminate\Database\Eloquent\Relations\BelongsTo

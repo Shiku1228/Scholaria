@@ -98,13 +98,13 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
             <label class="{{ $labelClass }}" for="class_time_start">Class Time Start</label>
-            <input id="class_time_start" name="class_time_start" type="time" value="{{ old('class_time_start', $course->start_time ? substr($course->start_time, 0, 5) : '') }}" class="{{ $inputClass }}" required>
+            <input id="class_time_start" name="class_time_start" type="time" value="{{ old('class_time_start', $course?->start_time ? substr($course->start_time, 0, 5) : '') }}" class="{{ $inputClass }}" required>
             @error('class_time_start')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
 
         <div>
             <label class="{{ $labelClass }}" for="class_time_end">Class Time End</label>
-            <input id="class_time_end" name="class_time_end" type="time" value="{{ old('class_time_end', $course->end_time ? substr($course->end_time, 0, 5) : '') }}" class="{{ $inputClass }}" required>
+            <input id="class_time_end" name="class_time_end" type="time" value="{{ old('class_time_end', $course?->end_time ? substr($course->end_time, 0, 5) : '') }}" class="{{ $inputClass }}" required>
             @error('class_time_end')<div class="mt-2 text-sm text-red-600">{{ $message }}</div>@enderror
         </div>
     </div>

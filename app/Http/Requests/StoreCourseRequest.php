@@ -18,7 +18,7 @@ class StoreCourseRequest extends FormRequest
             'course_number'      => ['required', 'string', 'max:50', 'regex:/^\d+$/', Rule::unique('courses', 'course_number')],
             'course_code'        => ['required', 'string', 'max:50'],
             'course_title'       => ['required', 'string', 'max:255'],
-            'course_description' => ['required', 'string', 'max:1000'],
+            'course_description' => ['nullable', 'string', 'max:1000'],
             'semester'           => ['required', Rule::in(['first', 'second', 'summer'])],
             'school_year'        => ['required', 'string', 'max:20'],
             'start_date'         => ['required', 'date'],
