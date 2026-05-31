@@ -251,6 +251,8 @@ Route::prefix('teacher')
         Route::post('/exams/{exam}/unpublish', [TeacherExamController::class, 'unpublish'])->name('exams.unpublish');
         Route::post('/exams/{exam}/release-results', [TeacherExamController::class, 'releaseResults'])->name('exams.release-results');
         Route::post('/exams/{exam}/import-bank', [TeacherExamController::class, 'importFromBank'])->name('exams.import-bank');
+        Route::get('/exams/{exam}/attempts/{attempt}', [TeacherExamController::class, 'showAttempt'])->name('exams.attempts.show');
+        Route::post('/exams/{exam}/attempts/{attempt}/grade', [TeacherExamController::class, 'gradeAttempt'])->name('exams.attempts.grade');
 
         Route::get('/courses', [TeacherCourseController::class, 'index'])->name('courses.index');
         Route::get('/courses/{course}', [TeacherCourseController::class, 'show'])->name('courses.show');

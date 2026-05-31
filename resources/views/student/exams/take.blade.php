@@ -59,7 +59,7 @@
                                     </div>
                                 @else
                                     <textarea name="answers[{{ $question->id }}]" rows="4" placeholder="Enter your answer..." class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] resize-none" required></textarea>
-                                </endif>
+                                @endif
                             </div>
                         </div>
                     </div>

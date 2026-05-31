@@ -135,7 +135,11 @@ class StudentExamApiController extends Controller
                 'state' => $state,
                 'exam' => $this->mapExam($exam, null, $questionsCount),
                 'attempts' => $attempts->map(fn ($attempt) => $this->mapAttempt($attempt))->values()->all(),
-                'selected_attempt' => $selectedAttempt ? $this->mapAttemptDetailed($selectedAttempt) : null,
+                'selected_attempt' => $selectedAttempt ? $this->mapAttemptDetailed(
+                    $selectedAttempt,
+                    (bool) ($exam->show_results ?? false),
+                    !($exam->feedback_type === 'delayed' && !$exam->results_released)
+                ) : null,
                 'questions' => $questions->map(fn ($question) => $this->mapQuestion($question, $state === 'in_progress'))->values()->all(),
             ],
         ]);
@@ -361,8 +365,10 @@ class StudentExamApiController extends Controller
         ];
     }
 
-    private function mapAttemptDetailed(StudentExamAttempt $attempt): array
+    private function mapAttemptDetailed(StudentExamAttempt $attempt, bool $showResults = false, bool $resultsReleased = false): array
     {
+        $canShowReview = $showResults && $resultsReleased;
+
         return [
             'attempt' => $this->mapAttempt($attempt),
             'answers' => $attempt->relationLoaded('answers')
@@ -371,9 +377,11 @@ class StudentExamApiController extends Controller
                     'attempt_id' => (int) $answer->attempt_id,
                     'question_id' => (int) $answer->question_id,
                     'answer' => $answer->answer ?? null,
-                    'score' => $answer->points_earned ?? null,
-                    'feedback' => $answer->feedback ?? null,
-                    'question' => $answer->relationLoaded('question') && $answer->question ? $this->mapQuestion($answer->question, false, true) : null,
+                    'score' => $canShowReview ? ($answer->points_earned ?? null) : null,
+                    'feedback' => $canShowReview ? ($answer->feedback ?? null) : null,
+                    'question' => $answer->relationLoaded('question') && $answer->question
+                        ? $this->mapQuestion($answer->question, !$canShowReview, $canShowReview)
+                        : null,
                 ])->values()->all()
                 : [],
         ];

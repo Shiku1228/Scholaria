@@ -8,7 +8,6 @@
         'Announcements' => 'megaphone',
         'Message' => 'message-circle',
         'Support Forum' => 'help-circle',
-        'Settings' => 'settings',
         'Manage Users' => 'users',
         'Records' => 'file-text',
         'Colleges' => 'building',
@@ -80,20 +79,6 @@
         <i data-lucide="{{ $icons['Course'] }}" style="width:20px;height:20px;"></i>
         <span class="slms-nav-label ml-3">Course</span>
         <span class="sr-only">Course</span>
-    </a>
-@endcan
-
-{{-- Settings - needs settings.view permission (Super Admin, Settings Admin) --}}
-@can('settings.view')
-    @php
-        $isSettingsActive = request()->routeIs('admin.settings.*');
-    @endphp
-    <a href="#"
-       title="Settings"
-       class="slms-nav-item w-12 h-12 flex items-center justify-center rounded-xl transition-colors {{ $isSettingsActive ? 'bg-[#0b2d6b] text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100' }}">
-        <i data-lucide="{{ $icons['Settings'] }}" style="width:20px;height:20px;"></i>
-        <span class="slms-nav-label ml-3">Settings</span>
-        <span class="sr-only">Settings</span>
     </a>
 @endcan
 

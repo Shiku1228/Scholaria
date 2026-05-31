@@ -15,6 +15,8 @@ class StudentExamAttempt extends Model
         'attempt_number',
         'started_at',
         'submitted_at',
+        'graded_at',
+        'graded_by',
         'score',
         'max_score',
         'status',
@@ -24,7 +26,9 @@ class StudentExamAttempt extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'submitted_at' => 'datetime',
+        'graded_at' => 'datetime',
         'attempt_number' => 'integer',
+        'graded_by' => 'integer',
         'question_ids' => 'array',
     ];
 
@@ -36,6 +40,11 @@ class StudentExamAttempt extends Model
     public function student(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'student_id');
+    }
+
+    public function gradedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'graded_by');
     }
 
     public function answers(): \Illuminate\Database\Eloquent\Relations\HasMany

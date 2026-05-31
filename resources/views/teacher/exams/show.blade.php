@@ -408,8 +408,8 @@
                                         @endif
                                     </td>
                                     <td class="py-4 px-6 text-right">
-                                        <a href="#" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
-                                            Review Attempt
+                                        <a href="{{ route('teacher.exams.attempts.show', [$exam, $attempt]) }}" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                            {{ $attempt->isGraded() ? 'Review' : 'Review Attempt' }}
                                         </a>
                                     </td>
                                 </tr>

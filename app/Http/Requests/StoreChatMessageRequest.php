@@ -19,6 +19,13 @@ class StoreChatMessageRequest extends FormRequest
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'message' => trim((string) $this->input('message', '')),
+        ]);
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {

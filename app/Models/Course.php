@@ -23,6 +23,7 @@ class Course extends Model
         'start_time',
         'end_time',
         'teacher_id',
+        'program_id',
         'cover_image',
         'overview',
     ];
@@ -35,6 +36,11 @@ class Course extends Model
     public function teacher(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'teacher_id');
+    }
+
+    public function program(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Program::class, 'program_id');
     }
 
     public function enrollments(): \Illuminate\Database\Eloquent\Relations\HasMany

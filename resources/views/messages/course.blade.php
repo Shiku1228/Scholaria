@@ -566,11 +566,19 @@
                 if (!selectedConversation) return;
                 messageErrorEl.textContent = '';
                 messageErrorEl.classList.add('hidden');
+                const trimmedMessage = (inputEl.value || '').trim();
+                const selectedFile = attachmentInput.files[0] || null;
+
+                if (!trimmedMessage && !selectedFile) {
+                    messageErrorEl.textContent = 'Message or attachment is required.';
+                    messageErrorEl.classList.remove('hidden');
+                    return;
+                }
 
                 const fd = new FormData();
                 fd.append('_token', csrf);
-                fd.append('message', inputEl.value || '');
-                if (attachmentInput.files[0]) fd.append('attachment', attachmentInput.files[0]);
+                fd.append('message', trimmedMessage);
+                if (selectedFile) fd.append('attachment', selectedFile);
 
                 const response = await fetch(`/messages/conversations/${selectedConversation.id}/messages`, {
                     method: 'POST',
@@ -605,6 +613,8 @@
                     attachmentInput.value = '';
                     attachmentMeta.classList.add('hidden');
                     attachmentMeta.textContent = '';
+                    messageErrorEl.textContent = '';
+                    messageErrorEl.classList.add('hidden');
                     renderMessages();
                 }
             });

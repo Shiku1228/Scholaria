@@ -7,6 +7,7 @@ use App\Models\BankQuestion;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\QuestionBank;
+use App\Models\StudentExamAttempt;
 use App\Models\User;
 use App\Notifications\CourseEventNotification;
 use Illuminate\Http\Request;
@@ -92,7 +93,7 @@ class TeacherExamController extends Controller
             'due_date' => ['required', 'date', 'after_or_equal:exam_date'],
             'duration' => ['nullable', 'integer', 'min:1', 'max:480'],
             'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
-            'max_score' => ['required', 'integer', 'min:1', 'max:100000'],
+            'max_score' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'location' => ['nullable', 'string', 'max:255'],
             'feedback_type' => ['nullable', 'in:instant,delayed'],
             'show_results' => ['nullable', 'boolean'],
@@ -122,7 +123,7 @@ class TeacherExamController extends Controller
 
             if ($questionIds->isEmpty() && $inlineQuestions->isEmpty()) {
                 return back()
-                    ->withErrors(['questions' => 'Add at least one question for an online exam.'])
+                    ->withErrors(['questions' => 'Please add at least one question with valid points.'])
                     ->withInput();
             }
         } else {
@@ -146,6 +147,12 @@ class TeacherExamController extends Controller
             foreach ($inlineQuestions as $q) {
                 $totalPoints += (int) ($q['points'] ?? 1);
             }
+
+            if ($totalPoints <= 0) {
+                return back()
+                    ->withErrors(['questions' => 'Please add at least one question with valid points.'])
+                    ->withInput();
+            }
         }
 
         $exam = Exam::create([
@@ -157,7 +164,7 @@ class TeacherExamController extends Controller
             'due_date' => $validated['due_date'] ?? null,
             'duration' => $isOnline ? (int) ($validated['duration'] ?? 0) : 0,
             'attempts_allowed' => (int) ($validated['attempts_allowed'] ?? 1),
-            'max_score' => $isOnline ? $totalPoints : (int) ($validated['max_score'] ?? 100),
+            'max_score' => $isOnline ? $totalPoints : (int) ($validated['max_score'] ?? 0),
             'location' => $isOnline ? null : ($validated['location'] ?? null),
             'instructions' => $validated['instructions'] ?? null,
             'feedback_type' => $validated['feedback_type'] ?? 'instant',
@@ -554,5 +561,87 @@ class TeacherExamController extends Controller
         $exam->update(['max_score' => $totalPoints]);
 
         return redirect()->route('teacher.exams.questions', $exam)->with('success', 'Questions imported successfully.');
+    }
+
+    public function showAttempt(Request $request, Exam $exam, StudentExamAttempt $attempt): View
+    {
+        if ((int) $exam->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        if ((int) $attempt->exam_id !== (int) $exam->id) {
+            abort(404);
+        }
+
+        $attempt->load(['student', 'answers.question']);
+
+        return view('teacher.exams.attempt', [
+            'exam' => $exam,
+            'attempt' => $attempt,
+        ]);
+    }
+
+    public function gradeAttempt(Request $request, Exam $exam, StudentExamAttempt $attempt)
+    {
+        if ((int) $exam->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        if ((int) $attempt->exam_id !== (int) $exam->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'scores' => ['nullable', 'array'],
+            'scores.*' => ['nullable', 'numeric', 'min:0'],
+            'feedback' => ['nullable', 'array'],
+            'feedback.*' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $attempt->load('answers.question');
+
+        $totalScore = 0;
+
+        foreach ($attempt->answers as $answer) {
+            $questionId = (int) $answer->question_id;
+            $maxPoints = (int) ($answer->question?->points ?? 0);
+
+            if (array_key_exists($questionId, $validated['scores'] ?? [])) {
+                $adjustedScore = min(max(0, (int) round((float) $validated['scores'][$questionId])), $maxPoints);
+            } else {
+                $adjustedScore = (int) ($answer->points_earned ?? 0);
+            }
+
+            $feedbackText = $validated['feedback'][$questionId] ?? $answer->feedback;
+            $question = $answer->question;
+            $isObjective = $question?->canAutoGrade() ?? false;
+
+            $answer->update([
+                'points_earned' => $adjustedScore,
+                'feedback' => filled($feedbackText) ? $feedbackText : null,
+                'is_correct' => $isObjective && $maxPoints > 0 ? $adjustedScore === $maxPoints : $answer->is_correct,
+            ]);
+
+            $totalScore += $adjustedScore;
+        }
+
+        $attemptUpdates = [
+            'score' => $totalScore,
+            'status' => 'graded',
+        ];
+
+        if (Schema::hasColumn('student_exam_attempts', 'graded_at')) {
+            $attemptUpdates['graded_at'] = now();
+        }
+
+        if (Schema::hasColumn('student_exam_attempts', 'graded_by')) {
+            $attemptUpdates['graded_by'] = (int) $request->user()->id;
+        }
+
+        $attempt->update($attemptUpdates);
+
+        return redirect()
+            ->route('teacher.exams.attempts.show', [$exam, $attempt])
+            ->with('success', 'Exam attempt reviewed successfully.');
     }
 }

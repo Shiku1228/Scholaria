@@ -233,10 +233,12 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-4 border-t border-slate-100">
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Maximum Score <span class="text-red-500">*</span></label>
-                            <input type="number" name="max_score" id="max_score_input" value="{{ old('max_score', 100) }}" min="1"
-                                class="w-full rounded-xl border-slate-200 focus:border-[#0b2d6b] focus:ring-1 focus:ring-[#0b2d6b] text-sm font-bold text-slate-700">
-                            <span id="max-score-help" class="text-xs text-slate-400 mt-1 block">Set the total score for face-to-face exams. Online total updates from question points.</span>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Total Score</label>
+                            <input type="hidden" name="max_score" id="max_score_input" value="{{ old('max_score', 0) }}">
+                            <div class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700" id="max_score_display">
+                                0 points
+                            </div>
+                            <span id="max-score-help" class="text-xs text-slate-400 mt-1 block">Total score will be calculated from configured questions. Face-to-face exams can be saved without a score.</span>
                         </div>
                         <div class="flex items-center h-full pt-6">
                             <label class="flex items-center gap-3 cursor-pointer group">
@@ -403,7 +405,7 @@
                         </div>
                         <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
                             <div class="text-xs text-slate-500 mb-1">Max Score</div>
-                            <div class="font-semibold text-slate-900" id="review-max-score">{{ old('max_score', 100) }}</div>
+                            <div class="font-semibold text-slate-900" id="review-max-score">{{ old('max_score', 0) }}</div>
                         </div>
                         <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
                             <div class="text-xs text-slate-500 mb-1">Time Limit</div>
@@ -483,6 +485,7 @@
             const onlineCard = document.getElementById('method-online');
             const durationInput = document.getElementById('duration_input');
             const maxScoreInput = document.getElementById('max_score_input');
+            const maxScoreDisplay = document.getElementById('max_score_display');
             const locationWrapper = document.getElementById('location-wrapper');
             const randomSubsetWrapper = document.getElementById('random-subset-wrapper');
             const instructionsRequired = document.getElementById('instructions-required');
@@ -499,8 +502,6 @@
             if (method === 'online') {
                 durationInput.removeAttribute('disabled');
                 durationInput.setAttribute('required', 'required');
-                maxScoreInput.setAttribute('readonly', 'readonly');
-                maxScoreInput.classList.add('bg-slate-50');
                 locationWrapper.classList.add('hidden');
                 randomSubsetWrapper.classList.remove('hidden');
                 instructionsRequired.classList.remove('hidden');
@@ -508,8 +509,6 @@
                 reviewQuestionsCard.classList.remove('hidden');
             } else {
                 durationInput.removeAttribute('required');
-                maxScoreInput.removeAttribute('readonly');
-                maxScoreInput.classList.remove('bg-slate-50');
                 locationWrapper.classList.remove('hidden');
                 randomSubsetWrapper.classList.add('hidden');
                 instructionsRequired.classList.remove('hidden');
@@ -518,6 +517,12 @@
                 if (currentStep === 2) {
                     goToStep(3);
                 }
+            }
+
+            if (maxScoreDisplay) {
+                maxScoreDisplay.textContent = method === 'online'
+                    ? `${maxScoreInput.value || 0} points`
+                    : 'Not required for face-to-face exams';
             }
 
             updateTotalPoints();
@@ -561,7 +566,6 @@
                 const examDate = document.querySelector('input[name="exam_date"]');
                 const dueDate = document.querySelector('input[name="due_date"]');
                 const instructions = document.querySelector('textarea[name="instructions"]');
-                const maxScore = document.getElementById('max_score_input');
                 const duration = document.getElementById('duration_input');
 
                 if (!title.value.trim()) {
@@ -589,11 +593,6 @@
                     instructions.focus();
                     return false;
                 }
-                if (!maxScore.value || parseInt(maxScore.value, 10) < 1) {
-                    alert('Maximum score must be at least 1.');
-                    maxScore.focus();
-                    return false;
-                }
                 if (currentMethod === 'online' && (!duration.value || parseInt(duration.value, 10) < 1)) {
                     alert('Time limit is required for online exams.');
                     duration.focus();
@@ -603,7 +602,7 @@
 
             if (step === 2 && currentMethod === 'online') {
                 if (getSelectedBankQuestionCount() + getInlineQuestionCount() === 0) {
-                    alert('Add at least one question for this online exam.');
+                    alert('Please add at least one question with valid points.');
                     return false;
                 }
             }
@@ -888,15 +887,20 @@
             });
 
             const maxScoreField = document.getElementById('max_score_input');
+            const maxScoreDisplay = document.getElementById('max_score_display');
             const help = document.getElementById('max-score-help');
             if (currentMethod === 'online') {
-                maxScoreField.value = total > 0 ? total : '';
-                help.textContent = 'Calculated from the selected Question Bank and inline question points.';
-            } else {
-                if (!maxScoreField.value) {
-                    maxScoreField.value = 100;
+                maxScoreField.value = total > 0 ? total : 0;
+                help.textContent = 'Total score is calculated from the selected Question Bank and inline question points.';
+                if (maxScoreDisplay) {
+                    maxScoreDisplay.textContent = `${maxScoreField.value} point${Number(maxScoreField.value) === 1 ? '' : 's'}`;
                 }
-                help.textContent = 'Set the total score for face-to-face exams. Online total updates from question points.';
+            } else {
+                maxScoreField.value = 0;
+                help.textContent = 'Face-to-face exams are details-only. Total score will stay optional.';
+                if (maxScoreDisplay) {
+                    maxScoreDisplay.textContent = 'Not required for face-to-face exams';
+                }
             }
 
             updateReview();
