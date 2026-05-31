@@ -228,6 +228,7 @@ Route::prefix('teacher')
         Route::post('/quizzes/{quiz}/unpublish', [TeacherQuizController::class, 'unpublish'])->name('quizzes.unpublish');
         Route::post('/quizzes/{quiz}/release-results', [TeacherQuizController::class, 'releaseResults'])->name('quizzes.release-results');
         Route::post('/quizzes/{quiz}/import-bank', [TeacherQuizController::class, 'importFromBank'])->name('quizzes.import-bank');
+        Route::get('/quizzes/{quiz}/scores/export', [TeacherQuizController::class, 'exportScores'])->name('quizzes.scores.export');
 
         // Exam routes
         Route::get('/exams', [TeacherExamController::class, 'index'])->name('exams.index');
@@ -267,6 +268,7 @@ Route::prefix('teacher')
                 Route::resource('/announcements', TeacherAnnouncementController::class)->except(['destroy']);
                 Route::delete('/announcements/{announcement}', [TeacherAnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
+                Route::get('/assignments/{assignment}/submissions/{submission}', [TeacherSubmissionController::class, 'show'])->name('submissions.show');
                 Route::patch('/assignments/{assignment}/submissions/{submission}', [TeacherSubmissionController::class, 'update'])->name('submissions.update');
 
                 Route::get('/office-hours', [\App\Http\Controllers\Teacher\TeacherOfficeHourController::class, 'index'])->name('office-hours.index');

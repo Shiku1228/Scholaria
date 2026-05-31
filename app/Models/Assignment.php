@@ -16,6 +16,7 @@ class Assignment extends Model
         'due_date',
         'max_score',
         'type',
+        'assignment_format',
     ];
 
     protected $casts = [
@@ -36,6 +37,21 @@ class Assignment extends Model
     public function grades(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Grade::class, 'assignment_id');
+    }
+
+    public function questions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AssignmentQuestion::class, 'assignment_id')->orderBy('order');
+    }
+
+    public function isEssay(): bool
+    {
+        return ($this->assignment_format ?? 'essay') === 'essay';
+    }
+
+    public function isMultipleChoice(): bool
+    {
+        return ($this->assignment_format ?? 'essay') === 'multiple_choice';
     }
 
     public function isAssignment(): bool

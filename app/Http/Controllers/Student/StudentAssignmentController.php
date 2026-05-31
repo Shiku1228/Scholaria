@@ -14,22 +14,24 @@ class StudentAssignmentController extends Controller
     public function index(Request $request): View
     {
         $studentId = (int) $request->user()->id;
-        $courseId = (int) $request->query('course_id', 0);
+        $courseId  = (int) $request->query('course_id', 0);
 
         $assignments = [];
 
         try {
-            if (!Schema::hasTable('enrollments') || !Schema::hasColumn('enrollments', 'student_id') || !Schema::hasColumn('enrollments', 'course_id')) {
+            if (!Schema::hasTable('enrollments')
+                || !Schema::hasColumn('enrollments', 'student_id')
+                || !Schema::hasColumn('enrollments', 'course_id')) {
                 return view('student.assignments.index', [
                     'assignments' => [],
-                    'filters' => ['course_id' => $courseId],
+                    'filters'     => ['course_id' => $courseId],
                 ]);
             }
 
             if (!Schema::hasTable('assignments')) {
                 return view('student.assignments.index', [
                     'assignments' => [],
-                    'filters' => ['course_id' => $courseId],
+                    'filters'     => ['course_id' => $courseId],
                 ]);
             }
 
@@ -43,12 +45,18 @@ class StudentAssignmentController extends Controller
                 }
             }
 
-            $enrolledCourseIds = DB::table('enrollments')->where('student_id', $studentId)->pluck('course_id')->map(fn ($v) => (int) $v)->filter()->values()->all();
+            $enrolledCourseIds = DB::table('enrollments')
+                ->where('student_id', $studentId)
+                ->pluck('course_id')
+                ->map(fn ($v) => (int) $v)
+                ->filter()
+                ->values()
+                ->all();
 
             if (empty($enrolledCourseIds)) {
                 return view('student.assignments.index', [
                     'assignments' => [],
-                    'filters' => ['course_id' => $courseId],
+                    'filters'     => ['course_id' => $courseId],
                 ]);
             }
 
@@ -62,7 +70,9 @@ class StudentAssignmentController extends Controller
                 $query->join('courses', 'courses.id', '=', 'assignments.course_id');
             }
 
-            if (Schema::hasTable('submissions') && Schema::hasColumn('submissions', 'assignment_id') && Schema::hasColumn('submissions', 'student_id')) {
+            if (Schema::hasTable('submissions')
+                && Schema::hasColumn('submissions', 'assignment_id')
+                && Schema::hasColumn('submissions', 'student_id')) {
                 $query->leftJoin('submissions', function ($join) use ($studentId) {
                     $join->on('submissions.assignment_id', '=', 'assignments.id')
                         ->where('submissions.student_id', '=', $studentId);
@@ -112,13 +122,13 @@ class StudentAssignmentController extends Controller
             $assignments = $rows->map(function ($r) {
                 return [
                     'assignment_id' => (int) ($r->assignment_id ?? 0),
-                    'title' => (string) ($r->title ?? ''),
-                    'course_id' => (int) ($r->course_id ?? 0),
-                    'course_name' => (string) ($r->course_name ?? ''),
-                    'due_date' => (string) ($r->due_date ?? ''),
+                    'title'         => (string) ($r->title ?? ''),
+                    'course_id'     => (int) ($r->course_id ?? 0),
+                    'course_name'   => (string) ($r->course_name ?? ''),
+                    'due_date'      => (string) ($r->due_date ?? ''),
                     'submission_id' => (int) ($r->submission_id ?? 0),
-                    'submitted_at' => (string) ($r->submitted_at ?? ''),
-                    'score' => $r->score ?? null,
+                    'submitted_at'  => (string) ($r->submitted_at ?? ''),
+                    'score'         => $r->score ?? null,
                 ];
             })->values()->all();
         } catch (\Throwable) {
@@ -126,9 +136,7 @@ class StudentAssignmentController extends Controller
 
         return view('student.assignments.index', [
             'assignments' => $assignments,
-            'filters' => [
-                'course_id' => $courseId,
-            ],
+            'filters'     => ['course_id' => $courseId],
         ]);
     }
 
@@ -136,11 +144,18 @@ class StudentAssignmentController extends Controller
     {
         $studentId = (int) $request->user()->id;
 
+        // Enrollment check
         try {
-            if (Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'student_id') && Schema::hasColumn('enrollments', 'course_id') && Schema::hasColumn('assignments', 'course_id')) {
+            if (Schema::hasTable('enrollments')
+                && Schema::hasColumn('enrollments', 'student_id')
+                && Schema::hasColumn('enrollments', 'course_id')
+                && Schema::hasColumn('assignments', 'course_id')) {
                 $courseId = (int) ($assignment->course_id ?? 0);
                 if ($courseId > 0) {
-                    $isEnrolled = DB::table('enrollments')->where('student_id', $studentId)->where('course_id', $courseId)->exists();
+                    $isEnrolled = DB::table('enrollments')
+                        ->where('student_id', $studentId)
+                        ->where('course_id', $courseId)
+                        ->exists();
                     if (!$isEnrolled) {
                         abort(403);
                     }
@@ -149,7 +164,7 @@ class StudentAssignmentController extends Controller
         } catch (\Throwable) {
         }
 
-        // Get the course info
+        // Course info
         $course = null;
         try {
             if (Schema::hasTable('courses')) {
@@ -158,54 +173,32 @@ class StudentAssignmentController extends Controller
         } catch (\Throwable) {
         }
 
-        // Get the student's submission if exists.
-        // Important: treat a submission as "exists" only if it has been actually submitted.
+        // Submission
         $submission = null;
         try {
             if (Schema::hasTable('submissions')) {
                 $query = DB::table('submissions')
                     ->where('assignment_id', $assignment->id)
                     ->where('student_id', $studentId);
-                // TEMP DEBUG (remove after fix)
-                // logger()->info('StudentAssignmentController@show submission debug', [
-                //     'assignment_id' => $assignment->id,
-                //     'student_id' => $studentId,
-                //     'has_submitted_at' => Schema::hasColumn('submissions', 'submitted_at'),
-                //     'has_file_path' => Schema::hasColumn('submissions', 'file_path'),
-                //     'has_content' => Schema::hasColumn('submissions', 'content'),
-                //     'has_submission_type' => Schema::hasColumn('submissions', 'submission_type'),
-                // ]);
 
-
-
-
-
-                // Treat submission as existing ONLY if student actually submitted payload.
-                // 1) If submitted_at exists -> must be non-null
-                // 2) AND there must be actual payload (file_path OR content) when those columns exist
                 if (Schema::hasColumn('submissions', 'submitted_at')) {
                     $query->whereNotNull('submitted_at');
                 }
 
                 $query->where(function ($q) {
                     $q->when(Schema::hasColumn('submissions', 'file_path'), function ($qq) {
-                        $qq->whereNotNull('file_path')
-                           ->where('file_path', '!=', '');
+                        $qq->whereNotNull('file_path')->where('file_path', '!=', '');
                     })
-                      ->orWhere(function ($qq) {
-                          $qq->when(Schema::hasColumn('submissions', 'content'), function ($qcc) {
-                              $qcc->whereNotNull('content')
-                                  ->where('content', '!=', '');
-                          });
-
-                          // If no content column exists, then rely on type.
-                          if (!Schema::hasColumn('submissions', 'content')) {
-                              if (Schema::hasColumn('submissions', 'submission_type')) {
-                                  $qq->whereNotNull('submission_type')
-                                     ->where('submission_type', '!=', '');
-                              }
-                          }
-                      });
+                    ->orWhere(function ($qq) {
+                        $qq->when(Schema::hasColumn('submissions', 'content'), function ($qcc) {
+                            $qcc->whereNotNull('content')->where('content', '!=', '');
+                        });
+                        if (!Schema::hasColumn('submissions', 'content')) {
+                            if (Schema::hasColumn('submissions', 'submission_type')) {
+                                $qq->whereNotNull('submission_type')->where('submission_type', '!=', '');
+                            }
+                        }
+                    });
                 });
 
                 $submission = $query->first();
@@ -213,11 +206,45 @@ class StudentAssignmentController extends Controller
         } catch (\Throwable) {
         }
 
+        // Load questions
+        $questions = collect();
+        try {
+            if (Schema::hasTable('assignment_questions')) {
+                $questions = $assignment->questions()->with('choices')->get();
+            }
+        } catch (\Throwable) {
+        }
+
+        // Load answers (keyed by question_id)
+        $answers   = collect();
+        $choiceMap = collect();
+        try {
+            if ($submission && Schema::hasTable('assignment_answers')) {
+                $answers = DB::table('assignment_answers')
+                    ->where('submission_id', $submission->id)
+                    ->get()
+                    ->keyBy('question_id');
+
+                if ($answers->isNotEmpty() && Schema::hasTable('assignment_choices')) {
+                    $choiceIds = $answers->pluck('selected_choice_id')->filter()->values()->toArray();
+                    if (!empty($choiceIds)) {
+                        $choiceMap = DB::table('assignment_choices')
+                            ->whereIn('id', $choiceIds)
+                            ->get()
+                            ->keyBy('id');
+                    }
+                }
+            }
+        } catch (\Throwable) {
+        }
 
         return view('student.assignments.show', [
             'assignment' => $assignment,
-            'course' => $course,
+            'course'     => $course,
             'submission' => $submission,
+            'questions'  => $questions,
+            'answers'    => $answers,
+            'choiceMap'  => $choiceMap,
         ]);
     }
 }

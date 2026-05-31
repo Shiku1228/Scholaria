@@ -84,6 +84,7 @@ Route::middleware('api')->group(function () {
         Route::get('/assignments/{assignment}', [StudentAssignmentApiController::class, 'show'])->name('api.student.assignments.show');
         Route::get('/assignments/{assignment}/submit', [StudentSubmissionApiController::class, 'create'])->name('api.student.assignments.submit');
         Route::post('/assignments/{assignment}/submit', [StudentSubmissionApiController::class, 'store'])->name('api.student.assignments.submit.store');
+        Route::get('/assignments/{assignment}/submission', [StudentSubmissionApiController::class, 'showForAssignment'])->name('api.student.assignments.submission');
         Route::get('/submissions', [StudentSubmissionApiController::class, 'index'])->name('api.student.submissions.index');
 
         Route::get('/announcements', [StudentAnnouncementApiController::class, 'index'])->name('api.student.announcements.index');

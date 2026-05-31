@@ -1,4 +1,4 @@
-﻿@extends('layouts.teacher')
+@extends('layouts.teacher')
 
 @section('content')
     {{-- Header Section --}}
@@ -112,6 +112,52 @@
         </div>
     @endif
 
+    {{-- Questions Overview (only when the assignment has questions) --}}
+    @if($questions->isNotEmpty())
+        @php $isMCFormat = ($assignment->assignment_format ?? 'essay') === 'multiple_choice'; @endphp
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+            <div class="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-transparent">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <i data-lucide="list-checks" class="h-5 w-5 text-indigo-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900">Assignment Questions</h2>
+                        <p class="text-xs text-slate-500 mt-1">
+                            {{ $questions->count() }} question{{ $questions->count() !== 1 ? 's' : '' }}
+                            &middot; {{ $isMCFormat ? 'Multiple Choice' : 'Essay' }}
+                            &middot; {{ $assignment->max_score ?? $questions->sum('points') }} pts total
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 space-y-3">
+                @foreach($questions as $qi => $q)
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-start gap-3 flex-1 min-w-0">
+                                <span class="h-7 w-7 rounded-full bg-[#0b2d6b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{{ $qi + 1 }}</span>
+                                <p class="text-sm text-slate-800 font-medium leading-relaxed">{{ $q->question_text }}</p>
+                            </div>
+                            <span class="flex-shrink-0 text-xs font-semibold text-slate-500 bg-slate-200 rounded-full px-3 py-1">{{ $q->points }} pt{{ $q->points !== 1 ? 's' : '' }}</span>
+                        </div>
+                        @if($isMCFormat && $q->choices->isNotEmpty())
+                            <div class="mt-3 ml-10 space-y-1">
+                                @foreach($q->choices as $c)
+                                    <div class="flex items-center gap-2 text-xs {{ $c->is_correct ? 'text-emerald-700 font-semibold' : 'text-slate-500' }}">
+                                        <i data-lucide="{{ $c->is_correct ? 'check-circle' : 'circle' }}" class="h-3.5 w-3.5 flex-shrink-0 {{ $c->is_correct ? 'text-emerald-500' : 'text-slate-300' }}"></i>
+                                        {{ $c->choice_text }}
+                                        @if($c->is_correct) <span class="text-emerald-600">(correct)</span> @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     {{-- Submissions Section --}}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-transparent">
@@ -140,155 +186,77 @@
                     <p class="text-sm text-slate-500">Students will appear here once they submit their work</p>
                 </div>
             @else
-                <div class="space-y-4">
+                <div class="space-y-3">
                     @foreach ($submissions as $s)
                         @php
                             $isLate = $s->submitted_at && $assignment->due_date && $s->submitted_at->isAfter($assignment->due_date);
                             $hasScore = $s->score !== null && $s->score !== '';
-                            $scorePercentage = $hasScore && $assignment->max_score ? ($s->score / $assignment->max_score) * 100 : 0;
+                            $scorePercentage = $hasScore && ($assignment->max_score ?? 100) ? ($s->score / ($assignment->max_score ?? 100)) * 100 : 0;
+                            $isMC = ($assignment->assignment_format ?? 'essay') === 'multiple_choice';
+                            $hasQs = $questions->isNotEmpty();
+                            $isGraded = $hasScore;
+                            $needsGrading = !$isGraded && $hasQs && !$isMC;
                         @endphp
-                        <div class="group relative bg-slate-50 rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-5">
-                            {{-- Top Row: Student Info and Status --}}
-                            <div class="flex items-start justify-between gap-4 mb-4">
-                                <div class="flex items-center gap-3 flex-1 min-w-0">
-                                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#0b2d6b] to-[#0a275c] text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                        {{ strtoupper(substr($s->student?->name ?? '?', 0, 1)) }}
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="font-semibold text-slate-900 truncate">{{ $s->student?->name ?? 'Unknown Student' }}</p>
-                                        <p class="text-xs text-slate-500">
-                                            @if($s->submitted_at)
-                                                {{ $s->submitted_at->format('M d, Y \a\t g:i A') }}
-                                                @if($isLate)
-                                                    <span class="ml-2 inline-flex items-center gap-1 text-red-600 font-semibold">
-                                                        <i data-lucide="alert-circle" class="h-3 w-3"></i>Late
-                                                    </span>
-                                                @endif
-                                            @elseif($s->created_at)
-                                                {{ $s->created_at->format('M d, Y \a\t g:i A') }}
-                                            @else
-                                                <span class="text-slate-400">-</span>
-                                            @endif
-                                        </p>
-                                    </div>
+
+                        <div class="group flex items-center justify-between gap-4 bg-white rounded-lg border border-slate-200 hover:border-[#c9d7f2] hover:shadow-sm transition-all duration-200 px-5 py-4">
+                            {{-- Student info --}}
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-[#0b2d6b] to-[#0a275c] text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                    {{ strtoupper(substr($s->student?->name ?? '?', 0, 1)) }}
                                 </div>
-                                
-                                {{-- Score Badge --}}
-                                <div class="flex-shrink-0 text-right">
-                                    @if($hasScore)
-                                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg @if($scorePercentage >= 80) bg-emerald-100 @elseif($scorePercentage >= 60) bg-amber-100 @else bg-red-100 @endif">
-                                            <span class="text-sm font-bold @if($scorePercentage >= 80) text-emerald-700 @elseif($scorePercentage >= 60) text-amber-700 @else text-red-700 @endif">{{ $s->score }}</span>
-                                            <span class="text-xs @if($scorePercentage >= 80) text-emerald-600 @elseif($scorePercentage >= 60) text-amber-600 @else text-red-600 @endif">/{{ $assignment->max_score ?? 100 }}</span>
-                                        </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-semibold text-slate-900 truncate">{{ $s->student?->name ?? 'Unknown Student' }}</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">
+                                        @if($s->submitted_at)
+                                            {{ $s->submitted_at->format('M d, Y \a\t g:i A') }}
+                                        @elseif($s->created_at)
+                                            {{ $s->created_at->format('M d, Y \a\t g:i A') }}
+                                        @else
+                                            —
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+
+                            {{-- Badges --}}
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                @if($isLate)
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                                        <i data-lucide="clock" class="h-3 w-3"></i>Late
+                                    </span>
+                                @endif
+
+                                @if($isGraded)
+                                    @php $color = $scorePercentage >= 80 ? 'emerald' : ($scorePercentage >= 60 ? 'amber' : 'red'); @endphp
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-{{ $color }}-100 text-{{ $color }}-700">
+                                        {{ $s->score }} / {{ $assignment->max_score ?? 100 }}
+                                    </span>
+                                @elseif($needsGrading)
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                                        <i data-lucide="clock" class="h-3 w-3"></i>Needs grading
+                                    </span>
+                                @elseif($isMC && $hasQs)
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-[#eaf0fb] text-[#0b2d6b]">
+                                        <i data-lucide="check-circle" class="h-3 w-3"></i>Auto-graded
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">
+                                        Not graded
+                                    </span>
+                                @endif
+
+                                <a href="{{ route('teacher.submissions.show', [$course, $assignment, $s]) }}"
+                                   class="inline-flex items-center justify-center h-9 px-4 rounded-lg text-xs font-semibold transition-colors
+                                       {{ $needsGrading
+                                           ? 'bg-gradient-to-r from-[#0b2d6b] to-[#0a275c] text-white hover:shadow-md'
+                                           : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
+                                    @if($needsGrading)
+                                        <i data-lucide="check-square" class="h-3.5 w-3.5 mr-1.5"></i>Grade
                                     @else
-                                        <span class="inline-block px-3 py-1 rounded-lg bg-slate-200 text-xs font-medium text-slate-600">Not graded</span>
+                                        <i data-lucide="eye" class="h-3.5 w-3.5 mr-1.5"></i>View
                                     @endif
-                                </div>
+                                </a>
                             </div>
-
-                            {{-- Submission Content Row --}}
-                            <div class="mb-4 pb-4 border-b border-slate-200">
-                                <div class="flex items-center justify-between gap-3">
-                                    <div class="flex items-center gap-2 text-sm text-slate-600">
-                                        @switch($s->submission_type ?? 'file')
-                                            @case('text')
-                                                <i data-lucide="file-text" class="h-4 w-4 text-blue-500"></i>
-                                                <span>Text submission</span>
-                                                @if($s->content)
-                                                    <button onclick="document.getElementById('text-modal-{{ $s->id }}').classList.remove('hidden')" class="ml-auto text-[#0b2d6b] hover:text-[#0a275c] font-semibold text-xs hover:underline">View</button>
-                                                @endif
-                                                @break
-                                            @case('link')
-                                                <i data-lucide="link" class="h-4 w-4 text-purple-500"></i>
-                                                <span>Link submission</span>
-                                                @if($s->content)
-                                                    <a href="{{ $s->content }}" target="_blank" class="ml-auto text-[#0b2d6b] hover:text-[#0a275c] font-semibold text-xs hover:underline flex items-center gap-1">
-                                                        Open <i data-lucide="external-link" class="h-3 w-3"></i>
-                                                    </a>
-                                                @endif
-                                                @break
-                                            @case('file')
-                                            @default
-                                                <i data-lucide="file" class="h-4 w-4 text-amber-500"></i>
-                                                <span>File submission</span>
-                                                @if ($s->file_path)
-                                                    <a href="{{ asset('storage/' . $s->file_path) }}" target="_blank" class="ml-auto text-[#0b2d6b] hover:text-[#0a275c] font-semibold text-xs hover:underline flex items-center gap-1">
-                                                        Download <i data-lucide="download" class="h-3 w-3"></i>
-                                                    </a>
-                                                @endif
-                                                @break
-                                        @endswitch
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Grading Form Row --}}
-                            <form method="POST" action="{{ route('teacher.submissions.update', [$course, $assignment, $s]) }}" class="flex items-end gap-3">
-                                @csrf
-                                @method('PATCH')
-                                
-                                <div class="flex-1">
-                                    <label class="block text-xs font-semibold text-slate-600 mb-2">Score</label>
-                                    <div class="flex items-center gap-2">
-                                        <input type="number" name="score" value="{{ old('score', $s->score) }}" min="0" max="{{ $assignment->max_score ?? 100 }}" class="w-20 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#0b2d6b] focus:ring-2 focus:ring-[#0b2d6b]/20" placeholder="-" />
-                                        <span class="text-xs text-slate-500">/{{ $assignment->max_score ?? 100 }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="flex-1">
-                                    <label class="block text-xs font-semibold text-slate-600 mb-2">Feedback</label>
-                                    <input type="text" name="feedback" value="{{ old('feedback', $s->feedback) }}" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[#0b2d6b] focus:ring-2 focus:ring-[#0b2d6b]/20" placeholder="Add feedback..." />
-                                </div>
-
-                                <button type="submit" class="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-[#0b2d6b] text-white text-xs font-semibold hover:bg-[#0a275c] transition-colors">
-                                    <i data-lucide="save" class="h-4 w-4"></i>
-                                    <span class="hidden sm:inline ml-2">Save</span>
-                                </button>
-                            </form>
-
-                            {{-- Text Modal --}}
-                            @if($s->submission_type === 'text' && $s->content)
-                                <div id="text-modal-{{ $s->id }}" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                                    <div class="bg-white rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl">
-                                        {{-- Modal Header --}}
-                                        <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-transparent flex items-center justify-between">
-                                            <div class="flex items-center gap-3">
-                                                <div class="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                                    <i data-lucide="file-text" class="h-5 w-5 text-blue-600"></i>
-                                                </div>
-                                                <div>
-                                                    <h3 class="font-semibold text-slate-900">{{ $s->student?->name ?? 'Student' }}'s Submission</h3>
-                                                    <p class="text-xs text-slate-500 mt-0.5">
-                                                        <i data-lucide="calendar" class="h-3 w-3 inline mr-1"></i>
-                                                        {{ $s->submitted_at?->format('M d, Y \a\t g:i A') ?? 'Date unknown' }}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <button onclick="document.getElementById('text-modal-{{ $s->id }}').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 hover:bg-slate-100 h-10 w-10 rounded-lg flex items-center justify-center transition-colors">
-                                                <i data-lucide="x" class="h-5 w-5"></i>
-                                            </button>
-                                        </div>
-
-                                        {{-- Modal Body --}}
-                                        <div class="flex-1 overflow-y-auto p-8 bg-gradient-to-b from-white via-white to-slate-50">
-                                            <div class="prose prose-sm max-w-none prose-headings:text-slate-900 prose-p:text-slate-700 prose-strong:text-slate-900 prose-code:bg-slate-100 prose-code:text-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-slate-100">
-                                                <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-                                                    <div class="text-base leading-relaxed text-slate-800 whitespace-pre-wrap break-words [&>p]:mb-4 [&>p:last-child]:mb-0 [&>*]:mb-4 [&>*:last-child]:mb-0">
-                                                        {!! nl2br(htmlspecialchars(strip_tags($s->content), ENT_QUOTES)) !!}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {{-- Modal Footer --}}
-                                        <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
-                                            <button onclick="document.getElementById('text-modal-{{ $s->id }}').classList.add('hidden')" class="inline-flex items-center justify-center h-10 px-4 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
-                                                Close
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
                         </div>
                     @endforeach
                 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Teacher;
 
+use App\Exports\QuizScoresExport;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Quiz;
@@ -10,7 +11,9 @@ use App\Notifications\CourseEventNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TeacherQuizController extends Controller
 {
@@ -490,5 +493,25 @@ class TeacherQuizController extends Controller
         $this->updateQuizPoints($quiz);
 
         return redirect()->route('teacher.quizzes.questions', $quiz)->with('success', 'Questions imported successfully.');
+    }
+
+    public function exportScores(Request $request, Quiz $quiz)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        $quiz->load('course');
+
+        $courseCode = Str::slug($quiz->course->course_number ?? 'course');
+        $quizSlug   = Str::slug($quiz->title);
+        $date       = now()->format('Y-m-d');
+        $filename   = "quiz_scores_{$courseCode}_{$quizSlug}_{$date}.xlsx";
+
+        return Excel::download(
+            new QuizScoresExport($quiz, $request->user()->name),
+            $filename,
+            \Maatwebsite\Excel\Excel::XLSX
+        );
     }
 }

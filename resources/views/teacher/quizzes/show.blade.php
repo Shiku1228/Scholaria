@@ -11,6 +11,10 @@
             <div class="mt-1 text-sm text-slate-500">{{ $quiz->course->course_number }} • {{ $quiz->course->title }}</div>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('teacher.quizzes.scores.export', $quiz) }}"
+               class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-emerald-300 bg-emerald-50 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors">
+                <i data-lucide="download" class="h-4 w-4 mr-2"></i>Export Excel
+            </a>
             <a href="{{ route('teacher.quizzes.edit', $quiz) }}" class="inline-flex items-center justify-center h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50">
                 <i data-lucide="pencil" class="h-4 w-4 mr-2"></i>Edit
             </a>

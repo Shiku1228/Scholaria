@@ -18,10 +18,13 @@ class Submission extends Model
         'submitted_at',
         'score',
         'feedback',
+        'graded_by',
+        'graded_at',
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
+        'graded_at'    => 'datetime',
     ];
 
     public function assignment(): \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -32,5 +35,15 @@ class Submission extends Model
     public function student(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'student_id');
+    }
+
+    public function gradedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'graded_by');
+    }
+
+    public function answers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AssignmentAnswer::class, 'submission_id');
     }
 }
