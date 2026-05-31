@@ -162,9 +162,7 @@ class TeacherQuizController extends Controller
                     $correctAnswer = $qData['correct'] ?? null;
                 } elseif ($qData['type'] === 'true_false') {
                     $correctAnswer = $qData['correct'] ?? null;
-
                 } elseif ($qData['type'] === 'short_answer') {
-
                     $correctAnswer = $qData['correct_answer'] ?? null;
                 } else {
                     $correctAnswer = $qData['correct_answer'] ?? null;

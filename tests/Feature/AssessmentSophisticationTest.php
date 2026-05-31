@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Course;
+use App\Models\Exam;
+use App\Models\ExamQuestion;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\QuizQuestion;
+use App\Models\StudentExamAttempt;
 use App\Models\QuestionBank;
 use App\Models\BankQuestion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -117,6 +120,171 @@ class AssessmentSophisticationTest extends TestCase
         // Attempt 3 should fail
         $response3 = $this->actingAs($student)->post(route('student.quizzes.start', $quiz));
         $response3->assertSessionHas('error');
+    }
+
+    public function test_quiz_api_accepts_object_based_answers_payload(): void
+    {
+        $this->withoutMiddleware(\App\Http\Middleware\JwtMiddleware::class);
+
+        $student = User::factory()->create();
+        $student->assignRole('Student');
+
+        $teacher = User::factory()->create();
+        $teacher->assignRole('Teacher');
+
+        $course = Course::create([
+            'title' => 'API Quiz Course',
+            'course_number' => 'APIQ101',
+            'course_code' => 'APIQ101',
+            'teacher_id' => $teacher->id,
+            'description' => 'API Quiz Course Description',
+            'semester' => 'Spring 2026',
+        ]);
+
+        $course->enrollments()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $teacher->id,
+            'status' => 'active',
+        ]);
+
+        $quiz = Quiz::create([
+            'course_id' => $course->id,
+            'title' => 'API Shape Quiz',
+            'time_limit' => 10,
+            'max_score' => 10,
+            'attempts_allowed' => 1,
+            'is_published' => true,
+            'feedback_type' => 'instant',
+            'show_results' => true,
+        ]);
+
+        $q1 = QuizQuestion::create([
+            'quiz_id' => $quiz->id,
+            'question_text' => 'Question 1',
+            'question_type' => 'multiple_choice',
+            'options' => ['A' => 'Option A', 'B' => 'Option B'],
+            'correct_answer' => 'A',
+            'points' => 5,
+        ]);
+
+        $q2 = QuizQuestion::create([
+            'quiz_id' => $quiz->id,
+            'question_text' => 'Question 2',
+            'question_type' => 'true_false',
+            'correct_answer' => 'true',
+            'points' => 5,
+        ]);
+
+        $this->actingAs($student)->postJson(route('api.student.quizzes.start', $quiz))
+            ->assertOk();
+
+        $submitResponse = $this->actingAs($student)->postJson(route('api.student.quizzes.submit', $quiz), [
+            'answers' => [
+                [
+                    'question_id' => $q1->id,
+                    'answer' => 'A',
+                ],
+                [
+                    'question_id' => $q2->id,
+                    'answer' => 'true',
+                ],
+            ],
+        ]);
+
+        $submitResponse->assertOk();
+        $submitResponse->assertJsonPath('data.total_score', 10);
+
+        $attempt = QuizAttempt::where('student_id', $student->id)
+            ->where('quiz_id', $quiz->id)
+            ->first();
+
+        $this->assertNotNull($attempt);
+        $this->assertEquals('submitted', $attempt->status);
+        $this->assertEquals(10, $attempt->score);
+    }
+
+    public function test_exam_api_accepts_object_based_answers_payload(): void
+    {
+        $this->withoutMiddleware(\App\Http\Middleware\JwtMiddleware::class);
+
+        $student = User::factory()->create();
+        $student->assignRole('Student');
+
+        $teacher = User::factory()->create();
+        $teacher->assignRole('Teacher');
+
+        $course = Course::create([
+            'title' => 'API Exam Course',
+            'course_number' => 'APIE101',
+            'course_code' => 'APIE101',
+            'teacher_id' => $teacher->id,
+            'description' => 'API Exam Course Description',
+            'semester' => 'Spring 2026',
+        ]);
+
+        $course->enrollments()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $teacher->id,
+            'status' => 'active',
+        ]);
+
+        $exam = Exam::create([
+            'course_id' => $course->id,
+            'exam_type' => 'online',
+            'title' => 'API Shape Exam',
+            'duration' => 30,
+            'attempts_allowed' => 1,
+            'max_score' => 10,
+            'exam_date' => now()->subHour(),
+            'due_date' => now()->addDay(),
+            'is_published' => true,
+            'feedback_type' => 'instant',
+            'show_results' => true,
+        ]);
+
+        $q1 = ExamQuestion::create([
+            'exam_id' => $exam->id,
+            'question_text' => 'Question 1',
+            'question_type' => 'multiple_choice',
+            'options' => ['A' => 'Option A', 'B' => 'Option B'],
+            'correct_answer' => 'A',
+            'points' => 5,
+        ]);
+
+        $q2 = ExamQuestion::create([
+            'exam_id' => $exam->id,
+            'question_text' => 'Question 2',
+            'question_type' => 'true_false',
+            'correct_answer' => 'true',
+            'points' => 5,
+        ]);
+
+        $this->actingAs($student)->postJson(route('api.student.exams.start', $exam))
+            ->assertOk();
+
+        $submitResponse = $this->actingAs($student)->postJson(route('api.student.exams.submit', $exam), [
+            'answers' => [
+                [
+                    'question_id' => $q1->id,
+                    'answer' => 'A',
+                ],
+                [
+                    'question_id' => $q2->id,
+                    'answer' => 'true',
+                ],
+            ],
+        ]);
+
+        $submitResponse->assertOk();
+        $submitResponse->assertJsonPath('data.total_score', 10);
+
+        $attempt = StudentExamAttempt::where('student_id', $student->id)
+            ->where('exam_id', $exam->id)
+            ->first();
+
+        $this->assertNotNull($attempt);
+        $this->assertEquals('submitted', $attempt->status);
+        $this->assertEquals(10, $attempt->score);
     }
 
     public function test_shuffling_and_subset_is_locked_during_attempt(): void
