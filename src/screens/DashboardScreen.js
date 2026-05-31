@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { getStudentDashboard } from '@/api/auth';
+import { API_BASE_URL } from '@/api/client';
 
 function formatDate(value) {
   if (!value) {
@@ -163,12 +164,25 @@ function StatItem({ label, value, theme }) {
   );
 }
 
+function getCoverImageUrl(coverImage) {
+  if (!coverImage) return null;
+  if (coverImage.startsWith('http')) return coverImage;
+  const base = API_BASE_URL.replace(/\/api$/, '');
+  const path = coverImage.replace(/^\/+/, '');
+  return `${base}/storage/${path}`;
+}
+
 function SubjectCard({ course, onPress, theme }) {
+  const coverUri = getCoverImageUrl(course.cover_image);
   return (
     <Pressable onPress={onPress} style={[styles.subjectCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-      <View style={[styles.subjectPreview, { backgroundColor: theme.background }]}>
-        <Text style={styles.previewIcon}>[]</Text>
-      </View>
+      <ImageBackground
+        source={coverUri ? { uri: coverUri } : null}
+        style={[styles.subjectPreview, { backgroundColor: theme.background }]}
+        imageStyle={{ borderTopLeftRadius: 27, borderTopRightRadius: 27 }}
+      >
+        {!coverUri && <Text style={styles.previewIcon}>[]</Text>}
+      </ImageBackground>
 
       <View style={[styles.subjectBody, { backgroundColor: theme.card }]}>
         <View style={[styles.subjectPill, { backgroundColor: theme.accentSoft }]}>

@@ -4,6 +4,8 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { login, logout, restoreSession } from '@/api/auth';
+import { isStudentUser, STUDENT_ACCESS_DENIED_MESSAGE } from '@/utils/userRole';
+import { clearSession } from '@/utils/session';
 import StudentTabBar from '@/components/StudentTabBar';
 import { darkTheme, lightTheme } from '@/constants/colors';
 import AssignmentSubmitScreen from '@/screens/AssignmentSubmitScreen';
@@ -37,9 +39,15 @@ export default function AppNavigator() {
     (async () => {
       try {
         const stored = await restoreSession();
-        if (mounted) {
-          setSession(stored);
+        if (!mounted) return;
+
+        if (stored?.token && !isStudentUser(stored.user)) {
+          await clearSession();
+          setSession(null);
+          return;
         }
+
+        setSession(stored);
       } finally {
         if (mounted) {
           setBooting(false);
@@ -53,6 +61,12 @@ export default function AppNavigator() {
   }, []);
 
   const handleLoginSuccess = (sessionData) => {
+    if (!sessionData?.token || !isStudentUser(sessionData.user)) {
+      Alert.alert('Access denied', STUDENT_ACCESS_DENIED_MESSAGE);
+      clearSession();
+      setSession(null);
+      return;
+    }
     setSession(sessionData);
   };
 

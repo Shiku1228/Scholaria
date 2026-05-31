@@ -79,6 +79,20 @@ export function markAllStudentNotificationsRead(token) {
   });
 }
 
+export function getStudentAssignment(token, assignmentId) {
+  return apiRequest(`/student/assignments/${assignmentId}`, {
+    method: 'GET',
+    token,
+  });
+}
+
+export function getStudentAssignmentReview(token, assignmentId) {
+  return apiRequest(`/student/assignments/${assignmentId}/submission`, {
+    method: 'GET',
+    token,
+  });
+}
+
 export function getStudentAssignmentSubmission(token, assignmentId) {
   return apiRequest(`/student/assignments/${assignmentId}/submit`, {
     method: 'GET',

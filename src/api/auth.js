@@ -1,6 +1,45 @@
 import { clearSession, loadSession, saveSession } from '@/utils/session';
+import { assertStudentUser, isStudentUser, STUDENT_ACCESS_DENIED_MESSAGE } from '@/utils/userRole';
 import { apiRequest } from './client';
 import { getStudentDashboard } from './student';
+
+async function resolveUserForAccess(token, responseUser) {
+  if (isStudentUser(responseUser)) {
+    return responseUser;
+  }
+
+  if (responseUser) {
+    return null;
+  }
+
+  try {
+    const me = await getMe(token);
+    const user = me?.user || me?.data?.user || me?.data || me;
+    return isStudentUser(user) ? user : null;
+  } catch {
+    return null;
+  }
+}
+
+async function buildStudentSession(response) {
+  const token = response.token || response.access_token;
+  const user = await resolveUserForAccess(token, response.user || null);
+
+  if (!user) {
+    throw new Error(STUDENT_ACCESS_DENIED_MESSAGE);
+  }
+
+  const session = {
+    token,
+    tokenType: response.token_type || 'bearer',
+    expiresIn: response.expires_in || null,
+    user,
+  };
+
+  assertStudentUser(session.user);
+  await saveSession(session);
+  return session;
+}
 
 export async function login(email, password) {
   let response;
@@ -33,17 +72,7 @@ export async function login(email, password) {
     throw new Error(response?.message || 'Login failed');
   }
 
-  const token = response.token || response.access_token;
-  const session = {
-    token,
-    tokenType: response.token_type || 'bearer',
-    expiresIn: response.expires_in || null,
-    user: response.user || null,
-  };
-
-  await saveSession(session);
-
-  return session;
+  return buildStudentSession(response);
 }
 
 export async function verifyMfa(mfaCode, tempToken) {
@@ -61,22 +90,33 @@ export async function verifyMfa(mfaCode, tempToken) {
   if (!response?.access_token && !response?.token) {
     throw new Error(response?.error || response?.message || 'Verification failed');
   }
-  
-  const token = response.access_token || response.token;
-  const session = {
-    token,
-    tokenType: response.token_type || 'bearer',
-    expiresIn: response.expires_in || null,
-    user: response.user || null,
-  };
 
-  await saveSession(session);
-
-  return session;
+  return buildStudentSession(response);
 }
 
 export async function restoreSession() {
-  return loadSession();
+  const stored = await loadSession();
+  if (!stored?.token) {
+    return null;
+  }
+
+  let user = stored.user;
+  if (!isStudentUser(user)) {
+    user = await resolveUserForAccess(stored.token, user);
+  }
+
+  if (!isStudentUser(user)) {
+    await clearSession();
+    return null;
+  }
+
+  if (user !== stored.user) {
+    const updated = { ...stored, user };
+    await saveSession(updated);
+    return updated;
+  }
+
+  return stored;
 }
 
 export async function logout(token) {

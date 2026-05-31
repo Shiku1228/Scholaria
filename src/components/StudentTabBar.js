@@ -104,64 +104,78 @@ export default function StudentTabBar({
 }
 
 function TabIcon({ type, active, theme }) {
-  const color = active ? theme.accent : theme.muted;
+  const c = active ? theme.accent : theme.muted;
 
   if (type === 'dashboard') {
     return (
-      <View style={styles.dashIcon}>
-        <View style={[styles.dashMain, { borderColor: color }]} />
-        <View style={styles.dashSide}>
-          <View style={[styles.dashSmall, { backgroundColor: color }]} />
-          <View style={[styles.dashSmall, { backgroundColor: color }]} />
-        </View>
+      <View style={{ width: 22, height: 22, flexDirection: 'row', flexWrap: 'wrap', gap: 3, padding: 1 }}>
+        {[0, 1, 2, 3].map((i) => (
+          <View key={i} style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: c }} />
+        ))}
       </View>
     );
   }
 
   if (type === 'courses') {
     return (
-      <View style={styles.mortarIcon}>
-        <View style={[styles.mortarTop, { backgroundColor: color }]} />
-        <View style={[styles.mortarBottom, { borderColor: color }]} />
-        <View style={[styles.mortarTassel, { backgroundColor: color }]} />
+      <View style={{ width: 22, height: 20 }}>
+        <View style={{ position: 'absolute', left: 0, top: 0, width: 9, height: 20, borderWidth: 2, borderColor: c, borderTopLeftRadius: 3, borderBottomLeftRadius: 3 }}>
+          <View style={{ position: 'absolute', top: 4, left: 2, right: 1, height: 1.5, backgroundColor: c, borderRadius: 1 }} />
+          <View style={{ position: 'absolute', top: 8, left: 2, right: 1, height: 1.5, backgroundColor: c, borderRadius: 1 }} />
+          <View style={{ position: 'absolute', top: 12, left: 2, right: 1, height: 1.5, backgroundColor: c, borderRadius: 1 }} />
+        </View>
+        <View style={{ position: 'absolute', left: 9, top: 0, width: 4, height: 20, backgroundColor: c, borderRadius: 1 }} />
+        <View style={{ position: 'absolute', right: 0, top: 0, width: 9, height: 20, borderWidth: 2, borderColor: c, borderTopRightRadius: 3, borderBottomRightRadius: 3 }}>
+          <View style={{ position: 'absolute', top: 4, left: 1, right: 2, height: 1.5, backgroundColor: c, borderRadius: 1 }} />
+          <View style={{ position: 'absolute', top: 8, left: 1, right: 2, height: 1.5, backgroundColor: c, borderRadius: 1 }} />
+          <View style={{ position: 'absolute', top: 12, left: 1, right: 2, height: 1.5, backgroundColor: c, borderRadius: 1 }} />
+        </View>
       </View>
     );
   }
 
   if (type === 'tasks') {
     return (
-      <View style={styles.taskIcon}>
-        <View style={[styles.taskLine, { backgroundColor: color, width: 14 }]} />
-        <View style={[styles.taskLine, { backgroundColor: color, width: 10 }]} />
-        <View style={[styles.taskCheck, { borderColor: color }]} />
+      <View style={{ width: 18, height: 22, borderWidth: 2, borderColor: c, borderRadius: 4 }}>
+        <View style={{ position: 'absolute', top: 5, left: 3, right: 3, height: 2, backgroundColor: c, borderRadius: 1 }} />
+        <View style={{ position: 'absolute', top: 10, left: 3, right: 3, height: 2, backgroundColor: c, borderRadius: 1 }} />
+        <View style={{ position: 'absolute', top: 15, left: 3, right: 6, height: 2, backgroundColor: c, borderRadius: 1 }} />
       </View>
     );
   }
 
   if (type === 'messages') {
     return (
-      <View style={[styles.bubbleIcon, { borderColor: color }]}>
-        <View style={[styles.bubbleTail, { borderTopColor: color }]} />
-        <View style={[styles.bubbleDot, { backgroundColor: color }]} />
+      <View style={{ width: 22, height: 22 }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 16, borderWidth: 2, borderColor: c, borderRadius: 8 }}>
+          <View style={{ position: 'absolute', top: 4, left: 4, flexDirection: 'row', gap: 3 }}>
+            <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: c }} />
+            <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: c }} />
+            <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: c }} />
+          </View>
+        </View>
+        <View style={{ position: 'absolute', bottom: 0, left: 5, width: 0, height: 0, borderLeftWidth: 4, borderRightWidth: 4, borderTopWidth: 6, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: c }} />
       </View>
     );
   }
 
   if (type === 'grades') {
     return (
-      <View style={styles.statsIcon}>
-        <View style={[styles.statsBar, { height: 8, backgroundColor: color }]} />
-        <View style={[styles.statsBar, { height: 14, backgroundColor: color }]} />
-        <View style={[styles.statsBar, { height: 11, backgroundColor: color }]} />
+      <View style={{ width: 22, height: 22, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <View style={{ width: 5, height: 10, backgroundColor: c, borderTopLeftRadius: 2, borderTopRightRadius: 2 }} />
+        <View style={{ width: 5, height: 18, backgroundColor: c, borderTopLeftRadius: 2, borderTopRightRadius: 2 }} />
+        <View style={{ width: 5, height: 14, backgroundColor: c, borderTopLeftRadius: 2, borderTopRightRadius: 2 }} />
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: c, borderRadius: 1 }} />
       </View>
     );
   }
 
   return (
-    <View style={styles.bellIcon}>
-      <View style={[styles.bellTop, { backgroundColor: color }]} />
-      <View style={[styles.bellBody, { borderColor: color }]} />
-      <View style={[styles.bellClapper, { backgroundColor: color }]} />
+    <View style={{ width: 22, height: 22, alignItems: 'center' }}>
+      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: c }} />
+      <View style={{ marginTop: -2, width: 16, height: 11, borderWidth: 2, borderColor: c, borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomWidth: 0 }} />
+      <View style={{ width: 18, height: 2, backgroundColor: c, borderRadius: 1 }} />
+      <View style={{ marginTop: 1, width: 5, height: 5, borderRadius: 2.5, borderWidth: 2, borderColor: c }} />
     </View>
   );
 }
@@ -307,140 +321,6 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 999,
     backgroundColor: stylesValues.accent,
-  },
-  dashIcon: {
-    width: 24,
-    height: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 2,
-  },
-  dashMain: {
-    width: 12,
-    height: 18,
-    borderWidth: 2,
-    borderRadius: 2,
-  },
-  dashSide: {
-    gap: 4,
-  },
-  dashSmall: {
-    width: 6,
-    height: 7,
-    borderRadius: 1,
-  },
-  mortarIcon: {
-    width: 22,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mortarTop: {
-    width: 20,
-    height: 10,
-    transform: [{ rotate: '45deg' }, { scaleX: 1.4 }],
-    borderRadius: 1,
-  },
-  mortarBottom: {
-    width: 12,
-    height: 6,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
-    marginTop: -2,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-  },
-  mortarTassel: {
-    position: 'absolute',
-    right: 0,
-    top: 8,
-    width: 2,
-    height: 6,
-  },
-  taskIcon: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    gap: 4,
-  },
-  taskLine: {
-    height: 2,
-    borderRadius: 1,
-  },
-  taskCheck: {
-    position: 'absolute',
-    right: 0,
-    top: 4,
-    width: 8,
-    height: 4,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    transform: [{ rotate: '-45deg' }],
-  },
-  bubbleIcon: {
-    width: 22,
-    height: 18,
-    borderWidth: 2,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bubbleDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-  bubbleTail: {
-    position: 'absolute',
-    bottom: -6,
-    left: 6,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 3,
-    borderRightWidth: 3,
-    borderTopWidth: 5,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
-  statsIcon: {
-    width: 24,
-    height: 24,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-  },
-  statsBar: {
-    width: 4,
-    borderRadius: 2,
-  },
-  bellIcon: {
-    width: 22,
-    height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bellTop: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: -2,
-  },
-  bellBody: {
-    width: 14,
-    height: 12,
-    borderWidth: 2,
-    borderTopLeftRadius: 7,
-    borderTopRightRadius: 7,
-    borderBottomWidth: 3,
-  },
-  bellClapper: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginTop: -1,
   },
   menuIcon: {
     width: 18,

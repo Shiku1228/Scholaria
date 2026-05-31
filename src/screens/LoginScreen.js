@@ -85,7 +85,7 @@ export default function LoginScreen({ onLogin, onLoginSuccess, theme }) {
             <Text style={[styles.kicker, { color: theme.accent }]}>Scholaria Student</Text>
             <Text style={[styles.title, { color: theme.text }]}>Sign in to continue</Text>
             <Text style={[styles.subtitle, { color: theme.muted }]}>
-              Use your existing Laravel account to access the student dashboard.
+              Student accounts only. Teachers and admins should use the Scholaria website.
             </Text>
           </View>
 
@@ -162,8 +162,8 @@ export default function LoginScreen({ onLogin, onLoginSuccess, theme }) {
 
           <View style={styles.note}>
             <Text style={[styles.noteText, { color: theme.muted }]}>
-              If login fails, check that your Laravel backend is running and the API URL is set
-              correctly.
+              Only users with the student role can sign in here. If login fails, check your API URL
+              and that your backend is running.
             </Text>
           </View>
         </ScrollView>

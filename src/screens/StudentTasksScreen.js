@@ -13,33 +13,21 @@ import {
 } from 'react-native';
 
 import {
-  getStudentAssignmentSubmission,
   getStudentExam,
   getStudentQuiz,
   getStudentTasks,
   startStudentExam,
   startStudentQuiz,
-  submitStudentAssignment,
   submitStudentExam,
   submitStudentQuiz,
 } from '@/api/student';
 import { darkTheme as colors } from '@/constants/colors';
-import { createUploadFormData, pickDocumentAsset } from '@/utils/uploads';
 
 export default function StudentTasksScreen({ token, setActiveTab: parentSetActiveTab, setSelectedItem, theme }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTabState] = useState('assignments');
-  const [selectedAssignment, setSelectedAssignment] = useState(null);
-  const [assignmentDetail, setAssignmentDetail] = useState(null);
-  const [assignmentModalOpen, setAssignmentModalOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submissionType, setSubmissionType] = useState('text');
-  const [textContent, setTextContent] = useState('');
-  const [linkContent, setLinkContent] = useState('');
-  const [attachedFile, setAttachedFile] = useState(null);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
   const [assessmentKind, setAssessmentKind] = useState('');
   const [selectedAssessment, setSelectedAssessment] = useState(null);
@@ -83,25 +71,10 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
 
   const openAssignment = (assignment) => {
     const id = assignment?.assignment_id ?? assignment?.id;
-    setSelectedAssignment({ ...assignment, assignment_id: id });
-    setAssignmentModalOpen(true);
-    setError('');
-    setAttachedFile(null);
-    setSubmissionType('text');
-    setTextContent('');
-    setLinkContent('');
-  };
-
-  const pickAssignmentFile = async () => {
-    try {
-      const asset = await pickDocumentAsset();
-      if (asset) {
-        console.log('[File Pick] StudentTasksScreen - Picked asset:', asset);
-        setAttachedFile(asset);
-        setSubmissionType('file');
-      }
-    } catch (err) {
-      setError(err?.message || 'Unable to choose a file.');
+    const normalized = { ...assignment, assignment_id: id };
+    if (parentSetActiveTab && setSelectedItem) {
+      setSelectedItem(normalized);
+      parentSetActiveTab('assignmentSubmit');
     }
   };
 
@@ -168,7 +141,6 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
   };
 
   const closeAssessment = () => {
-    setAssignmentModalOpen(false);
     setAssessmentOpen(false);
     setAssessmentKind('');
     setSelectedAssessment(null);
@@ -281,72 +253,6 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
     }));
   };
 
-  const loadAssignmentDetail = async (assignmentId) => {
-    setDetailLoading(true);
-    try {
-      const response = await getStudentAssignmentSubmission(token, assignmentId);
-      setAssignmentDetail(response?.data || null);
-      const existing = response?.data?.submission || null;
-      setSubmissionType(existing?.submission_type || 'text');
-      setTextContent(existing?.content || '');
-      setLinkContent(existing?.content || '');
-      setAttachedFile(null);
-    } catch (err) {
-      setError(err?.message || 'Unable to load assignment details.');
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const handleSubmitAssignment = async () => {
-    if (!selectedAssignment?.assignment_id) {
-      return;
-    }
-
-    if (submissionType === 'file' && !attachedFile?.uri) {
-      Alert.alert('Attach a file', 'Please choose a file before submitting.');
-      return;
-    }
-
-    const payload = { submission_type: submissionType };
-    if (submissionType === 'text') {
-      payload.text_content = textContent;
-    } else if (submissionType === 'link') {
-      payload.link_content = linkContent;
-    } else if (submissionType === 'file') {
-      const fileForm = createUploadFormData(
-        {
-          submission_type: 'file',
-        },
-        'file',
-        attachedFile
-      );
-      payload.formData = fileForm;
-    }
-
-    setSubmitting(true);
-    setError('');
-
-    try {
-      await submitStudentAssignment(
-        token,
-        selectedAssignment.assignment_id,
-        payload.formData || {
-          submission_type: payload.submission_type,
-          text_content: payload.text_content,
-          link_content: payload.link_content,
-        }
-      );
-      await loadTasks();
-      await loadAssignmentDetail(selectedAssignment.assignment_id);
-      setAssignmentModalOpen(false);
-    } catch (err) {
-      setError(err?.message || 'Unable to submit assignment.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   useEffect(() => {
     const timer = setTimeout(() => {
       loadTasks();
@@ -354,19 +260,6 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
 
     return () => clearTimeout(timer);
   }, [token, activeTab]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const aid = selectedAssignment?.assignment_id ?? selectedAssignment?.id;
-      if (activeTab === 'assignments' && aid) {
-        loadAssignmentDetail(aid);
-      } else {
-        setAssignmentDetail(null);
-      }
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [selectedAssignment]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -392,7 +285,7 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
       <View style={styles.headerSection}>
         <Text style={[styles.title, { color: theme.text }]}>TASKS</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>
-          Mga gawain mo mula sa assignments, exams, at quizzes.
+          Your tasks from assignments, exams, and quizzes.
         </Text>
 
 
@@ -484,106 +377,6 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
       )}
       </ScrollView>
 
-      <Modal visible={assignmentModalOpen} transparent animationType="fade" onRequestClose={() => setAssignmentModalOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setAssignmentModalOpen(false)} />
-          <View style={[styles.detailCard, { backgroundColor: theme.card, borderColor: theme.border, width: '90%', alignSelf: 'center' }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              {selectedAssignment?.title || 'Assignment details'}
-            </Text>
-            {detailLoading ? (
-              <View style={[styles.loadingCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <ActivityIndicator color={theme.accent} />
-                <Text style={[styles.loadingText, { color: theme.muted }]}>Loading assignment...</Text>
-              </View>
-            ) : (
-              <>
-                <Text style={[styles.itemMeta, { color: theme.muted }]}>
-                  Due: {assignmentDetail?.assignment?.due_date || selectedAssignment?.due_date || 'No due date'}
-                </Text>
-                <Text style={[styles.itemMeta, { color: theme.muted }]}>
-                  Course: {assignmentDetail?.course?.title || selectedAssignment?.course_title || selectedAssignment?.course_name || ''}
-                </Text>
-                  <Text style={[styles.itemMeta, { color: theme.muted }]}>
-                    Status: {assignmentDetail?.submission ? 'Submitted (View Only)' : 'Not submitted'}
-                </Text>
-
-                <View style={styles.submissionTabs}>
-                  {['text', 'link', 'file'].map((type) => {
-                    const active = submissionType === type;
-                    const isSubmitted = !!assignmentDetail?.submission;
-
-                    return (
-                      <Pressable
-                        key={type}
-                        onPress={() => !isSubmitted && setSubmissionType(type)}
-                        style={[styles.submissionTab, { backgroundColor: theme.input, borderColor: theme.border }, active && styles.submissionTabActive, active && { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}
-                      >
-                        <Text style={[styles.submissionTabText, { color: theme.muted }, active && styles.submissionTabTextActive, active && { color: theme.accent }]}>
-                          {type}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                {submissionType === 'text' ? (
-                  <TextInput
-                    value={textContent}
-                    onChangeText={setTextContent}
-                    editable={!assignmentDetail?.submission}
-                    placeholder="Write your answer..."
-                    placeholderTextColor={theme.muted}
-                    multiline
-                    style={[styles.textArea, { backgroundColor: theme.input, color: theme.text, borderColor: theme.border }]}
-                  />
-                ) : (
-                  submissionType === 'link' ? (
-                    <TextInput
-                      value={linkContent}
-                      onChangeText={setLinkContent}
-                      editable={!assignmentDetail?.submission}
-                      placeholder="Paste a link..."
-                      placeholderTextColor={theme.muted}
-                      autoCapitalize="none"
-                      keyboardType="url"
-                      style={[styles.input, { backgroundColor: theme.input, color: theme.text, borderColor: theme.border }]}
-                    />
-                  ) : (
-                    <View style={[styles.filePickerCard, { backgroundColor: theme.input, borderColor: theme.border }]}>
-                      <Text style={[styles.itemMeta, { color: theme.muted }]}>
-                        {attachedFile?.name || (assignmentDetail?.submission?.file_path ? 'File already uploaded' : 'No file selected yet.')}
-                      </Text>
-                      {!assignmentDetail?.submission && (
-                        <Pressable onPress={pickAssignmentFile} style={[styles.secondaryButton, { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
-                          <Text style={[styles.secondaryButtonText, { color: theme.accent }]}>
-                            {attachedFile ? 'Change file' : 'Choose file'}
-                          </Text>
-                        </Pressable>
-                      )}
-                    </View>
-                  )
-                )}
-
-                {!assignmentDetail?.submission && (
-                  <Pressable onPress={handleSubmitAssignment} style={[styles.submitButton, { backgroundColor: theme.accent }]} disabled={submitting}>
-                    <Text style={[styles.submitButtonText, { color: theme.background }]}>
-                      {submitting ? 'Submitting...' : 'Submit assignment'}
-                    </Text>
-                  </Pressable>
-                )}
-                
-                <Pressable onPress={() => setAssignmentModalOpen(false)} style={[styles.secondaryButton, { width: '100%', alignItems: 'center', marginTop: 8 }]}>
-                   <Text style={[styles.secondaryButtonText, { color: theme.muted }]}>
-                     {assignmentDetail?.submission ? 'Close' : 'Cancel'}
-                   </Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-
       <AssessmentModal
         open={assessmentOpen}
         kind={assessmentKind}
@@ -646,7 +439,7 @@ function TaskSection({ title, items, activeTab, kind, onSelectItem, theme }) {
             ) : null}
           <Text style={[styles.itemMeta, { color: theme.muted }]}>
               {item.is_overdue ? 'Overdue' : 'Due'}:{' '}
-              {item.due_date || item.exam_date || item.start_date || 'No date'}
+              {formatReadableDate(item.due_date || item.exam_date || item.start_date)}
             </Text>
           </Pressable>
         ))
@@ -1187,6 +980,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '800',
   },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginTop: 4,
+  },
   filePickerCard: {
     borderRadius: 14,
     borderWidth: 1,
@@ -1213,11 +1013,53 @@ const styles = StyleSheet.create({
   },
   statusPillTextDanger: {
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  modalSub: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  summaryChip: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 80,
+    gap: 2,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
   assessmentModalCard: {
     borderRadius: 22,
     padding: 16,
     borderWidth: 1,
     gap: 12,
+    width: '92%',
+    maxWidth: 480,
     maxHeight: '90%',
   },
   assessmentModalHeader: {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ImageBackground,
   Linking,
   Modal,
   Pressable,
@@ -19,6 +20,7 @@ import {
   getStudentCourses,
   getStudentTasks
 } from '@/api/student';
+import StudentCourseListCard from '@/components/StudentCourseListCard';
 import { darkTheme as colors } from '@/constants/colors';
 
 const detailTabs = [
@@ -320,61 +322,21 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
               courses.map((course, index) => {
                 const courseId = getCourseId(course);
                 const active = selectedCourseId === courseId;
-                const courseStatus = normalizeEnrollmentStatus(course.enrollment_status);
+                const coverImageUri = course.cover_image
+                  ? getCoverImageUrl(course.cover_image, API_BASE_URL)
+                  : null;
 
                 return (
-                  <Pressable
+                  <StudentCourseListCard
                     key={courseId || course.course_number || course.course_name || `course-${index}`}
+                    course={course}
+                    coverImageUri={coverImageUri}
+                    theme={theme}
+                    active={active}
                     onPress={() => openCourse(course)}
-                    style={[styles.courseCard, { backgroundColor: theme.card, borderColor: theme.border }, active && { borderColor: theme.accent }]}
-                  >
-                    <View style={[styles.coursePreview, { backgroundColor: theme.card }]}>
-                      <View style={styles.courseTopRow}>
-                        <View style={styles.courseTextWrap}>
-                          <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={2}>
-                            {course.course_name || 'Course'}
-                          </Text>
-                          <Text style={[styles.courseMeta, { color: theme.muted }]}>
-                            {course.course_number || 'No course number'} - {course.teacher_name || 'No teacher'}
-                          </Text>
-                        </View>
-
-                        <View style={[styles.badge, { backgroundColor: theme.accentSoftAlt }, active && { backgroundColor: theme.accent }]}>
-                          <Text style={[styles.badgeText, { color: theme.text }, active && { color: theme.background }]}>
-                            {course.progress ?? 0}%
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={[styles.courseBody, { backgroundColor: theme.accentSoftAlt }]}>
-                      <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
-                        <View
-                          style={[
-                            styles.progressFill,
-                            { width: `${Math.max(0, Math.min(100, course.progress ?? 0))}%`, backgroundColor: theme.accentSoftAlt },
-                          ]}
-                        />
-                      </View>
-
-                      {courseStatus ? (
-                        <View style={styles.courseStatusRow}>
-                          <View
-                            style={[
-                              styles.courseStatusPill,
-                              courseStatus === 'active' && styles.courseStatusPillActive,
-                            ]}
-                          >
-                            <Text style={[styles.courseStatusText, { color: theme.text }, courseStatus === 'active' && { color: theme.accentSoftAlt }]}>
-                              {formatEnrollmentStatus(courseStatus)}
-                            </Text>
-                          </View>
-                        </View>
-                      ) : null}
-
-                      <Text style={[styles.courseHint, { color: theme.accentSoftAlt }]}>Tap to open course activity</Text>
-                    </View>
-                  </Pressable>
+                    formatEnrollmentStatus={formatEnrollmentStatus}
+                    normalizeEnrollmentStatus={normalizeEnrollmentStatus}
+                  />
                 );
               })
             )}
@@ -392,7 +354,11 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
               </View>
             ) : (
               <>
-                <View style={[styles.heroCard, { backgroundColor: theme.accentSoftAlt }]}>
+                <ImageBackground
+                  source={currentCourse.cover_image ? { uri: getCoverImageUrl(currentCourse.cover_image, API_BASE_URL) } : null}
+                  style={[styles.heroCard, { backgroundColor: theme.accentSoftAlt }]}
+                  imageStyle={{ borderRadius: 24 }}
+                >
                   <View style={styles.heroTextBlock}>
                     <Text style={[styles.heroTitle, { color: '#FFFFFF' }]}>
                       {currentCourse.course?.title || currentCourse.course_name || 'Course'}
@@ -406,7 +372,7 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
                   <View style={[styles.heroBadge, { backgroundColor: theme.card }]}>
                     <Text style={[styles.heroBadgeText, { color: theme.accent }]}>{courses[selectedIndex]?.progress ?? 0}%</Text>
                   </View>
-                </View>
+                </ImageBackground>
 
                 {enrollmentStatus ? (
                   <View style={styles.statusPillRow}>
@@ -878,6 +844,14 @@ function extractApiDebug(error) {
   return error?.data?.debug || error?.data || null;
 }
 
+function getCoverImageUrl(coverImage, apiBase) {
+  if (!coverImage) return null;
+  if (coverImage.startsWith('http')) return coverImage;
+  const base = apiBase.replace(/\/api$/, '');
+  const path = coverImage.replace(/^\/+/, '');
+  return `${base}/storage/${path}`;
+}
+
 function formatDebugList(values) {
   if (!Array.isArray(values) || values.length === 0) {
     return '[]';
@@ -956,7 +930,7 @@ const styles = StyleSheet.create({
   sectionBlock: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    gap: 10,
+    gap: 4,
   },
   sectionTitle: {
     fontSize: 18,
@@ -964,45 +938,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontStyle: 'italic',
-  },
-  courseCard: {
-    overflow: 'hidden',
-    borderRadius: 28,
-    borderWidth: 1,
-  },
-  courseCardActive: {
-  },
-  coursePreview: {
-    padding: 16,
-    height: 140,
-  },
-  courseBody: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 8,
-  },
-  courseTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    alignItems: 'flex-start',
-  },
-  courseTextWrap: {
-    flex: 1,
-  },
-  courseTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  courseMeta: {
-    fontSize: 13,
-    marginTop: 6,
-  },
-  courseHint: {
-    opacity: 0.9,
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: 4,
   },
   statusPillRow: {
     alignItems: 'flex-start',
@@ -1021,49 +956,6 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   statusPillTextActive: {
-  },
-  courseStatusRow: {
-    alignItems: 'flex-start',
-  },
-  courseStatusPill: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 999,
-  },
-  courseStatusPillActive: {
-  },
-  courseStatusText: {
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'capitalize',
-  },
-  courseStatusTextActive: {
-  },
-  badge: {
-    minWidth: 52,
-    paddingHorizontal: 10,
-    height: 30,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeActive: {
-  },
-  badgeText: {
-    fontWeight: '900',
-    fontSize: 12,
-  },
-  badgeTextActive: {
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
   },
   detailPanel: {
     marginHorizontal: 16,
