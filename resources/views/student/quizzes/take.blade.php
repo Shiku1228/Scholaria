@@ -66,10 +66,13 @@
                                 <span class="text-sm">False</span>
                             </label>
                         </div>
+<<<<<<< HEAD
                     @elseif($question->isShortAnswer())
                         <textarea name="answers[{{ $question->id }}]" rows="3" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm" placeholder="Enter your answer..."></textarea>
                     @elseif($question->isEssay())
                         <textarea name="answers[{{ $question->id }}]" rows="5" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm" placeholder="Write your essay response..."></textarea>
+=======
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                     @else
                         <textarea name="answers[{{ $question->id }}]" rows="3" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm" placeholder="Enter your answer..."></textarea>
                     @endif

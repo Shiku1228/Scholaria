@@ -201,9 +201,12 @@ class StudentQuizController extends Controller
             if ($question->question_type === 'short_answer') {
                 $isCorrect = strtolower(trim($submittedAnswer ?? '')) === strtolower(trim($question->correct_answer ?? ''));
                 $pointsEarned = $isCorrect ? (int) $question->points : 0;
+<<<<<<< HEAD
             } elseif ($question->question_type === 'essay') {
                 $isCorrect = null;
                 $pointsEarned = null;
+=======
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
             } elseif (in_array($question->question_type, ['multiple_choice', 'true_false'])) {
                 $isCorrect = $question->correct_answer === $submittedAnswer;
                 $pointsEarned = $isCorrect ? (int) $question->points : 0;

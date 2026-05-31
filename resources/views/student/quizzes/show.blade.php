@@ -133,6 +133,7 @@
                                                 <span class="text-slate-500 mr-1.5">{{ $index + 1 }}.</span>
                                                 {{ $q->question_text }}
                                             </div>
+<<<<<<< HEAD
                                             @if($q->isEssay())
                                                 <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
                                                     Pending review
@@ -142,6 +143,11 @@
                                                     {{ $answer->points_earned ?? 0 }} / {{ $q->points }} pts
                                                 </span>
                                             @endif
+=======
+                                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $answer->is_correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                                {{ $answer->points_earned }} / {{ $q->points }} pts
+                                            </span>
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                                         </div>
 
                                         {{-- Options/Selected Answer Display --}}
@@ -149,7 +155,11 @@
                                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                                                 @foreach($q->options as $key => $option)
                                                     @php
+<<<<<<< HEAD
                                                         $isSelected = $answer->answer === $key;
+=======
+                                                        $isSelected = $answer->selected_answer === $key;
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                                                         $isCorrect = $q->correct_answer === $key;
                                                         $optionClass = 'bg-slate-50 border-slate-200 text-slate-700';
                                                         
@@ -175,7 +185,11 @@
                                             <div class="flex gap-4 text-sm">
                                                 @foreach(['true', 'false'] as $val)
                                                     @php
+<<<<<<< HEAD
                                                         $isSelected = strtolower((string)$answer->answer) === $val;
+=======
+                                                        $isSelected = strtolower((string)$answer->selected_answer) === $val;
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                                                         $isCorrect = strtolower((string)$q->correct_answer) === $val;
                                                         $optionClass = 'bg-slate-50 border-slate-200 text-slate-700';
                                                         
@@ -195,6 +209,7 @@
                                                     </div>
                                                 @endforeach
                                             </div>
+<<<<<<< HEAD
                                         @elseif($q->isEssay())
                                             <div class="text-sm bg-slate-50 rounded-lg p-3 border border-slate-100">
                                                 <div class="text-xs text-slate-400">Your Answer:</div>
@@ -208,6 +223,12 @@
                                             <div class="text-sm bg-slate-50 rounded-lg p-3 border border-slate-100">
                                                 <div class="text-xs text-slate-400">Your Answer:</div>
                                                 <div class="font-medium text-slate-800 mt-0.5">{{ $answer->answer ?: '[No answer submitted]' }}</div>
+=======
+                                        @else
+                                            <div class="text-sm bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                                <div class="text-xs text-slate-400">Your Answer:</div>
+                                                <div class="font-medium text-slate-800 mt-0.5">{{ $answer->selected_answer ?: '[No answer submitted]' }}</div>
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                                                 @if(!$answer->is_correct && $q->correct_answer)
                                                     <div class="text-xs text-green-600 mt-2">Correct Answer: {{ $q->correct_answer }}</div>
                                                 @endif

@@ -100,7 +100,11 @@ class TeacherQuizController extends Controller
             'question_ids.*' => ['exists:bank_questions,id'],
             'questions' => ['nullable', 'array'],
             'questions.*.text' => ['required_with:questions', 'string'],
+<<<<<<< HEAD
             'questions.*.type' => ['required_with:questions', 'in:multiple_choice,true_false,short_answer,essay'],
+=======
+            'questions.*.type' => ['required_with:questions', 'in:multiple_choice,true_false,short_answer'],
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
             'questions.*.points' => ['required_with:questions', 'integer', 'min:1', 'max:100'],
             'questions.*.options' => ['nullable', 'array'],
             'questions.*.correct' => ['nullable', 'string'],
@@ -161,8 +165,11 @@ class TeacherQuizController extends Controller
                     $correctAnswer = $qData['correct'] ?? null;
                 } elseif ($qData['type'] === 'true_false') {
                     $correctAnswer = $qData['correct'] ?? null;
+<<<<<<< HEAD
                 } elseif ($qData['type'] === 'short_answer') {
                     $correctAnswer = $qData['correct_answer'] ?? null;
+=======
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                 } else {
                     $correctAnswer = $qData['correct_answer'] ?? null;
                 }
@@ -315,7 +322,11 @@ class TeacherQuizController extends Controller
 
         $validated = $request->validate([
             'question_text' => ['required', 'string'],
+<<<<<<< HEAD
             'question_type' => ['required', 'in:multiple_choice,true_false,short_answer,essay'],
+=======
+            'question_type' => ['required', 'in:multiple_choice,true_false,short_answer'],
+>>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
             'points' => ['required', 'integer', 'min:1', 'max:100'],
             'options' => ['nullable', 'array'],
             'correct_answer' => ['nullable', 'string'],
