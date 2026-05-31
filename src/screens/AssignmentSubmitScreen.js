@@ -114,14 +114,7 @@ export default function AssignmentSubmitScreen({ token, item: assignment, setAct
       return;
     }
 
-    Alert.alert(
-      'Submit Assignment',
-      'You cannot change your answers after submitting. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Submit', style: 'default', onPress: doSubmitQuestions },
-      ]
-    );
+    doSubmitQuestions();
   };
 
   const doSubmitQuestions = async () => {
@@ -458,7 +451,7 @@ function MCQuestion({ question, idx, selectedChoiceId, onSelect, disabled, revie
       </View>
       <Text style={[styles.qText, { color: theme.text }]}>{question.question_text}</Text>
 
-      {question.choices.map(choice => {
+      {(question.choices ?? []).map(choice => {
         // is_correct comes from the review endpoint's nested choices array,
         // or from the initial detail load once the assignment is submitted.
         const reviewChoice = reviewAnswer?.choices?.find(c => c.id === choice.id);

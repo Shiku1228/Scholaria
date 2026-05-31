@@ -1,5 +1,119 @@
 import { apiRequest } from './client';
 
+const STUDENT_ANSWER_REVEAL_FIELDS = new Set([
+  'answer_key',
+  'answer_keys',
+  'correct_answer',
+  'correct_answers',
+  'correct_choice',
+  'correct_choice_id',
+  'correct_choices',
+  'correct_option',
+  'correct_option_id',
+  'correct_options',
+  'correctchoice',
+  'is_correct',
+  'iscorrect',
+  'solution',
+  'teacher_answer',
+]);
+
+function sanitizeStudentAssessmentResponse(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return payload;
+  }
+
+  const next = { ...payload };
+
+  if (Array.isArray(next.questions)) {
+    next.questions = next.questions.map(sanitizeStudentQuestion);
+  }
+
+  if (next.selected_attempt) {
+    next.selected_attempt = sanitizeStudentAttempt(next.selected_attempt);
+  }
+
+  if (Array.isArray(next.attempts)) {
+    next.attempts = next.attempts.map(sanitizeStudentAttempt);
+  }
+
+  if (next.attempt) {
+    next.attempt = sanitizeStudentAttempt(next.attempt);
+  }
+
+  return next;
+}
+
+function sanitizeStudentAttempt(attempt) {
+  if (!attempt || typeof attempt !== 'object') {
+    return attempt;
+  }
+
+  const next = { ...attempt };
+  if (Array.isArray(next.answers)) {
+    next.answers = next.answers.map((answer) => {
+      if (!answer || typeof answer !== 'object') {
+        return answer;
+      }
+
+      return {
+        ...answer,
+        question: sanitizeStudentQuestion(answer.question),
+      };
+    });
+  }
+
+  return next;
+}
+
+function sanitizeStudentQuestion(question) {
+  if (!question || typeof question !== 'object') {
+    return question;
+  }
+
+  const next = Object.fromEntries(
+    Object.entries(question).filter(([key]) => !STUDENT_ANSWER_REVEAL_FIELDS.has(String(key).toLowerCase()))
+  );
+
+  if (Array.isArray(next.choices)) {
+    next.choices = next.choices.map(sanitizeStudentChoice);
+  }
+
+  if (Array.isArray(next.options)) {
+    next.options = next.options.map(sanitizeStudentChoice);
+  }
+
+  if (next.question_options && typeof next.question_options === 'object') {
+    next.question_options = sanitizeStudentOptionsContainer(next.question_options);
+  }
+
+  return next;
+}
+
+function sanitizeStudentChoice(choice) {
+  if (!choice || typeof choice !== 'object') {
+    return choice;
+  }
+
+  return Object.fromEntries(
+    Object.entries(choice).filter(([key]) => !STUDENT_ANSWER_REVEAL_FIELDS.has(String(key).toLowerCase()))
+  );
+}
+
+function sanitizeStudentOptionsContainer(options) {
+  if (Array.isArray(options)) {
+    return options.map(sanitizeStudentChoice);
+  }
+
+  if (!options || typeof options !== 'object') {
+    return options;
+  }
+
+  return Object.fromEntries(
+    Object.entries(options).map(([key, value]) => [key, sanitizeStudentChoice(value)])
+  );
+}
+
 export function getStudentDashboard(token) {
   return apiRequest('/student/dashboard', {
     method: 'GET',
@@ -112,14 +226,20 @@ export function getStudentExam(token, examId) {
   return apiRequest(`/student/exams/${examId}`, {
     method: 'GET',
     token,
-  });
+  }).then((response) => ({
+    ...response,
+    data: sanitizeStudentAssessmentResponse(response?.data),
+  }));
 }
 
 export function startStudentExam(token, examId) {
   return apiRequest(`/student/exams/${examId}/start`, {
     method: 'POST',
     token,
-  });
+  }).then((response) => ({
+    ...response,
+    data: sanitizeStudentAssessmentResponse(response?.data),
+  }));
 }
 
 export function submitStudentExam(token, examId, payload) {
@@ -127,21 +247,30 @@ export function submitStudentExam(token, examId, payload) {
     method: 'POST',
     token,
     body: payload,
-  });
+  }).then((response) => ({
+    ...response,
+    data: sanitizeStudentAssessmentResponse(response?.data),
+  }));
 }
 
 export function getStudentQuiz(token, quizId) {
   return apiRequest(`/student/quizzes/${quizId}`, {
     method: 'GET',
     token,
-  });
+  }).then((response) => ({
+    ...response,
+    data: sanitizeStudentAssessmentResponse(response?.data),
+  }));
 }
 
 export function startStudentQuiz(token, quizId) {
   return apiRequest(`/student/quizzes/${quizId}/start`, {
     method: 'POST',
     token,
-  });
+  }).then((response) => ({
+    ...response,
+    data: sanitizeStudentAssessmentResponse(response?.data),
+  }));
 }
 
 export function submitStudentQuiz(token, quizId, payload) {
@@ -149,7 +278,10 @@ export function submitStudentQuiz(token, quizId, payload) {
     method: 'POST',
     token,
     body: payload,
-  });
+  }).then((response) => ({
+    ...response,
+    data: sanitizeStudentAssessmentResponse(response?.data),
+  }));
 }
 
 export function getStudentMessages(token) {

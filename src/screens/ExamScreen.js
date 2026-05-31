@@ -46,7 +46,14 @@ export default function ExamScreen({ token, item, setActiveTab, theme, onAuthFai
       console.log(`[Exam Detail] ID: ${examId}, State: ${data?.state}`);
 
       const state = data?.state;
-      if (state === 'in_progress') {
+      const examMethod = data?.exam?.exam_method || '';
+      const isFtfState = state === 'face_to_face' || examMethod === 'face_to_face';
+
+      if (isFtfState) {
+        // Face-to-face: always show info-only detail view
+        setAnswers({});
+        setMode('detail');
+      } else if (state === 'in_progress') {
         const nextAnswers = {};
         (data?.selected_attempt?.answers ?? []).forEach((a) => {
           nextAnswers[String(a.question_id)] = a.answer ?? '';
@@ -196,6 +203,22 @@ export default function ExamScreen({ token, item, setActiveTab, theme, onAuthFai
   const courseName = detail?.exam?.course?.title || detail?.course?.title || '';
   const rawState = detail?.state || '';
   const state = String(rawState).trim().toLowerCase();
+  const examMethod = detail?.exam?.exam_method || (state === 'face_to_face' ? 'face_to_face' : '');
+  const isFaceToFace = examMethod === 'face_to_face' || state === 'face_to_face';
+  const examLocation = detail?.exam?.location || '';
+  const examDate = detail?.exam?.exam_date || '';
+  const examInstructions = detail?.exam?.instructions || detail?.exam?.description || '';
+
+  // Human-readable state label for the subtitle
+  const stateLabel = isFaceToFace
+    ? 'Face-to-Face'
+    : state === 'in_progress' ? 'In Progress'
+    : state === 'submitted' ? 'Submitted'
+    : state === 'graded' ? 'Graded'
+    : state === 'missed' ? 'Missed'
+    : state === 'upcoming' ? 'Upcoming'
+    : state === 'available' ? 'Available'
+    : state.replace(/_/g, ' ');
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -204,7 +227,7 @@ export default function ExamScreen({ token, item, setActiveTab, theme, onAuthFai
           <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
           <Text style={[styles.sub, { color: theme.muted }]}>
             {courseName ? `${courseName} • ` : ''}
-            {state ? String(state).replace(/_/g, ' ') : ''}
+            {stateLabel}
           </Text>
         </View>
 
@@ -229,23 +252,51 @@ export default function ExamScreen({ token, item, setActiveTab, theme, onAuthFai
           {!!error ? <Text style={[styles.error, { color: theme.danger }]}>{error}</Text> : null}
 
           {mode === 'detail' ? (
-            <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Ready?</Text>
-              <Text style={[styles.cardText, { color: theme.muted }]}>
-                {detail?.exam?.questions_count ?? questions.length} question(s). Start when you are ready.
-              </Text>
-              <Pressable
-                disabled={starting || (state !== '' && state !== 'available' && state !== 'in_progress' && (detail?.exam?.questions_count ?? 0) === 0)}
-                onPress={start}
-                style={[styles.primaryButton, { backgroundColor: theme.accent }, (state !== '' && state !== 'available' && state !== 'in_progress' && (detail?.exam?.questions_count ?? 0) === 0) && { opacity: 0.5 }]}
-              >
-                <Text style={[styles.primaryButtonText, { color: theme.background }]}>
-                  {starting ? 'Starting...' : (state === 'available' || state === 'in_progress' || state === '' || (detail?.exam?.questions_count ?? 0) > 0) 
-                    ? 'Start exam' 
-                    : `Not open yet (${rawState})`}
+            isFaceToFace ? (
+              <View style={{ gap: 12 }}>
+                <View style={[styles.ftfBanner, { backgroundColor: '#92400e22', borderColor: '#d97706' }]}>
+                  <Text style={[styles.ftfBannerIcon]}>🏫</Text>
+                  <Text style={[styles.ftfBannerText, { color: '#d97706' }]}>Face-to-Face Exam</Text>
+                </View>
+                <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>Exam Information</Text>
+                  <Text style={[styles.cardText, { color: theme.muted }]}>
+                    {examDate && new Date(examDate) < new Date()
+                      ? "This face-to-face exam has already been conducted. Please contact your instructor if you need more information."
+                      : "This exam will be conducted face-to-face. Please follow your teacher's instructions and be present on the scheduled date."}
+                  </Text>
+                  {!!examDate ? (
+                    <Text style={[styles.cardText, { color: theme.muted }]}>
+                      📅 Date: {new Date(examDate).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </Text>
+                  ) : null}
+                  {!!examLocation ? (
+                    <Text style={[styles.cardText, { color: theme.muted }]}>📍 Location: {examLocation}</Text>
+                  ) : null}
+                  {!!examInstructions ? (
+                    <Text style={[styles.cardText, { color: theme.muted }]}>📋 Instructions: {examInstructions}</Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : (
+              <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <Text style={[styles.cardTitle, { color: theme.text }]}>Ready?</Text>
+                <Text style={[styles.cardText, { color: theme.muted }]}>
+                  {detail?.exam?.questions_count ?? questions.length} question(s). Start when you are ready.
                 </Text>
-              </Pressable>
-            </View>
+                <Pressable
+                  disabled={starting || (state !== '' && state !== 'available' && state !== 'in_progress' && (detail?.exam?.questions_count ?? 0) === 0)}
+                  onPress={start}
+                  style={[styles.primaryButton, { backgroundColor: theme.accent }, (state !== '' && state !== 'available' && state !== 'in_progress' && (detail?.exam?.questions_count ?? 0) === 0) && { opacity: 0.5 }]}
+                >
+                  <Text style={[styles.primaryButtonText, { color: theme.background }]}>
+                    {starting ? 'Starting...' : (state === 'available' || state === 'in_progress' || state === '' || (detail?.exam?.questions_count ?? 0) > 0)
+                      ? 'Start exam'
+                      : `Not open yet (${rawState})`}
+                  </Text>
+                </Pressable>
+              </View>
+            )
           ) : null}
 
           {mode === 'taking' ? (
@@ -355,22 +406,14 @@ function renderQuestionInput(question, answers, setAnswer, theme) {
   const isChoiceType = ['multiple_choice', 'true_false'].includes(qType) || options.length > 0;
 
   if (isChoiceType) {
-    console.log('[Exam Choice Render]', {
-      questionId,
-      qType,
-      optionsLength: options.length,
-    });
-
     return (
       <View style={styles.optionStack}>
-        <Text style={[styles.choiceHint, { color: theme.muted }]}>Answer keys: A, B, C, D</Text>
         {options.length ? (
           options.map((opt, index) => {
             const optionKey = String(opt?.key ?? getChoiceLetter(index));
             const optionLabel = String(opt?.label ?? '');
-            const displayKey = qType === 'true_false'
-              ? (optionKey === 'true' ? 'T' : optionKey === 'false' ? 'F' : optionKey)
-              : optionKey;
+            const isTrueFalse = qType === 'true_false';
+            const displayKey = isTrueFalse ? '' : optionKey;
             const active = String(value) === optionKey;
 
             return (
@@ -380,10 +423,14 @@ function renderQuestionInput(question, answers, setAnswer, theme) {
                 style={[styles.optionButton, { backgroundColor: theme.card, borderColor: theme.border }, active && styles.optionButtonActive, active && { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}
               >
                   <View style={styles.optionRow}>
-                    <View style={[styles.optionBadge, { borderColor: active ? theme.accent : '#f59e0b', backgroundColor: active ? theme.accent : '#111827' }]}>
-                      <Text style={[styles.optionBadgeText, { color: active ? theme.background : '#ffffff' }]}>{displayKey}</Text>
-                    </View>
-                    <Text style={[styles.optionKeyLabel, { color: theme.muted }]}>{displayKey}.</Text>
+                    {!isTrueFalse ? (
+                      <>
+                        <View style={[styles.optionBadge, { borderColor: active ? theme.accent : '#f59e0b', backgroundColor: active ? theme.accent : '#111827' }]}>
+                          <Text style={[styles.optionBadgeText, { color: active ? theme.background : '#ffffff' }]}>{displayKey}</Text>
+                        </View>
+                        <Text style={[styles.optionKeyLabel, { color: theme.muted }]}>{displayKey}.</Text>
+                      </>
+                    ) : null}
                     <Text style={[styles.optionButtonText, { color: theme.text }, active && styles.optionButtonTextActive, active && { color: theme.accent }]} numberOfLines={2}>
                       {optionLabel}
                     </Text>
@@ -505,10 +552,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingTop: 4,
   },
-  choiceHint: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
   optionButton: {
     borderRadius: 12,
     paddingVertical: 10,
@@ -578,5 +621,22 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   muted: {
+  },
+  ftfBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  ftfBannerIcon: {
+    fontSize: 18,
+  },
+  ftfBannerText: {
+    fontWeight: '900',
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
 });

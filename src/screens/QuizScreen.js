@@ -336,21 +336,27 @@ function renderQuestionInput(question, answers, setAnswer, theme) {
   let options = [];
   if (Array.isArray(rawOptions)) {
     options = rawOptions.map((opt, index) => ({
-      key: String(
-        typeof opt === 'object'
-          ? opt.id ?? opt.choice_id ?? opt.key ?? (qType === 'true_false' ? (index === 0 ? 'true' : 'false') : getChoiceLetter(index))
-          : (qType === 'true_false' ? (index === 0 ? 'true' : 'false') : getChoiceLetter(index))
-      ),
-      label: typeof opt === 'object'
-        ? opt.choice_text ?? opt.label ?? opt.text ?? opt.value ?? String(index + 1)
-        : String(opt),
+      key: qType === 'true_false'
+        ? (index === 0 ? 'true' : 'false')
+        : String(
+            typeof opt === 'object'
+              ? opt.id ?? opt.choice_id ?? opt.key ?? getChoiceLetter(index)
+              : getChoiceLetter(index)
+          ),
+      label: qType === 'true_false'
+        ? (index === 0 ? 'True' : 'False')
+        : (typeof opt === 'object'
+            ? opt.choice_text ?? opt.label ?? opt.text ?? opt.value ?? String(index + 1)
+            : String(opt)),
     }));
   } else if (rawOptions && typeof rawOptions === 'object') {
     options = Object.entries(rawOptions).map(([key, opt], index) => ({
-      key: String(key),
-      label: typeof opt === 'object'
-        ? opt.choice_text ?? opt.label ?? opt.text ?? opt.value ?? String(index + 1)
-        : String(opt),
+      key: qType === 'true_false' ? (index === 0 ? 'true' : 'false') : String(key),
+      label: qType === 'true_false'
+        ? (index === 0 ? 'True' : 'False')
+        : (typeof opt === 'object'
+            ? opt.choice_text ?? opt.label ?? opt.text ?? opt.value ?? String(index + 1)
+            : String(opt)),
     }));
   }
 
@@ -366,14 +372,12 @@ function renderQuestionInput(question, answers, setAnswer, theme) {
   if (isChoiceType) {
     return (
       <View style={styles.optionStack}>
-        <Text style={[styles.choiceHint, { color: theme.muted }]}>Answer keys: A, B, C, D</Text>
         {options.length ? (
           options.map((opt, index) => {
             const optionKey = String(opt?.key ?? getChoiceLetter(index));
             const optionLabel = String(opt?.label ?? '');
-            const displayKey = qType === 'true_false'
-              ? (optionKey === 'true' ? 'T' : optionKey === 'false' ? 'F' : optionKey)
-              : optionKey;
+            const isTrueFalse = qType === 'true_false';
+            const displayKey = isTrueFalse ? '' : optionKey;
             const active = String(value) === optionKey;
 
             return (
@@ -383,10 +387,13 @@ function renderQuestionInput(question, answers, setAnswer, theme) {
                 style={[styles.optionButton, { backgroundColor: theme.card, borderColor: theme.border }, active && styles.optionButtonActive, active && { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}
               >
                 <View style={styles.optionRow}>
-                  <View style={[styles.optionBadge, { borderColor: active ? theme.accent : '#f59e0b', backgroundColor: active ? theme.accent : '#111827' }]}>
-                    <Text style={[styles.optionBadgeText, { color: active ? theme.background : '#ffffff' }]}>{displayKey}</Text>
-                  </View>
-                  <Text style={[styles.optionKeyLabel, { color: theme.muted }]}>{displayKey}.</Text>
+                  {!isTrueFalse ? (
+                    <View style={[styles.optionBadge, { borderColor: active ? theme.accent : '#f59e0b', backgroundColor: active ? theme.accent : '#111827' }]}>
+                      <Text style={[styles.optionBadgeText, { color: active ? theme.background : '#ffffff' }]}>
+                        {displayKey}
+                      </Text>
+                    </View>
+                  ) : null}
                   <Text style={[styles.optionButtonText, { color: theme.text }, active && styles.optionButtonTextActive, active && { color: theme.accent }]} numberOfLines={2}>
                     {optionLabel}
                   </Text>
@@ -508,10 +515,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingTop: 4,
   },
-  choiceHint: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
   optionButton: {
     borderRadius: 12,
     paddingVertical: 10,
@@ -534,12 +537,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 13,
     letterSpacing: 0.4,
-  },
-  optionKeyLabel: {
-    color: '#f59e0b',
-    fontSize: 13,
-    fontWeight: '900',
-    marginRight: -4,
   },
   optionButtonActive: {
   },

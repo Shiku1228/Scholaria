@@ -243,21 +243,27 @@ export default function StudentCoursesScreen({ token, theme, setActiveTab, setSe
   };
 
   const openResource = async (resource) => {
-    const rawPath = resource?.file_path || '';
-    if (!rawPath) {
+    // Prefer the absolute `url` field returned by the API (includes storage/ prefix).
+    // Fall back to constructing from file_path if url is absent.
+    const rawUrl = resource?.url || resource?.file_path || '';
+    if (!rawUrl) {
       Alert.alert('Resource', 'No file link available for this resource.');
       return;
     }
 
-    const normalizedPath = rawPath.startsWith('http')
-      ? rawPath
-      : `${API_BASE_URL.replace(/\/api$/, '')}/${rawPath.replace(/^\/+/, '')}`;
+    const normalizedPath = rawUrl.startsWith('http')
+      ? rawUrl
+      : `${API_BASE_URL.replace(/\/api$/, '')}/storage/${rawUrl.replace(/^\/+/, '')}`;
 
-    const canOpen = await Linking.canOpenURL(normalizedPath);
-    if (canOpen) {
-      await Linking.openURL(normalizedPath);
-    } else {
-      Alert.alert('Resource', normalizedPath);
+    try {
+      const canOpen = await Linking.canOpenURL(normalizedPath);
+      if (canOpen) {
+        await Linking.openURL(normalizedPath);
+      } else {
+        Alert.alert('Cannot Open File', `Unable to open: ${normalizedPath}`);
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to open resource.');
     }
   };
 
