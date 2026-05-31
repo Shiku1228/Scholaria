@@ -35,10 +35,7 @@ class AssessmentSophisticationTest extends TestCase
         $course = Course::create([
             'title' => 'Test Course',
             'course_number' => 'TC101',
-<<<<<<< HEAD
             'course_code' => 'TC101',
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
             'teacher_id' => $teacher->id,
             'description' => 'Test Course Description',
             'semester' => 'Spring 2026',
@@ -133,10 +130,7 @@ class AssessmentSophisticationTest extends TestCase
         $course = Course::create([
             'title' => 'Test Course 2',
             'course_number' => 'TC102',
-<<<<<<< HEAD
             'course_code' => 'TC102',
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
             'teacher_id' => $teacher->id,
             'description' => 'Test Course Description',
             'semester' => 'Spring 2026',
@@ -192,10 +186,7 @@ class AssessmentSophisticationTest extends TestCase
         $course = Course::create([
             'title' => 'Test Course 3',
             'course_number' => 'TC103',
-<<<<<<< HEAD
             'course_code' => 'TC103',
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
             'teacher_id' => $teacher->id,
             'description' => 'Test Course Description',
             'semester' => 'Spring 2026',
@@ -275,8 +266,6 @@ class AssessmentSophisticationTest extends TestCase
         $this->assertEquals(20, $quiz->points);
         $this->assertEquals(20, $quiz->max_score);
     }
-<<<<<<< HEAD
-
     public function test_teacher_can_create_quiz_with_multiple_inline_question_types(): void
     {
         $teacher = User::factory()->create();
@@ -355,6 +344,4 @@ class AssessmentSophisticationTest extends TestCase
         $this->assertEquals(18, $quiz->points);
         $this->assertEquals(18, $quiz->max_score);
     }
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
 }
