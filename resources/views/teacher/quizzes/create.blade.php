@@ -297,11 +297,8 @@
                                                                 <span class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded-md">Multiple Choice</span>
                                                             @elseif($q->question_type === 'true_false')
                                                                 <span class="text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded-md">True / False</span>
-<<<<<<< HEAD
                                                             @elseif($q->question_type === 'essay')
                                                                 <span class="text-violet-600 bg-violet-50 px-1 py-0.5 rounded-md">Essay</span>
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                                                             @else
                                                                 <span class="text-amber-600 bg-amber-50 px-1 py-0.5 rounded-md">Short Answer</span>
                                                             @endif
@@ -502,10 +499,7 @@
                                 <option value="multiple_choice">Multiple Choice</option>
                                 <option value="true_false">True / False</option>
                                 <option value="short_answer">Short Answer</option>
-<<<<<<< HEAD
                                 <option value="essay">Essay</option>
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                             </select>
                         </div>
                         <div>
@@ -676,17 +670,12 @@
                         </label>
                     </div>
                 `;
-<<<<<<< HEAD
             } else if (select.value === 'short_answer') {
-=======
-            } else {
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                 optionsDiv.innerHTML = `
                     <label class="text-xs font-bold text-slate-655 text-slate-600 block mb-1.5">Expected Correct Text Answer (for auto-grading match)</label>
-                    <input type="text" name="questions[${id}][correct_answer]" placeholder="e.g. Paris" 
+                    <input type="text" name="questions[${id}][correct_answer]" placeholder="e.g. Paris"
                         class="w-full rounded-xl border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm py-2" />
                 `;
-<<<<<<< HEAD
             } else {
                 optionsDiv.innerHTML = `
                     <label class="text-xs font-bold text-slate-655 text-slate-600 block mb-1.5">Reference Answer / Rubric Notes (optional)</label>
@@ -694,8 +683,6 @@
                         class="w-full rounded-xl border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm resize-none py-2"></textarea>
                     <p class="text-[11px] text-slate-400">Essay responses are stored for manual review and are not auto-graded.</p>
                 `;
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
             }
         }
 

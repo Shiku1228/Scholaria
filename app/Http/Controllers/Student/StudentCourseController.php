@@ -240,7 +240,6 @@ class StudentCourseController extends Controller
             try {
                 $exams = $course->exams()
                     ->where('is_published', true)
-                    ->where('exam_type', 'online')
                     ->orderBy('exam_date', 'asc')
                     ->get();
                 

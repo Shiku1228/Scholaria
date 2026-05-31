@@ -229,6 +229,8 @@ Route::prefix('teacher')
         Route::post('/quizzes/{quiz}/release-results', [TeacherQuizController::class, 'releaseResults'])->name('quizzes.release-results');
         Route::post('/quizzes/{quiz}/import-bank', [TeacherQuizController::class, 'importFromBank'])->name('quizzes.import-bank');
         Route::get('/quizzes/{quiz}/scores/export', [TeacherQuizController::class, 'exportScores'])->name('quizzes.scores.export');
+        Route::get('/quizzes/{quiz}/attempts/{attempt}', [TeacherQuizController::class, 'showAttempt'])->name('quizzes.attempts.show');
+        Route::post('/quizzes/{quiz}/attempts/{attempt}/grade', [TeacherQuizController::class, 'gradeAttempt'])->name('quizzes.attempts.grade');
 
         // Exam routes
         Route::get('/exams', [TeacherExamController::class, 'index'])->name('exams.index');

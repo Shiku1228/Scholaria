@@ -87,10 +87,16 @@ class StudentAnnouncementApiController extends Controller
                 $query->orderByDesc('announcements.id');
             }
 
+            $contentCol = Schema::hasColumn('announcements', 'content')
+                ? 'announcements.content as content'
+                : (Schema::hasColumn('announcements', 'message')
+                    ? 'announcements.message as content'
+                    : DB::raw("'' as content"));
+
             $select = [
                 'announcements.id as announcement_id',
                 Schema::hasColumn('announcements', 'title') ? 'announcements.title as title' : DB::raw("'Announcement' as title"),
-                Schema::hasColumn('announcements', 'content') ? 'announcements.content as content' : DB::raw("'' as content"),
+                $contentCol,
                 Schema::hasColumn('announcements', 'created_at') ? 'announcements.created_at as created_at' : DB::raw("'' as created_at"),
                 'announcements.course_id as course_id',
             ];

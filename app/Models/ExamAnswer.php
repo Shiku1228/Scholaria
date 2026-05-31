@@ -18,6 +18,11 @@ class ExamAnswer extends Model
         'feedback',
     ];
 
+    protected $casts = [
+        'is_correct' => 'boolean',
+        'points_earned' => 'integer',
+    ];
+
     public function attempt(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(StudentExamAttempt::class, 'attempt_id');

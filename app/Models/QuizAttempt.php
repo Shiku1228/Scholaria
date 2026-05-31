@@ -17,6 +17,8 @@ class QuizAttempt extends Model
         'attempt_number',
         'started_at',
         'submitted_at',
+        'graded_at',
+        'graded_by',
         'score',
         'status',
         'question_ids',
@@ -28,6 +30,8 @@ class QuizAttempt extends Model
         'attempt_number' => 'integer',
         'started_at' => 'datetime',
         'submitted_at' => 'datetime',
+        'graded_at' => 'datetime',
+        'graded_by' => 'integer',
         'score' => 'integer',
         'question_ids' => 'array',
     ];
@@ -49,7 +53,12 @@ class QuizAttempt extends Model
 
     public function isSubmitted(): bool
     {
-        return $this->status === 'submitted';
+        return in_array($this->status, ['submitted', 'graded'], true);
+    }
+
+    public function isGraded(): bool
+    {
+        return $this->status === 'graded';
     }
 
     public function isInProgress(): bool

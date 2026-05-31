@@ -76,7 +76,7 @@
                                 </span>
                             @else
                                 <span class="px-3 py-1 bg-amber-100/80 text-amber-700 text-xs font-bold rounded-full border border-amber-200 shadow-sm flex items-center gap-1">
-                                    <i data-lucide="calendar" class="h-3.5 w-3.5"></i>Scheduled
+                                    <i data-lucide="users" class="h-3.5 w-3.5"></i>Face-to-Face
                                 </span>
                             @endif
                             @if($exam->is_published)
@@ -300,14 +300,42 @@
                     </div>
                 </div>
                 @else
-                {{-- Offline Exam Management placeholder if needed --}}
-                <div class="glass-panel rounded-3xl overflow-hidden bg-gradient-to-b from-slate-50/50 to-white/50 h-full flex items-center justify-center p-8 text-center text-slate-500">
-                    <div>
-                        <div class="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <i data-lucide="calendar" class="h-8 w-8 text-slate-400"></i>
+                {{-- Face-to-Face Exam Info --}}
+                <div class="glass-panel rounded-3xl overflow-hidden bg-gradient-to-b from-amber-50/40 to-white/50 h-full flex flex-col">
+                    <div class="px-6 py-4 border-b border-amber-100/50 flex items-center gap-3">
+                        <div class="p-2 bg-amber-100 rounded-lg text-amber-600">
+                            <i data-lucide="users" class="h-5 w-5"></i>
                         </div>
-                        <p class="text-sm font-medium">This is an offline, scheduled exam.</p>
-                        <p class="text-xs mt-1">Online attempt tracking is disabled.</p>
+                        <h3 class="text-base font-bold text-slate-800">Face-to-Face Exam</h3>
+                    </div>
+                    <div class="p-8 flex-1 flex flex-col gap-5 text-sm text-slate-700">
+                        <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm leading-relaxed">
+                            <i data-lucide="info" class="h-4 w-4 inline mr-1.5 text-amber-600"></i>
+                            Students can see the exam details on web and mobile but cannot answer online. No questions required.
+                        </div>
+                        @if($exam->location)
+                            <div class="flex items-center gap-3 p-4 bg-rose-50/50 border border-rose-100 rounded-2xl text-rose-900">
+                                <i data-lucide="map-pin" class="h-5 w-5 text-rose-500 shrink-0"></i>
+                                <span><strong>Location:</strong> {{ $exam->location }}</span>
+                            </div>
+                        @endif
+                        <div class="mt-auto flex gap-3">
+                            @if(!$exam->is_published)
+                                <form method="POST" action="{{ route('teacher.exams.publish', $exam) }}" class="flex-1">
+                                    @csrf
+                                    <button type="submit" class="w-full inline-flex items-center justify-center h-11 px-5 rounded-xl btn-success text-white text-sm font-bold shadow-lg shadow-emerald-500/30">
+                                        <i data-lucide="check-circle" class="h-4 w-4 mr-2"></i>Publish Exam
+                                    </button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('teacher.exams.unpublish', $exam) }}" class="flex-1">
+                                    @csrf
+                                    <button type="submit" class="w-full inline-flex items-center justify-center h-11 px-5 rounded-xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-900 transition-colors">
+                                        <i data-lucide="eye-off" class="h-4 w-4 mr-2"></i>Unpublish
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 @endif

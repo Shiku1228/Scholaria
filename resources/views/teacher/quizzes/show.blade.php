@@ -171,12 +171,16 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-3">
                                 @if($attempt->submitted_at)
                                     <div class="text-right">
                                         <div class="text-sm font-semibold text-slate-900">{{ $attempt->score ?? 0 }} / {{ $quiz->max_score ?? ($quiz->points ?? 0) }}</div>
                                         <div class="text-xs text-emerald-600">Completed</div>
                                     </div>
+                                    <a href="{{ route('teacher.quizzes.attempts.show', [$quiz, $attempt]) }}"
+                                        class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-[#0b2d6b] text-white text-xs font-semibold hover:bg-[#0a275c] transition-colors">
+                                        <i data-lucide="eye" class="h-3.5 w-3.5 mr-1"></i>Review
+                                    </a>
                                 @else
                                     <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">In Progress</span>
                                 @endif

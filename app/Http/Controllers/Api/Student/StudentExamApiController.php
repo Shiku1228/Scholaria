@@ -24,7 +24,6 @@ class StudentExamApiController extends Controller
         $exams = Exam::query()
             ->whereHas('course.enrollments', fn ($query) => $query->where('student_id', $studentId))
             ->where('is_published', true)
-            ->where('exam_type', 'online')
             ->with(['course'])
             ->orderBy('exam_date', 'asc')
             ->paginate(20);
@@ -59,6 +58,20 @@ class StudentExamApiController extends Controller
 
         if (!$this->hasStudentEnrollmentAccess($studentId, (int) $exam->course_id)) {
             return $this->enrollmentDeniedResponse($studentId, (int) $exam->course_id);
+        }
+
+        // Face-to-Face: always return info-only, skip all date/attempt checks
+        if ($exam->isFaceToFace()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'state' => 'face_to_face',
+                    'exam' => $this->mapExam($exam),
+                    'attempts' => [],
+                    'selected_attempt' => null,
+                    'questions' => [],
+                ],
+            ]);
         }
 
         if ($exam->exam_date && $exam->exam_date->isFuture()) {
@@ -134,6 +147,13 @@ class StudentExamApiController extends Controller
 
         if (!$this->hasStudentEnrollmentAccess($studentId, (int) $exam->course_id)) {
             return $this->enrollmentDeniedResponse($studentId, (int) $exam->course_id);
+        }
+
+        if ($exam->isFaceToFace()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This exam will be conducted face-to-face. Please follow your teacher\'s instructions.',
+            ], 422);
         }
 
         if (!$exam->is_published || !$exam->isOnline()) {
@@ -237,9 +257,15 @@ class StudentExamApiController extends Controller
         foreach ($questions as $question) {
             $submittedAnswer = $answers[$question->id] ?? null;
 
+            $isCorrect = null;
             $score = null;
-            if (in_array($question->question_type, ['multiple_choice', 'true_false'], true)) {
-                $score = $question->correct_answer === $submittedAnswer ? (int) $question->points : 0;
+            if ($question->question_type === 'short_answer') {
+                $isCorrect = strtolower(trim((string) $submittedAnswer)) === strtolower(trim((string) ($question->correct_answer ?? '')));
+                $score = $isCorrect ? (int) $question->points : 0;
+                $totalScore += $score;
+            } elseif (in_array($question->question_type, ['multiple_choice', 'true_false'], true)) {
+                $isCorrect = $question->correct_answer === $submittedAnswer;
+                $score = $isCorrect ? (int) $question->points : 0;
                 $totalScore += $score;
             }
 
@@ -247,7 +273,8 @@ class StudentExamApiController extends Controller
                 'attempt_id' => $attempt->id,
                 'question_id' => $question->id,
                 'answer' => $submittedAnswer,
-                'score' => $score,
+                'is_correct' => $isCorrect,
+                'points_earned' => $score,
             ]);
         }
 
@@ -269,10 +296,23 @@ class StudentExamApiController extends Controller
 
     private function mapExam(Exam $exam, ?StudentExamAttempt $attempt = null, ?int $questionsCount = null): array
     {
+        $isFaceToFace = $exam->isFaceToFace();
+        $status = 'available';
+        if ($isFaceToFace) {
+            $status = 'face_to_face';
+        } elseif ($attempt) {
+            $status = $attempt->status === 'in_progress' ? 'in_progress' : ($attempt->status === 'graded' ? 'graded' : 'submitted');
+        } elseif ($exam->exam_date && $exam->exam_date->isFuture()) {
+            $status = 'upcoming';
+        } elseif ($exam->due_date && $exam->due_date->isPast()) {
+            $status = 'closed';
+        }
+
         return [
             'id' => (int) $exam->id,
             'course_id' => (int) ($exam->course_id ?? 0),
             'exam_type' => (string) ($exam->exam_type ?? ''),
+            'exam_method' => $isFaceToFace ? 'face_to_face' : 'online',
             'title' => (string) ($exam->title ?? ''),
             'description' => (string) ($exam->description ?? ''),
             'exam_date' => optional($exam->exam_date)->toDateTimeString(),
@@ -288,13 +328,16 @@ class StudentExamApiController extends Controller
             'shuffle_questions' => (bool) ($exam->shuffle_questions ?? false),
             'random_subset_count' => (int) ($exam->random_subset_count ?? 0),
             'is_published' => (bool) ($exam->is_published ?? false),
+            'status' => $status,
+            'can_answer' => !$isFaceToFace && $exam->isOnline() && $exam->is_published,
+            'can_view_result' => (bool) ($exam->show_results ?? false) && (bool) ($exam->results_released ?? false),
             'course' => $exam->relationLoaded('course') && $exam->course ? [
                 'id' => (int) $exam->course->id,
                 'title' => (string) ($exam->course->title ?? ''),
                 'course_number' => (string) ($exam->course->course_number ?? ''),
             ] : null,
             'attempt' => $attempt ? $this->mapAttempt($attempt) : null,
-            'questions_count' => $questionsCount ?? (int) $exam->questions()->count(),
+            'questions_count' => $isFaceToFace ? 0 : ($questionsCount ?? (int) $exam->questions()->count()),
         ];
     }
 
@@ -324,7 +367,7 @@ class StudentExamApiController extends Controller
                     'attempt_id' => (int) $answer->attempt_id,
                     'question_id' => (int) $answer->question_id,
                     'answer' => $answer->answer ?? null,
-                    'score' => $answer->score ?? null,
+                    'score' => $answer->points_earned ?? null,
                     'feedback' => $answer->feedback ?? null,
                     'question' => $answer->relationLoaded('question') && $answer->question ? $this->mapQuestion($answer->question, false, true) : null,
                 ])->values()->all()

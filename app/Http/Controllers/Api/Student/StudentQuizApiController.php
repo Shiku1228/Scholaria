@@ -106,8 +106,8 @@ class StudentQuizApiController extends Controller
                 'state' => $state,
                 'quiz' => $this->mapQuiz($quiz, null, $questionsCount),
                 'attempts' => $attempts->map(fn ($attempt) => $this->mapAttempt($attempt))->values()->all(),
-                'selected_attempt' => $selectedAttempt ? $this->mapAttemptDetailed($selectedAttempt) : null,
-                'questions' => $questions->map(fn ($question) => $this->mapQuestion($question, $state === 'in_progress'))->values()->all(),
+                'selected_attempt' => $selectedAttempt ? $this->mapAttemptDetailed($selectedAttempt, (bool) ($quiz->show_results ?? false)) : null,
+                'questions' => $questions->map(fn ($question) => $this->mapQuestion($question, true))->values()->all(),
             ],
         ]);
     }
@@ -297,7 +297,7 @@ class StudentQuizApiController extends Controller
         ];
     }
 
-    private function mapAttemptDetailed(QuizAttempt $attempt): array
+    private function mapAttemptDetailed(QuizAttempt $attempt, bool $showResults = false): array
     {
         return [
             'attempt' => $this->mapAttempt($attempt),
@@ -307,10 +307,12 @@ class StudentQuizApiController extends Controller
                     'attempt_id' => (int) $answer->attempt_id,
                     'question_id' => (int) $answer->question_id,
                     'answer' => $answer->answer ?? null,
-                    'is_correct' => (bool) ($answer->is_correct ?? false),
-                    'points_earned' => (int) ($answer->points_earned ?? 0),
-                    'feedback' => $answer->feedback ?? null,
-                    'question' => $answer->relationLoaded('question') && $answer->question ? $this->mapQuestion($answer->question, false, true) : null,
+                    'is_correct' => $showResults ? (bool) ($answer->is_correct ?? false) : null,
+                    'points_earned' => $showResults ? (int) ($answer->points_earned ?? 0) : null,
+                    'feedback' => $showResults ? ($answer->feedback ?? null) : null,
+                    'question' => $answer->relationLoaded('question') && $answer->question
+                        ? $this->mapQuestion($answer->question, !$showResults)
+                        : null,
                 ])->values()->all()
                 : [],
         ];

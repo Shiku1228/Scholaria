@@ -34,18 +34,34 @@
                     <div class="mt-1">
                         @if($assignment->due_date)
                             @php
-                                $daysUntilDue = now()->diffInDays($assignment->due_date);
-                                $isOverdue = $assignment->due_date < now();
-                                $isUrgent = $daysUntilDue <= 3 && !$isOverdue;
+                                $now = now();
+                                $dueDate = $assignment->due_date;
+                                $isOverdue = $dueDate < $now;
+                                $diffSeconds = (int) abs($now->diffInSeconds($dueDate));
+                                $diffDays = (int) floor($diffSeconds / 86400);
+                                $diffHours = (int) floor($diffSeconds / 3600);
+                                $diffMinutes = (int) floor($diffSeconds / 60);
+                                $isUrgent = !$isOverdue && $diffHours < 72;
+                                if ($isOverdue) {
+                                    $dueSummary = 'Overdue';
+                                } elseif ($diffDays >= 1) {
+                                    $dueSummary = $diffDays . ' day' . ($diffDays !== 1 ? 's' : '') . ' left';
+                                } elseif ($diffHours >= 1) {
+                                    $dueSummary = $diffHours . ' hour' . ($diffHours !== 1 ? 's' : '') . ' left';
+                                } else {
+                                    $dueSummary = max(0, $diffMinutes) . ' minute' . ($diffMinutes !== 1 ? 's' : '') . ' left';
+                                }
                             @endphp
-                            <div class="text-sm font-bold text-slate-900">{{ $assignment->due_date->format('M d, Y') }}</div>
+                            <div class="text-sm font-bold text-slate-900">{{ $dueDate->format('M d, Y') }}</div>
                             <div class="text-xs {{ $isOverdue ? 'text-red-600 font-semibold' : ($isUrgent ? 'text-amber-600 font-semibold' : 'text-slate-500') }}">
                                 @if($isOverdue)
                                     <i data-lucide="alert-circle" class="h-3 w-3 inline mr-1"></i>Overdue
-                                @elseif($isUrgent)
-                                    <i data-lucide="clock" class="h-3 w-3 inline mr-1"></i>{{ $daysUntilDue }} day{{ $daysUntilDue !== 1 ? 's' : '' }} left
+                                @elseif($diffDays >= 1)
+                                    <i data-lucide="clock" class="h-3 w-3 inline mr-1"></i>{{ $dueSummary }}
+                                @elseif($diffHours >= 1)
+                                    <i data-lucide="clock" class="h-3 w-3 inline mr-1"></i>{{ $dueSummary }}
                                 @else
-                                    {{ $assignment->due_date->format('g:i A') }}
+                                    <i data-lucide="clock" class="h-3 w-3 inline mr-1"></i>{{ $dueSummary }}
                                 @endif
                             </div>
                         @else

@@ -105,8 +105,36 @@
                 @csrf
                 @method('PUT')
 
-                {{-- General Configuration Card --}}
+                {{-- Exam Method --}}
                 <div class="glass-panel rounded-3xl overflow-hidden animate-fade-in-up" style="animation-delay: 0.2s;">
+                    <div class="px-8 py-5 border-b border-white/40 bg-white/40 flex items-center gap-3">
+                        <div class="p-2 bg-rose-100 rounded-lg text-rose-600">
+                            <i data-lucide="layers" class="h-5 w-5"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-800">Exam Method</h3>
+                    </div>
+                    <div class="p-8 sm:p-10 bg-white/50">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <label class="flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all hover:border-amber-400 {{ $exam->isFaceToFace() ? 'border-amber-500 bg-amber-50/60' : 'border-slate-200 bg-white/60' }}">
+                                <input type="radio" name="exam_type" value="face_to_face" class="mt-1" {{ $exam->isFaceToFace() ? 'checked' : '' }}>
+                                <div>
+                                    <div class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i data-lucide="users" class="h-4 w-4 text-amber-600"></i> Face-to-Face</div>
+                                    <div class="text-xs text-slate-500">Conducted in person. Students see info only.</div>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all hover:border-indigo-400 {{ $exam->isOnline() ? 'border-indigo-500 bg-indigo-50/60' : 'border-slate-200 bg-white/60' }}">
+                                <input type="radio" name="exam_type" value="online" class="mt-1" {{ $exam->isOnline() ? 'checked' : '' }}>
+                                <div>
+                                    <div class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i data-lucide="laptop" class="h-4 w-4 text-indigo-600"></i> Online</div>
+                                    <div class="text-xs text-slate-500">Students answer questions online from web or mobile.</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- General Configuration Card --}}
+                <div class="glass-panel rounded-3xl overflow-hidden animate-fade-in-up" style="animation-delay: 0.25s;">
                     <div class="px-8 py-5 border-b border-white/40 bg-white/40 flex items-center gap-3">
                         <div class="p-2 bg-indigo-100 rounded-lg text-indigo-600">
                             <i data-lucide="file-edit" class="h-5 w-5"></i>
@@ -122,8 +150,14 @@
 
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">Instructions & Description</label>
-                            <textarea name="description" rows="4" placeholder="Explain the exam rules or reminders..."
-                                class="w-full rounded-xl form-input-premium text-base resize-none py-3 px-4 outline-none">{{ old('description', $exam->description) }}</textarea>
+                            <textarea name="instructions" rows="4" placeholder="Explain the exam rules or reminders..."
+                                class="w-full rounded-xl form-input-premium text-base resize-none py-3 px-4 outline-none">{{ old('instructions', $exam->instructions) }}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Location <span class="text-xs text-slate-400 font-normal">(Face-to-Face)</span></label>
+                            <input type="text" name="location" value="{{ old('location', $exam->location) }}" placeholder="e.g. Room 201, Main Building"
+                                class="w-full rounded-xl form-input-premium text-sm py-3 px-4 outline-none">
                         </div>
                     </div>
                 </div>

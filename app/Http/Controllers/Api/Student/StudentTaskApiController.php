@@ -84,7 +84,6 @@ class StudentTaskApiController extends Controller
                             ->where('student_exam_attempts.student_id', '=', $studentId);
                     })
                     ->where('exams.is_published', true)
-                    ->where('exams.exam_type', 'online')
                     ->select(
                         'exams.*',
                         'courses.title as course_title',
@@ -103,8 +102,10 @@ class StudentTaskApiController extends Controller
                     ->orderBy('exams.title', 'asc')
                     ->get()
                     ->map(function ($item) {
-                        $item->status = $item->attempt_id ? 'submitted' : 'pending';
-                        $item->is_overdue = $item->exam_date && now()->isAfter($item->exam_date);
+                        $isFtf = in_array($item->exam_type ?? '', ['face_to_face', 'scheduled'], true);
+                        $item->exam_method = $isFtf ? 'face_to_face' : 'online';
+                        $item->status = $item->attempt_id ? 'submitted' : ($isFtf ? 'face_to_face' : 'pending');
+                        $item->is_overdue = !$isFtf && $item->due_date && now()->isAfter($item->due_date);
 
                         return $item;
                     });

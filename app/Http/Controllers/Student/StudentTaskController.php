@@ -86,7 +86,6 @@ class StudentTaskController extends Controller
                              ->where('student_exam_attempts.student_id', '=', $studentId);
                     })
                     ->where('exams.is_published', true)
-                    ->where('exams.exam_type', 'online')
                     ->select(
                         'exams.*',
                         'courses.title as course_title',

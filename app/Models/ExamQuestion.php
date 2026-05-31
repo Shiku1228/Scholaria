@@ -56,6 +56,6 @@ class ExamQuestion extends Model
 
     public function canAutoGrade(): bool
     {
-        return in_array($this->question_type, ['multiple_choice', 'true_false']);
+        return in_array($this->question_type, ['multiple_choice', 'true_false', 'short_answer'], true);
     }
 }

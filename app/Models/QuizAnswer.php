@@ -17,12 +17,16 @@ class QuizAnswer extends Model
         'answer',
         'is_correct',
         'points_earned',
+        'auto_score',
+        'is_overridden',
         'feedback',
     ];
 
     protected $casts = [
         'is_correct' => 'boolean',
         'points_earned' => 'integer',
+        'auto_score' => 'integer',
+        'is_overridden' => 'boolean',
     ];
 
     public function attempt(): \Illuminate\Database\Eloquent\Relations\BelongsTo

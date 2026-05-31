@@ -5,7 +5,7 @@
         $startedAt = $attempt->started_at ?? now();
         $timeLimitMinutes = $quiz->time_limit ?? 15;
         $endTime = $startedAt->copy()->addMinutes($timeLimitMinutes);
-        $remainingSeconds = max(0, now()->diffInSeconds($endTime, false));
+        $remainingSeconds = (int) max(0, now()->diffInSeconds($endTime, false));
     @endphp
 
     {{-- Header --}}
@@ -66,13 +66,10 @@
                                 <span class="text-sm">False</span>
                             </label>
                         </div>
-<<<<<<< HEAD
                     @elseif($question->isShortAnswer())
                         <textarea name="answers[{{ $question->id }}]" rows="3" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm" placeholder="Enter your answer..."></textarea>
                     @elseif($question->isEssay())
                         <textarea name="answers[{{ $question->id }}]" rows="5" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm" placeholder="Write your essay response..."></textarea>
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                     @else
                         <textarea name="answers[{{ $question->id }}]" rows="3" class="w-full rounded-lg border-slate-200 focus:border-[#0b2d6b] focus:ring-[#0b2d6b] text-sm" placeholder="Enter your answer..."></textarea>
                     @endif
@@ -80,7 +77,7 @@
             </div>
         @endforeach
 
-        <div class="flex justify-center">
+        <div class="flex justify-center pb-24 md:pb-8">
             <button type="submit" id="submit-btn" class="inline-flex items-center justify-center h-12 px-8 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors shadow-sm" onclick="return confirm('Submit quiz?')">
                 <i data-lucide="check-circle" class="h-5 w-5 mr-2"></i>Submit Quiz
             </button>
@@ -92,12 +89,20 @@
             let timeLeft = {{ $remainingSeconds }};
             const timerEl = document.getElementById('countdown_timer');
             const form = document.getElementById('quiz-taking-form');
-            
+
+            function formatTime(secs) {
+                const h = Math.floor(secs / 3600);
+                const m = Math.floor((secs % 3600) / 60);
+                const s = Math.floor(secs % 60);
+                const mm = String(m).padStart(2, '0');
+                const ss = String(s).padStart(2, '0');
+                return h > 0 ? (h + ':' + mm + ':' + ss) : (mm + ':' + ss);
+            }
+
             function updateTimer() {
                 if (timeLeft <= 0) {
                     timerEl.textContent = "00:00";
                     clearInterval(timerInterval);
-                    // Disable submit button confirm check
                     const submitBtn = document.getElementById('submit-btn');
                     if (submitBtn) {
                         submitBtn.onclick = null;
@@ -107,16 +112,10 @@
                     return;
                 }
 
-                let minutes = Math.floor(timeLeft / 60);
-                let seconds = timeLeft % 60;
-                
-                minutes = minutes < 10 ? '0' + minutes : minutes;
-                seconds = seconds < 10 ? '0' + seconds : seconds;
-                
-                timerEl.textContent = minutes + ":" + seconds;
+                timerEl.textContent = formatTime(timeLeft);
                 timeLeft--;
             }
-            
+
             updateTimer();
             const timerInterval = setInterval(updateTimer, 1000);
         });

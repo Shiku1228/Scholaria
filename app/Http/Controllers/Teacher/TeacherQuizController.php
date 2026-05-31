@@ -6,6 +6,7 @@ use App\Exports\QuizScoresExport;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Quiz;
+use App\Models\QuizAttempt;
 use App\Models\User;
 use App\Notifications\CourseEventNotification;
 use Illuminate\Http\Request;
@@ -517,5 +518,80 @@ class TeacherQuizController extends Controller
             $filename,
             \Maatwebsite\Excel\Excel::XLSX
         );
+    }
+
+    public function showAttempt(Request $request, Quiz $quiz, QuizAttempt $attempt): View
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        if ((int) $attempt->quiz_id !== (int) $quiz->id) {
+            abort(404);
+        }
+
+        $attempt->load(['student', 'answers.question']);
+
+        return view('teacher.quizzes.attempt', [
+            'quiz' => $quiz,
+            'attempt' => $attempt,
+        ]);
+    }
+
+    public function gradeAttempt(Request $request, Quiz $quiz, QuizAttempt $attempt)
+    {
+        if ((int) $quiz->course->teacher_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        if ((int) $attempt->quiz_id !== (int) $quiz->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'scores'   => ['nullable', 'array'],
+            'scores.*' => ['nullable', 'numeric', 'min:0'],
+            'feedback'   => ['nullable', 'array'],
+            'feedback.*' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $attempt->load('answers.question');
+
+        $totalScore = 0;
+
+        foreach ($attempt->answers as $answer) {
+            $qId    = $answer->question_id;
+            $maxPts = (int) ($answer->question?->points ?? 0);
+
+            if (array_key_exists($qId, $validated['scores'] ?? [])) {
+                $adjusted = min(max(0, (int) round((float) $validated['scores'][$qId])), $maxPts);
+            } else {
+                $adjusted = (int) ($answer->points_earned ?? 0);
+            }
+
+            $autoScore   = $answer->auto_score ?? $answer->points_earned;
+            $isOverridden = $adjusted !== (int) ($autoScore ?? $adjusted);
+            $feedbackText = $validated['feedback'][$qId] ?? $answer->feedback;
+
+            $answer->update([
+                'points_earned' => $adjusted,
+                'is_overridden' => $isOverridden,
+                'feedback'      => $feedbackText ?: null,
+                'is_correct'    => $maxPts > 0 ? $adjusted === $maxPts : $answer->is_correct,
+            ]);
+
+            $totalScore += $adjusted;
+        }
+
+        $attempt->update([
+            'score'     => $totalScore,
+            'status'    => 'graded',
+            'graded_at' => now(),
+            'graded_by' => (int) $request->user()->id,
+        ]);
+
+        return redirect()
+            ->route('teacher.quizzes.attempts.show', [$quiz, $attempt])
+            ->with('success', 'Quiz scores updated successfully.');
     }
 }

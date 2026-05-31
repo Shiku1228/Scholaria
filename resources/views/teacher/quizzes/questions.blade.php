@@ -182,10 +182,7 @@
                             <option value="multiple_choice">Multiple Choice</option>
                             <option value="true_false">True / False</option>
                             <option value="short_answer">Short Answer</option>
-<<<<<<< HEAD
                             <option value="essay">Essay</option>
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                         </select>
                     </div>
                     <div>
@@ -323,14 +320,11 @@
                                             <span class="text-slate-500">Acceptable correct answer:</span>
                                             <span class="font-medium text-green-700">{{ $question->correct_answer ?: 'Any text (manually graded)' }}</span>
                                         </div>
-<<<<<<< HEAD
                                     @elseif($question->isEssay())
                                         <div class="mt-2 text-sm">
                                             <span class="text-slate-500">Reference answer:</span>
                                             <span class="font-medium text-violet-700">{{ $question->correct_answer ?: 'Manual review required' }}</span>
                                         </div>
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                                     @endif
 
                                     @if($question->explanation)
@@ -430,14 +424,12 @@
                 mcOptions.classList.add('hidden');
                 tfOptions.classList.add('hidden');
                 saOptions.classList.remove('hidden');
-<<<<<<< HEAD
             } else if (this.value === 'essay') {
                 mcOptions.classList.add('hidden');
                 tfOptions.classList.add('hidden');
                 saOptions.classList.remove('hidden');
-                correctText.placeholder = "Optional model answer or rubric notes...";
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
+                const correctAnswerSa = document.getElementById('correct_answer_sa');
+                if (correctAnswerSa) correctAnswerSa.placeholder = "Optional model answer or rubric notes...";
             } else {
                 mcOptions.classList.add('hidden');
                 tfOptions.classList.add('hidden');

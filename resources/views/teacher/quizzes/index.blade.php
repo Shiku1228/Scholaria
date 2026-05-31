@@ -156,7 +156,7 @@
                         <select id="modal_course_id" class="w-full rounded-xl border border-slate-200 focus:border-[#0b2d6b] focus:ring-1 focus:ring-[#0b2d6b] text-sm py-2.5 px-3">
                             <option value="" disabled selected>-- Choose a course --</option>
                             @foreach($courses as $course)
-                                <option value="{{ route('teacher.quizzes.create', $course) }}">{{ $course->title ?: $course->course_number }} ({{ $course->course_number }})</option>
+                                <option value="{{ route('teacher.quizzes.create', $course->id) }}">{{ $course->title ?: $course->course_number }} ({{ $course->course_number }})</option>
                             @endforeach
                         </select>
                     </div>

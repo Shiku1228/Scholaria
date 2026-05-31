@@ -302,16 +302,6 @@
                                                     <button type="submit" class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50">Delete</button>
                                                 </form>
                                             @endif
-                                                <form method="POST" action="{{ route('student.courses.discussions.subscribe', [$course, $post]) }}">
-                                                    @csrf
-                                                    <button type="submit" class="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">
-                                                        @if($post->subscriptions->contains('id', auth()->id()))
-                                                            Unsubscribe
-                                                        @else
-                                                            Subscribe
-                                                        @endif
-                                                    </button>
-                                                </form>
                                             </div>
                                         </div>
                                 </div>

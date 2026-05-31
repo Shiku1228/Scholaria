@@ -48,12 +48,14 @@ class QuizQuestion extends Model
     {
         return $this->question_type === 'short_answer';
     }
-<<<<<<< HEAD
 
     public function isEssay(): bool
     {
         return $this->question_type === 'essay';
     }
-=======
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
+
+    public function canAutoGrade(): bool
+    {
+        return in_array($this->question_type, ['multiple_choice', 'true_false', 'short_answer'], true);
+    }
 }

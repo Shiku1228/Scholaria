@@ -148,29 +148,53 @@ class TeacherDashboardController extends Controller
 
                         if (Schema::hasTable('submissions') && Schema::hasTable('assignments') && Schema::hasColumn('submissions', 'assignment_id') && Schema::hasColumn('submissions', 'student_id')) {
                             $hasSubmittedAt = Schema::hasColumn('submissions', 'submitted_at');
+                            $hasScore       = Schema::hasColumn('submissions', 'score');
+                            $hasGradedAt    = Schema::hasColumn('submissions', 'graded_at');
+                            $hasFeedback    = Schema::hasColumn('submissions', 'feedback');
                             $hasCourseIdOnAssignments = Schema::hasColumn('assignments', 'course_id');
                             $hasAssignmentTitle = Schema::hasColumn('assignments', 'title');
 
                             if ($hasCourseIdOnAssignments && $hasAssignmentTitle && Schema::hasTable('users') && Schema::hasColumn('users', 'name') && $courseNameCol) {
-                                $recentSubmissions = DB::table('submissions')
+                                $submissionsQuery = DB::table('submissions')
                                     ->join('assignments', 'assignments.id', '=', 'submissions.assignment_id')
                                     ->join('courses', 'courses.id', '=', 'assignments.course_id')
                                     ->join('users', 'users.id', '=', 'submissions.student_id')
-                                    ->whereIn('assignments.course_id', $courseIds)
-                                    ->select([
-                                        'users.name as student_name',
-                                        'assignments.title as assignment_title',
-                                        'courses.' . $courseNameCol . ' as course_name',
-                                        $hasSubmittedAt ? 'submissions.submitted_at as submitted_at' : 'submissions.created_at as submitted_at',
-                                    ])
+                                    ->whereIn('assignments.course_id', $courseIds);
+
+                                if ($hasSubmittedAt) {
+                                    $submissionsQuery->whereNotNull('submissions.submitted_at');
+                                }
+
+                                $selectCols = [
+                                    'submissions.id as submission_id',
+                                    'assignments.id as assignment_id',
+                                    'assignments.course_id as course_id',
+                                    'users.name as student_name',
+                                    'assignments.title as assignment_title',
+                                    'courses.' . $courseNameCol . ' as course_name',
+                                    $hasSubmittedAt ? 'submissions.submitted_at as submitted_at' : 'submissions.created_at as submitted_at',
+                                ];
+
+                                if ($hasScore)    $selectCols[] = 'submissions.score';
+                                if ($hasGradedAt) $selectCols[] = 'submissions.graded_at';
+                                if ($hasFeedback) $selectCols[] = 'submissions.feedback';
+
+                                $recentSubmissions = $submissionsQuery
+                                    ->select($selectCols)
                                     ->orderByDesc($hasSubmittedAt ? 'submissions.submitted_at' : 'submissions.created_at')
                                     ->limit(10)
                                     ->get()
                                     ->map(fn ($r) => [
-                                        'student_name' => (string) ($r->student_name ?? ''),
+                                        'submission_id'    => (int) ($r->submission_id ?? 0),
+                                        'assignment_id'    => (int) ($r->assignment_id ?? 0),
+                                        'course_id'        => (int) ($r->course_id ?? 0),
+                                        'student_name'     => (string) ($r->student_name ?? ''),
                                         'assignment_title' => (string) ($r->assignment_title ?? ''),
-                                        'course_name' => (string) ($r->course_name ?? ''),
-                                        'submitted_at' => (string) ($r->submitted_at ?? ''),
+                                        'course_name'      => (string) ($r->course_name ?? ''),
+                                        'submitted_at'     => (string) ($r->submitted_at ?? ''),
+                                        'score'            => $r->score ?? null,
+                                        'graded_at'        => $r->graded_at ?? null,
+                                        'feedback'         => $r->feedback ?? null,
                                     ])
                                     ->all();
                             }

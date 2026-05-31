@@ -215,7 +215,6 @@ class StudentCourseApiController extends Controller
             try {
                 $exams = $course->exams()
                     ->where('is_published', true)
-                    ->where('exam_type', 'online')
                     ->orderBy('exam_date', 'asc')
                     ->get();
 
@@ -254,6 +253,9 @@ class StudentCourseApiController extends Controller
                     'file_name' => (string) ($resource->file_name ?? ''),
                     'mime_type' => (string) ($resource->mime_type ?? ''),
                     'file_size' => (int) ($resource->file_size ?? 0),
+                    'url' => $resource->file_path
+                        ? asset('storage/' . ltrim((string) $resource->file_path, '/'))
+                        : null,
                     'uploader' => $resource->relationLoaded('uploader') && $resource->uploader ? [
                         'id' => (int) $resource->uploader->id,
                         'name' => (string) $resource->uploader->name,

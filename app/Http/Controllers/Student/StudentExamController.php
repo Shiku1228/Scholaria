@@ -19,8 +19,7 @@ class StudentExamController extends Controller
         $exams = Exam::query()
             ->whereHas('course.enrollments', fn ($q) => $q->where('student_id', $studentId))
             ->where('is_published', true)
-            ->where('exam_type', 'online')
-            ->with(['course'])
+            ->with(['course', 'questions'])
             ->orderBy('exam_date', 'asc')
             ->paginate(20);
         
@@ -53,22 +52,31 @@ class StudentExamController extends Controller
             abort(403, 'You are not enrolled in this course.');
         }
         
-        // Check if exam hasn't started yet
+        // Face-to-Face exams are info-only — skip ALL date/attempt restrictions
+        if ($exam->isFaceToFace()) {
+            return view('student.exams.show', [
+                'exam' => $exam,
+                'attempts' => collect(),
+                'selectedAttempt' => null,
+            ]);
+        }
+
+        // Check if exam hasn't started yet (online only)
         if ($exam->exam_date && $exam->exam_date->isFuture()) {
             return view('student.exams.upcoming', [
                 'exam' => $exam,
             ]);
         }
-        
+
         // Get student's attempts
         $attempts = StudentExamAttempt::query()
             ->where('exam_id', $exam->id)
             ->where('student_id', $studentId)
             ->orderBy('attempt_number')
             ->get();
-            
+
         $activeAttempt = $attempts->where('status', 'in_progress')->first();
-        
+
         // If in progress, go to take view directly
         if ($activeAttempt) {
             $questionIds = $activeAttempt->question_ids ?? [];
@@ -89,8 +97,8 @@ class StudentExamController extends Controller
                 'attempt' => $activeAttempt,
             ]);
         }
-        
-        // If exam is past and no attempts
+
+        // If online exam is past due and no attempts — Missed
         if ($exam->due_date && $exam->due_date->isPast() && $attempts->isEmpty()) {
             return view('student.exams.missed', [
                 'exam' => $exam,
@@ -225,10 +233,16 @@ class StudentExamController extends Controller
         foreach ($questions as $question) {
             $submittedAnswer = $answers[$question->id] ?? null;
             
-            // Calculate score for auto-gradable questions
+            $isCorrect = null;
             $score = null;
-            if (in_array($question->question_type, ['multiple_choice', 'true_false'])) {
-                $score = $question->correct_answer === $submittedAnswer ? $question->points : 0;
+
+            if ($question->question_type === 'short_answer') {
+                $isCorrect = strtolower(trim((string) $submittedAnswer)) === strtolower(trim((string) ($question->correct_answer ?? '')));
+                $score = $isCorrect ? (int) $question->points : 0;
+                $totalScore += $score;
+            } elseif (in_array($question->question_type, ['multiple_choice', 'true_false'], true)) {
+                $isCorrect = $question->correct_answer === $submittedAnswer;
+                $score = $isCorrect ? (int) $question->points : 0;
                 $totalScore += $score;
             }
             
@@ -236,7 +250,8 @@ class StudentExamController extends Controller
                 'attempt_id' => $attempt->id,
                 'question_id' => $question->id,
                 'answer' => $submittedAnswer,
-                'score' => $score,
+                'is_correct' => $isCorrect,
+                'points_earned' => $score,
             ]);
         }
         

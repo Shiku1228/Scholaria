@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\BankQuestion;
 use App\Models\Course;
 use App\Models\Exam;
+use App\Models\QuestionBank;
 use App\Models\User;
 use App\Notifications\CourseEventNotification;
 use Illuminate\Http\Request;
@@ -65,8 +67,13 @@ class TeacherExamController extends Controller
             abort(403);
         }
 
+        $questionBanks = QuestionBank::where('teacher_id', $request->user()->id)
+            ->with('questions')
+            ->get();
+
         return view('teacher.exams.create', [
             'course' => $course,
+            'questionBanks' => $questionBanks,
         ]);
     }
 
@@ -79,32 +86,64 @@ class TeacherExamController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'exam_type' => ['required', 'in:scheduled,online'],
-            'exam_date' => ['required', 'date', 'after:now'],
-            'due_date' => ['nullable', 'date', 'after:exam_date'],
-            'duration' => ['required', 'integer', 'min:15', 'max:480'],
-            'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
-            'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'location' => ['nullable', 'string', 'max:255'],
             'instructions' => ['nullable', 'string'],
+            'exam_type' => ['required', 'in:face_to_face,online'],
+            'exam_date' => ['required', 'date'],
+            'due_date' => ['required', 'date', 'after_or_equal:exam_date'],
+            'duration' => ['nullable', 'integer', 'min:1', 'max:480'],
+            'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'max_score' => ['required', 'integer', 'min:1', 'max:100000'],
+            'location' => ['nullable', 'string', 'max:255'],
             'feedback_type' => ['nullable', 'in:instant,delayed'],
             'show_results' => ['nullable', 'boolean'],
             'shuffle_questions' => ['nullable', 'boolean'],
             'random_subset_count' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'question_bank_id' => ['nullable', 'exists:question_banks,id'],
+            'question_ids' => ['nullable', 'array'],
+            'question_ids.*' => ['exists:bank_questions,id'],
             'questions' => ['nullable', 'array'],
             'questions.*.text' => ['required_with:questions', 'string'],
             'questions.*.type' => ['required_with:questions', 'in:multiple_choice,true_false,short_answer,essay'],
             'questions.*.points' => ['required_with:questions', 'integer', 'min:1', 'max:100'],
             'questions.*.options' => ['nullable', 'array'],
             'questions.*.correct' => ['nullable', 'string'],
+            'questions.*.correct_answer' => ['nullable', 'string'],
+            'questions.*.explanation' => ['nullable', 'string'],
         ]);
 
         $isOnline = $validated['exam_type'] === 'online';
+        $questionIds = collect($validated['question_ids'] ?? [])->filter()->map(fn ($id) => (int) $id)->values();
+        $inlineQuestions = collect($validated['questions'] ?? [])->filter(fn ($question) => filled($question['text'] ?? null))->values();
 
-        // Calculate total points for online exams
+        if ($isOnline) {
+            $request->validate([
+                'duration' => ['required', 'integer', 'min:1', 'max:480'],
+            ]);
+
+            if ($questionIds->isEmpty() && $inlineQuestions->isEmpty()) {
+                return back()
+                    ->withErrors(['questions' => 'Add at least one question for an online exam.'])
+                    ->withInput();
+            }
+        } else {
+            $request->validate([
+                'instructions' => ['required', 'string'],
+            ]);
+        }
+
         $totalPoints = 0;
-        if ($isOnline && !empty($validated['questions'])) {
-            foreach ($validated['questions'] as $q) {
+        $selectedBankQuestions = collect();
+
+        if ($isOnline && !empty($validated['question_bank_id']) && $questionIds->isNotEmpty()) {
+            $selectedBankQuestions = BankQuestion::where('question_bank_id', $validated['question_bank_id'])
+                ->whereIn('id', $questionIds)
+                ->get();
+
+            $totalPoints += (int) $selectedBankQuestions->sum('points');
+        }
+
+        if ($isOnline) {
+            foreach ($inlineQuestions as $q) {
                 $totalPoints += (int) ($q['points'] ?? 1);
             }
         }
@@ -116,7 +155,7 @@ class TeacherExamController extends Controller
             'description' => $validated['description'] ?? null,
             'exam_date' => $validated['exam_date'],
             'due_date' => $validated['due_date'] ?? null,
-            'duration' => (int) $validated['duration'],
+            'duration' => $isOnline ? (int) ($validated['duration'] ?? 0) : 0,
             'attempts_allowed' => (int) ($validated['attempts_allowed'] ?? 1),
             'max_score' => $isOnline ? $totalPoints : (int) ($validated['max_score'] ?? 100),
             'location' => $isOnline ? null : ($validated['location'] ?? null),
@@ -129,10 +168,22 @@ class TeacherExamController extends Controller
             'is_published' => false,
         ]);
 
-        // Create questions for online exams
-        if ($isOnline && !empty($validated['questions'])) {
+        if ($isOnline) {
             $order = 0;
-            foreach ($validated['questions'] as $qData) {
+
+            foreach ($selectedBankQuestions as $bankQuestion) {
+                $exam->questions()->create([
+                    'question_text' => $bankQuestion->question_text,
+                    'question_type' => $bankQuestion->question_type,
+                    'options' => $bankQuestion->options,
+                    'correct_answer' => $bankQuestion->correct_answer,
+                    'explanation' => $bankQuestion->explanation,
+                    'points' => (int) $bankQuestion->points,
+                    'order' => ++$order,
+                ]);
+            }
+
+            foreach ($inlineQuestions as $qData) {
                 $options = null;
                 $correctAnswer = null;
 
@@ -147,7 +198,6 @@ class TeacherExamController extends Controller
                 } elseif ($qData['type'] === 'true_false') {
                     $correctAnswer = $qData['correct'] ?? null;
                 } else {
-                    // Short answer and essay
                     $correctAnswer = $qData['correct_answer'] ?? null;
                 }
 
@@ -156,8 +206,9 @@ class TeacherExamController extends Controller
                     'question_type' => $qData['type'],
                     'options' => $options,
                     'correct_answer' => $correctAnswer,
+                    'explanation' => $qData['explanation'] ?? null,
                     'points' => (int) $qData['points'],
-                    'order' => $order++,
+                    'order' => ++$order,
                 ]);
             }
         }
@@ -187,7 +238,7 @@ class TeacherExamController extends Controller
         }
 
         $successMessage = $isOnline
-            ? 'Online exam created successfully with ' . count($validated['questions'] ?? []) . ' questions.'
+            ? 'Online exam created successfully with ' . $exam->questions()->count() . ' questions.'
             : 'Exam scheduled successfully.';
 
         return redirect()->route('teacher.exams.show', $exam)->with('success', $successMessage);
@@ -238,10 +289,10 @@ class TeacherExamController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'exam_type' => ['required', 'in:scheduled,online'],
-            'exam_date' => ['required', 'date'],
-            'due_date' => ['nullable', 'date', 'after:exam_date'],
-            'duration' => ['required', 'integer', 'min:15', 'max:480'],
+            'exam_type' => ['required', 'in:face_to_face,online,scheduled'],
+            'exam_date' => ['nullable', 'date'],
+            'due_date' => ['nullable', 'date'],
+            'duration' => ['nullable', 'integer', 'min:1', 'max:480'],
             'attempts_allowed' => ['nullable', 'integer', 'min:1', 'max:10'],
             'max_score' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'location' => ['nullable', 'string', 'max:255'],
@@ -312,7 +363,7 @@ class TeacherExamController extends Controller
             abort(403);
         }
 
-        if ($exam->isScheduled()) {
+        if ($exam->isFaceToFace()) {
             return redirect()->route('teacher.exams.show', $exam)->with('error', 'Only online exams can have questions.');
         }
 
@@ -330,7 +381,7 @@ class TeacherExamController extends Controller
             abort(403);
         }
 
-        if ($exam->isScheduled()) {
+        if ($exam->isFaceToFace()) {
             return redirect()->route('teacher.exams.show', $exam)->with('error', 'Only online exams can have questions.');
         }
 

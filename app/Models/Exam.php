@@ -57,14 +57,24 @@ class Exam extends Model
         return $this->hasMany(StudentExamAttempt::class, 'exam_id');
     }
 
+    public function isFaceToFace(): bool
+    {
+        return in_array($this->exam_type, ['face_to_face', 'scheduled'], true);
+    }
+
     public function isScheduled(): bool
     {
-        return $this->exam_type === 'scheduled';
+        return $this->isFaceToFace();
     }
 
     public function isOnline(): bool
     {
         return $this->exam_type === 'online';
+    }
+
+    public function getExamMethodAttribute(): string
+    {
+        return $this->isFaceToFace() ? 'face_to_face' : 'online';
     }
 
     public function isPublished(): bool

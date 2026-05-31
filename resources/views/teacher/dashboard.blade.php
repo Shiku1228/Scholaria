@@ -7,7 +7,7 @@
     @php
         $totalStudents = (int) ($stats['students_in_my_courses'] ?? 0);
         $activeCourses = (int) ($stats['my_courses'] ?? 0);
-        $pendingReviews = count($recentSubmissions ?? []);
+        $pendingReviews = collect($recentSubmissions ?? [])->filter(fn ($r) => empty($r['score']) && empty($r['graded_at']))->count();
         $avgEngagement = (int) ($avgEngagement ?? 0);
 
         $courseNames = collect($courseList ?? [])->pluck('course_name')->filter(fn ($x) => (string) $x !== '')->values();
@@ -170,11 +170,19 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        @forelse ($submissionRows as $i => $row)
+                        @forelse ($submissionRows as $row)
                             @php
-                                $student = (string) ($row['student_name'] ?? '--');
-                                $initial = strtoupper(substr($student, 0, 1));
-                                $needsGrading = $i % 3 !== 2;
+                                $student      = (string) ($row['student_name'] ?? '--');
+                                $initial      = strtoupper(substr($student, 0, 1));
+                                $isGraded     = !empty($row['score']) || !empty($row['graded_at']);
+                                $needsGrading = !$isGraded;
+                                $courseId     = (int) ($row['course_id'] ?? 0);
+                                $assignmentId = (int) ($row['assignment_id'] ?? 0);
+                                $submissionId = (int) ($row['submission_id'] ?? 0);
+                                $canLink      = $courseId > 0 && $assignmentId > 0 && $submissionId > 0;
+                                $actionUrl    = $canLink
+                                    ? route('teacher.submissions.show', [$courseId, $assignmentId, $submissionId])
+                                    : route('teacher.assignments.overview');
                             @endphp
                             <tr>
                                 <td class="py-4 px-6">
@@ -196,9 +204,9 @@
                                 </td>
                                 <td class="py-4 px-6 text-right">
                                     @if ($needsGrading)
-                                        <a href="{{ route('teacher.assignments.overview') }}" class="inline-flex h-9 items-center rounded-xl bg-[#eaf0fb] px-3 text-sm font-semibold text-[#0b2d6b] hover:bg-[#dce7fb]">Grade Now</a>
+                                        <a href="{{ $actionUrl }}" class="inline-flex h-9 items-center rounded-xl bg-[#eaf0fb] px-3 text-sm font-semibold text-[#0b2d6b] hover:bg-[#dce7fb]">Grade Now</a>
                                     @else
-                                        <a href="{{ route('teacher.assignments.overview') }}" class="text-slate-600 font-semibold hover:text-[#0b2d6b] text-sm sm:text-base">Review</a>
+                                        <a href="{{ $actionUrl }}" class="text-slate-600 font-semibold hover:text-[#0b2d6b] text-sm sm:text-base">Review</a>
                                     @endif
                                 </td>
                             </tr>

@@ -214,10 +214,12 @@ class StudentQuizController extends Controller
             }
 
             $attempt->answers()->create([
-                'question_id' => $question->id,
-                'answer' => $submittedAnswer,
-                'is_correct' => $isCorrect,
+                'question_id'  => $question->id,
+                'answer'       => $submittedAnswer,
+                'is_correct'   => $isCorrect,
                 'points_earned' => $pointsEarned,
+                'auto_score'   => $pointsEarned,
+                'is_overridden' => false,
             ]);
 
             $totalScore += $pointsEarned;
