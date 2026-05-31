@@ -1,0 +1,105 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\JwtAuthController;
+use App\Http\Controllers\Api\Student\StudentDashboardApiController;
+use App\Http\Controllers\Api\Student\StudentCourseApiController;
+use App\Http\Controllers\Api\Student\StudentEnrollmentApiController;
+use App\Http\Controllers\Api\Student\StudentTaskApiController;
+use App\Http\Controllers\Api\Student\StudentAssignmentApiController;
+use App\Http\Controllers\Api\Student\StudentAnnouncementApiController;
+use App\Http\Controllers\Api\Student\StudentGradeApiController;
+use App\Http\Controllers\Api\Student\StudentNotificationApiController;
+use App\Http\Controllers\Api\Student\StudentSubmissionApiController;
+use App\Http\Controllers\Api\Student\StudentExamApiController;
+use App\Http\Controllers\Api\Student\StudentQuizApiController;
+use App\Http\Controllers\Api\Student\StudentProfileApiController;
+use App\Http\Controllers\Api\Student\StudentFlowMapApiController;
+use App\Http\Controllers\Messaging\CourseMessagingController;
+
+Route::middleware('api')->group(function () {
+    Route::post('/login', [JwtAuthController::class, 'login'])->name('api.login');
+    Route::get('/login', [JwtAuthController::class, 'login'])->name('api.login.get');
+    Route::post('/verify-mfa', [JwtAuthController::class, 'verifyMfa'])->name('api.verify-mfa');
+    Route::post('/logout', [JwtAuthController::class, 'logout'])->name('api.logout');
+    Route::get('/logout', [JwtAuthController::class, 'logout'])->name('logout.get');
+    Route::post('/refresh', [JwtAuthController::class, 'refresh'])->name('refresh');
+    
+    Route::middleware('jwt')->group(function () {
+        Route::get('/me', [JwtAuthController::class, 'me'])->name('me');
+        Route::get('/validate', [JwtAuthController::class, 'validate'])->name('validate');
+        Route::get('/profile', [StudentProfileApiController::class, 'show'])->name('api.profile');
+        Route::get('/student/flow-map', [StudentFlowMapApiController::class, 'index'])->name('api.student.flow-map');
+
+        Route::get('/courses', [StudentCourseApiController::class, 'index'])->name('api.courses.index');
+        Route::get('/courses/{course}', [StudentCourseApiController::class, 'show'])->name('api.courses.show');
+        Route::get('/enrollments', [StudentEnrollmentApiController::class, 'index'])->name('api.enrollments.index');
+        Route::get('/assignments', [StudentAssignmentApiController::class, 'index'])->name('api.assignments.index');
+        Route::get('/assignments/{assignment}', [StudentAssignmentApiController::class, 'show'])->name('api.assignments.show');
+        Route::get('/announcements', [StudentAnnouncementApiController::class, 'index'])->name('api.announcements.index');
+        Route::get('/grades', [StudentGradeApiController::class, 'index'])->name('api.grades.index');
+        Route::get('/submissions', [StudentSubmissionApiController::class, 'index'])->name('api.submissions.index');
+    });
+    
+    // Test endpoint for Android app
+    Route::get('/test', function () {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Laravel API is working!',
+            'timestamp' => now()->toDateTimeString()
+        ]);
+    })->name('test');
+    
+    // Simple login test without validation
+    Route::post('/login-test', function () {
+        return response()->json([
+            'success' => true,
+            'token' => 'test-token-123',
+            'user' => [
+                'id' => 1,
+                'name' => 'Test User',
+                'email' => 'test@example.com'
+            ]
+        ]);
+    });
+
+    Route::middleware('jwt')->prefix('student')->group(function () {
+        Route::get('/profile', [StudentProfileApiController::class, 'show'])->name('api.student.profile');
+        Route::get('/dashboard', [StudentDashboardApiController::class, 'index'])->name('api.student.dashboard');
+        Route::get('/courses', [StudentCourseApiController::class, 'index'])->name('api.student.courses.index');
+        Route::get('/courses/{course}', [StudentCourseApiController::class, 'show'])->name('api.student.courses.show');
+        Route::get('/messages', [CourseMessagingController::class, 'index'])->name('api.student.messages.index');
+        Route::get('/courses/{course}/messages', [CourseMessagingController::class, 'course'])->name('api.student.messages.course');
+        Route::get('/courses/{course}/messages/members', [CourseMessagingController::class, 'members'])->name('api.student.messages.members');
+        Route::get('/courses/{course}/messages/conversations', [CourseMessagingController::class, 'conversations'])->name('api.student.messages.conversations');
+        Route::get('/courses/{course}/messages/conversations/{conversation}', [CourseMessagingController::class, 'showConversation'])->name('api.student.messages.conversations.show');
+        Route::post('/courses/{course}/private-chat/{user}', [CourseMessagingController::class, 'startPrivate'])->name('api.student.messages.private.start');
+        Route::get('/conversations/{conversation}/messages', [CourseMessagingController::class, 'conversationMessages'])->name('api.student.messages.conversations.messages');
+        Route::post('/conversations/{conversation}/messages', [CourseMessagingController::class, 'storeMessage'])->middleware('throttle:chat-messages')->name('api.student.messages.conversations.messages.store');
+        Route::get('/messages/attachments/{message}', [CourseMessagingController::class, 'attachment'])->name('api.student.messages.attachment');
+
+        Route::get('/tasks', [StudentTaskApiController::class, 'index'])->name('api.student.tasks.index');
+
+        Route::get('/assignments', [StudentAssignmentApiController::class, 'index'])->name('api.student.assignments.index');
+        Route::get('/assignments/{assignment}', [StudentAssignmentApiController::class, 'show'])->name('api.student.assignments.show');
+        Route::get('/assignments/{assignment}/submit', [StudentSubmissionApiController::class, 'create'])->name('api.student.assignments.submit');
+        Route::post('/assignments/{assignment}/submit', [StudentSubmissionApiController::class, 'store'])->name('api.student.assignments.submit.store');
+        Route::get('/assignments/{assignment}/submission', [StudentSubmissionApiController::class, 'showForAssignment'])->name('api.student.assignments.submission');
+        Route::get('/submissions', [StudentSubmissionApiController::class, 'index'])->name('api.student.submissions.index');
+
+        Route::get('/announcements', [StudentAnnouncementApiController::class, 'index'])->name('api.student.announcements.index');
+        Route::get('/grades', [StudentGradeApiController::class, 'index'])->name('api.student.grades.index');
+        Route::get('/notifications', [StudentNotificationApiController::class, 'index'])->name('api.student.notifications.index');
+        Route::post('/notifications/read-all', [StudentNotificationApiController::class, 'readAll'])->name('api.student.notifications.read-all');
+
+        Route::get('/exams', [StudentExamApiController::class, 'index'])->name('api.student.exams.index');
+        Route::get('/exams/{exam}', [StudentExamApiController::class, 'show'])->name('api.student.exams.show');
+        Route::post('/exams/{exam}/start', [StudentExamApiController::class, 'start'])->name('api.student.exams.start');
+        Route::post('/exams/{exam}/submit', [StudentExamApiController::class, 'submit'])->name('api.student.exams.submit');
+
+        Route::get('/quizzes', [StudentQuizApiController::class, 'index'])->name('api.student.quizzes.index');
+        Route::get('/quizzes/{quiz}', [StudentQuizApiController::class, 'show'])->name('api.student.quizzes.show');
+        Route::post('/quizzes/{quiz}/start', [StudentQuizApiController::class, 'start'])->name('api.student.quizzes.start');
+        Route::post('/quizzes/{quiz}/submit', [StudentQuizApiController::class, 'submit'])->name('api.student.quizzes.submit');
+    });
+});

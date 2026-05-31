@@ -1,0 +1,438 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+:root {
+    --slms-primary: #0b2d6b;
+    --slms-primary-dark: #0a3a8a;
+    --slms-bg: #f3f4f6;
+}
+
+/* Enhanced Responsive Typography */
+.responsive-text-xs {
+    @apply text-xs sm:text-sm;
+}
+
+.responsive-text-sm {
+    @apply text-sm sm:text-base;
+}
+
+.responsive-text-base {
+    @apply text-base sm:text-lg;
+}
+
+.responsive-text-lg {
+    @apply text-lg sm:text-xl;
+}
+
+.responsive-text-xl {
+    @apply text-xl sm:text-2xl;
+}
+
+.responsive-text-2xl {
+    @apply text-2xl sm:text-3xl;
+}
+
+.responsive-text-3xl {
+    @apply text-3xl sm:text-4xl;
+}
+
+.responsive-text-4xl {
+    @apply text-4xl sm:text-5xl;
+}
+
+.responsive-text-5xl {
+    @apply text-5xl sm:text-6xl;
+}
+
+/* Responsive Container */
+.responsive-container {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Responsive Grid */
+.responsive-grid-1 {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+}
+
+.responsive-grid-2 {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+}
+
+.responsive-grid-3 {
+    @apply grid grid-cols-1 sm:grid-cols-2;
+}
+
+/* Responsive Card */
+.responsive-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-6;
+}
+
+/* Responsive Button */
+.responsive-btn {
+    @apply h-10 sm:h-11 px-4 sm:px-5 text-sm sm:text-base rounded-xl;
+}
+
+/* Responsive Table Container */
+.responsive-table-container {
+    @apply overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0;
+}
+
+/* Responsive Form Elements */
+.responsive-input {
+    @apply block w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm sm:text-base;
+}
+
+.responsive-select {
+    @apply block w-full h-10 sm:h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm sm:text-base;
+}
+
+/* Mobile-First Utilities */
+.mobile-first {
+    @apply block sm:hidden;
+}
+
+.desktop-only {
+    @apply hidden sm:block;
+}
+
+/* Touch-friendly targets for mobile */
+@media (max-width: 640px) {
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .mobile-padding {
+        padding: 1rem;
+    }
+    
+    .mobile-margin {
+        margin: 1rem;
+    }
+}
+
+/* Responsive spacing */
+.space-responsive-1 {
+    @apply space-y-2 sm:space-y-3;
+}
+
+.space-responsive-2 {
+    @apply space-y-3 sm:space-y-4;
+}
+
+.space-responsive-3 {
+    @apply space-y-4 sm:space-y-6;
+}
+
+.space-responsive-4 {
+    @apply space-y-6 sm:space-y-8;
+}
+
+/* Responsive gap utilities */
+.gap-responsive-1 {
+    @apply gap-2 sm:gap-3;
+}
+
+.gap-responsive-2 {
+    @apply gap-3 sm:gap-4;
+}
+
+.gap-responsive-3 {
+    @apply gap-4 sm:gap-6;
+}
+
+.gap-responsive-4 {
+    @apply gap-6 sm:gap-8;
+}
+
+/* Responsive text truncation */
+.truncate-responsive {
+    @apply truncate max-w-[120px] sm:max-w-none;
+}
+
+.truncate-responsive-sm {
+    @apply truncate max-w-[80px] sm:max-w-none;
+}
+
+.truncate-responsive-lg {
+    @apply truncate max-w-[200px] sm:max-w-none;
+}
+
+/* Responsive flex layouts */
+.flex-responsive-col {
+    @apply flex flex-col sm:flex-row;
+}
+
+.flex-responsive-col-reverse {
+    @apply flex flex-col-reverse sm:flex-row;
+}
+
+/* Responsive visibility */
+.visible-mobile {
+    @apply block sm:hidden;
+}
+
+.visible-desktop {
+    @apply hidden sm:block;
+}
+
+.visible-tablet {
+    @apply hidden sm:block lg:hidden;
+}
+
+/* Responsive card layouts */
+.card-responsive {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-6;
+}
+
+.card-responsive-compact {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4;
+}
+
+/* Responsive navigation */
+.nav-responsive {
+    @apply flex flex-col sm:flex-row items-start sm:items-center gap-3;
+}
+
+/* Responsive lists */
+.list-responsive {
+    @apply space-y-2 sm:space-y-3;
+}
+
+.list-responsive-compact {
+    @apply space-y-1 sm:space-y-2;
+}
+
+/* Responsive modal/dialog */
+.modal-responsive {
+    @apply fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4;
+}
+
+.modal-content-responsive {
+    @apply bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md max-w-[92vw] overflow-hidden;
+}
+
+/* Responsive form layouts */
+.form-responsive {
+    @apply space-y-4 sm:space-y-6;
+}
+
+.form-group-responsive {
+    @apply space-y-2 sm:space-y-3;
+}
+
+/* Responsive badge/chip components */
+.badge-responsive {
+    @apply inline-flex items-center rounded-full px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold;
+}
+
+/* Responsive progress bars */
+.progress-responsive {
+    @apply w-full h-2 sm:h-2.5 rounded-full bg-gray-200 overflow-hidden;
+}
+
+/* Responsive avatars */
+.avatar-responsive {
+    @apply h-8 w-8 sm:h-10 sm:w-10 rounded-full;
+}
+
+.avatar-responsive-lg {
+    @apply h-10 w-10 sm:h-12 sm:w-12 rounded-full;
+}
+
+/* Responsive dropdowns/menus */
+.dropdown-responsive {
+    @apply absolute right-0 mt-2 w-80 sm:w-96 max-w-[92vw] rounded-xl border border-gray-200 bg-white shadow-xl z-50;
+}
+
+/* Responsive tabs */
+.tab-responsive {
+    @apply flex flex-col sm:flex-row border-b border-gray-200;
+}
+
+.tab-button-responsive {
+    @apply px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base font-medium border-b-2 border-transparent;
+}
+
+/* Responsive alerts/notifications */
+.alert-responsive {
+    @apply rounded-xl p-3 sm:p-4 text-sm sm:text-base;
+}
+
+/* Responsive loading states */
+.loading-responsive {
+    @apply h-4 w-4 sm:h-5 sm:w-5;
+}
+
+/* Responsive separators */
+.separator-responsive {
+    @apply border-t border-gray-200 my-3 sm:my-4;
+}
+
+/* Responsive tooltips */
+.tooltip-responsive {
+    @apply absolute z-50 px-2 py-1 text-xs bg-gray-900 text-white rounded whitespace-nowrap;
+}
+
+/* Responsive breadcrumbs */
+.breadcrumb-responsive {
+    @apply flex items-center space-x-1 sm:space-x-2 text-sm sm:text-base;
+}
+
+/* Responsive pagination */
+.pagination-responsive {
+    @apply flex items-center justify-between space-y-3 sm:space-y-0 flex-col sm:flex-row;
+}
+
+/* Responsive search bars */
+.search-responsive {
+    @apply relative w-full sm:max-w-md;
+}
+
+.search-input-responsive {
+    @apply w-full h-10 sm:h-11 pl-10 pr-4 rounded-xl border border-gray-200 text-sm sm:text-base;
+}
+
+/* Responsive filters */
+.filter-responsive {
+    @apply flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center;
+}
+
+/* Responsive stats/metrics cards */
+.stats-responsive {
+    @apply rounded-3xl p-4 sm:p-6 text-white shadow-lg;
+}
+
+.stats-number-responsive {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-extrabold;
+}
+
+.stats-label-responsive {
+    @apply text-sm sm:text-base opacity-90;
+}
+
+.stats-subtitle-responsive {
+    @apply text-xs sm:text-sm opacity-75;
+}
+
+/* Custom Scrollbar for Sidebar */
+#sidebar .slms-sidebar-nav {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(11, 45, 107, 0.6) transparent;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto !important;
+}
+
+#sidebar .slms-sidebar-nav::-webkit-scrollbar {
+    width: 8px !important;
+    display: block !important;
+}
+
+#sidebar .slms-sidebar-nav::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-radius: 10px;
+}
+
+#sidebar .slms-sidebar-nav::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(11, 45, 107, 0.8) 0%, rgba(11, 45, 107, 0.6) 100%) !important;
+    border-radius: 10px;
+    border: 1px solid rgba(11, 45, 107, 0.3);
+    transition: all 0.2s ease;
+    min-height: 20px;
+}
+
+#sidebar .slms-sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(11, 45, 107, 1.0) 0%, rgba(11, 45, 107, 0.8) 100%) !important;
+    border-color: rgba(11, 45, 107, 0.5);
+}
+
+#sidebar .slms-sidebar-nav::-webkit-scrollbar-thumb:active {
+    background: rgba(11, 45, 107, 1.0) !important;
+}
+
+.auth-page {
+    background: #ffffff;
+}
+
+.auth-welcome {
+    background: linear-gradient(135deg, #123b85 0%, var(--slms-primary) 38%, var(--slms-primary-dark) 100%);
+    overflow: hidden;
+}
+
+.auth-welcome-curve {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    display: none;
+}
+
+.auth-circle {
+    filter: blur(0px);
+    opacity: 0.95;
+}
+
+/* Ensure login form is always visible */
+@media (min-width: 1024px) {
+    .grid.lg\:grid-cols-2 > .order-1.lg\:order-2 {
+        display: block !important;
+    }
+}
+
+@media (max-width: 1023px) {
+    .grid.grid-cols-1 > .order-1 {
+        display: block !important;
+    }
+}
+
+.critical-events-card {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
+    border: 3px solid #f87171 !important;
+}
+
+/* Bulletproof Brand Button Fallbacks for SCHOLARIA */
+.btn-brand-primary {
+    background-color: #0b2d6b !important;
+    color: #ffffff !important;
+    border: 1px solid #082252 !important;
+}
+.btn-brand-primary:hover {
+    background-color: #092456 !important;
+}
+
+.btn-brand-success {
+    background-color: #047857 !important; /* Premium Emerald-700 for solid high contrast (6.27:1 ratio) */
+    color: #ffffff !important;
+    border: 1px solid #065f46 !important;
+}
+.btn-brand-success:hover {
+    background-color: #065f46 !important;
+}
+
+.btn-brand-secondary {
+    background-color: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+.btn-brand-secondary:hover {
+    background-color: #f1f5f9 !important;
+}
+
+.btn-brand-purple {
+    background-color: #7c3aed !important;
+    color: #ffffff !important;
+    border: 1px solid #6d28d9 !important;
+}
+.btn-brand-purple:hover {
+    background-color: #6d28d9 !important;
+}
+
