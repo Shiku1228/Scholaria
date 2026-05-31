@@ -13,11 +13,7 @@ return new class extends Migration
                 $table->id();
                 $table->foreignId('quiz_id')->constrained('quizzes')->onDelete('cascade');
                 $table->text('question_text');
-<<<<<<< HEAD
                 $table->enum('question_type', ['multiple_choice', 'true_false', 'short_answer', 'essay'])->default('multiple_choice');
-=======
-                $table->enum('question_type', ['multiple_choice', 'true_false', 'short_answer'])->default('multiple_choice');
->>>>>>> f8ab71c3d5f34aacb58d7f639f17c4e29ba52690
                 $table->json('options')->nullable(); // For multiple choice: {"A": "Option A", "B": "Option B"}
                 $table->text('correct_answer')->nullable(); // For auto-grading: "A", "true", etc.
                 $table->unsignedInteger('points')->default(1);

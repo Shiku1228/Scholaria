@@ -223,15 +223,19 @@ class StudentExamApiController extends Controller
             ->where('status', 'in_progress')
             ->firstOrFail();
 
-        $validated = $request->validate([
+        $questionIds = $attempt->question_ids ?? [];
+        $answers = $this->normalizeSubmittedAnswers($request, $questionIds);
+
+        $validated = validator([
+            'answers' => $answers,
+        ], [
             'answers' => ['nullable', 'array'],
             'answers.*' => ['nullable', 'string'],
-        ]);
+        ])->validate();
 
         $answers = $validated['answers'] ?? [];
         $totalScore = 0;
 
-        $questionIds = $attempt->question_ids ?? [];
         $questions = $exam->questions()->whereIn('id', $questionIds)->get();
 
         foreach ($questions as $question) {
@@ -334,17 +338,75 @@ class StudentExamApiController extends Controller
 
     private function mapQuestion(ExamQuestion $question, bool $hideCorrectAnswer = true, bool $includeExplanation = false): array
     {
+        $options = is_array($question->options) ? $question->options : json_decode($question->options ?? '[]', true);
+
         return [
             'id' => (int) $question->id,
             'exam_id' => (int) $question->exam_id,
             'question_text' => (string) ($question->question_text ?? ''),
             'question_type' => (string) ($question->question_type ?? ''),
-            'options' => is_array($question->options) ? $question->options : json_decode($question->options ?? '[]', true),
+            'options' => $options,
+            'choices' => $this->mapChoices($options),
             'correct_answer' => $hideCorrectAnswer ? null : ($question->correct_answer ?? null),
             'explanation' => $includeExplanation ? ($question->explanation ?? null) : null,
             'points' => (int) ($question->points ?? 0),
             'order' => (int) ($question->order ?? 0),
         ];
+    }
+
+    private function normalizeSubmittedAnswers(Request $request, array $questionIds = []): array
+    {
+        $rawAnswers = $request->input('answers', $request->input('answer', []));
+
+        if (!is_array($rawAnswers)) {
+            return [];
+        }
+
+        $isSequential = array_keys($rawAnswers) === range(0, count($rawAnswers) - 1);
+        $normalized = [];
+
+        foreach ($rawAnswers as $key => $value) {
+            $questionId = $key;
+            $answerValue = $value;
+
+            if (is_array($value)) {
+                $questionId = $value['question_id'] ?? $questionIds[$key] ?? $key;
+                $answerValue = $value['answer'] ?? null;
+            } elseif ($isSequential) {
+                $questionId = $questionIds[$key] ?? $key;
+            }
+
+            if ($answerValue === null) {
+                $normalized[(string) $questionId] = null;
+                continue;
+            }
+
+            if (is_scalar($answerValue)) {
+                $normalized[(string) $questionId] = (string) $answerValue;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function mapChoices(array $options): array
+    {
+        $choices = [];
+
+        foreach ($options as $index => $value) {
+            $key = is_string($index) ? (string) $index : chr(65 + (int) $index);
+            $label = is_array($value)
+                ? (string) ($value['choice_text'] ?? $value['label'] ?? $value['text'] ?? $value['value'] ?? ($index + 1))
+                : (string) $value;
+
+            $choices[] = [
+                'id' => $key,
+                'choice_text' => $label,
+                'order' => (int) $index,
+            ];
+        }
+
+        return $choices;
     }
 
 }

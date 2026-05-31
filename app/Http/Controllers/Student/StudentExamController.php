@@ -210,16 +210,20 @@ class StudentExamController extends Controller
             ->where('status', 'in_progress')
             ->firstOrFail();
         
-        $validated = $request->validate([
+        $questionIds = $attempt->question_ids ?? [];
+        $answers = $this->normalizeSubmittedAnswers($request, $questionIds);
+
+        $validated = validator([
+            'answers' => $answers,
+        ], [
             'answers' => ['nullable', 'array'],
             'answers.*' => ['nullable', 'string'],
-        ]);
+        ])->validate();
         
         $answers = $validated['answers'] ?? [];
         $totalScore = 0;
         
         // Load questions for the attempt
-        $questionIds = $attempt->question_ids ?? [];
         $questions = $exam->questions()->whereIn('id', $questionIds)->get();
 
         foreach ($questions as $question) {
@@ -249,5 +253,40 @@ class StudentExamController extends Controller
         
         return redirect()->route('student.exams.show', $exam)
             ->with('success', 'Exam submitted successfully! Score: ' . $totalScore);
+    }
+
+    private function normalizeSubmittedAnswers(Request $request, array $questionIds = []): array
+    {
+        $rawAnswers = $request->input('answers', $request->input('answer', []));
+
+        if (!is_array($rawAnswers)) {
+            return [];
+        }
+
+        $isSequential = array_keys($rawAnswers) === range(0, count($rawAnswers) - 1);
+        $normalized = [];
+
+        foreach ($rawAnswers as $key => $value) {
+            $questionId = $key;
+            $answerValue = $value;
+
+            if (is_array($value)) {
+                $questionId = $value['question_id'] ?? $questionIds[$key] ?? $key;
+                $answerValue = $value['answer'] ?? null;
+            } elseif ($isSequential) {
+                $questionId = $questionIds[$key] ?? $key;
+            }
+
+            if ($answerValue === null) {
+                $normalized[(string) $questionId] = null;
+                continue;
+            }
+
+            if (is_scalar($answerValue)) {
+                $normalized[(string) $questionId] = (string) $answerValue;
+            }
+        }
+
+        return $normalized;
     }
 }
