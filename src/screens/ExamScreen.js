@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 
 import { getStudentExam, startStudentExam, submitStudentExam } from '@/api/student';
@@ -25,11 +25,11 @@ export default function ExamScreen({ token, item, setActiveTab, theme, onAuthFai
 
   const [detail, setDetail] = useState(null);
   const [mode, setMode] = useState('loading'); // loading | detail | taking | review
+
   const [answers, setAnswers] = useState({});
 
   const questions = useMemo(() => detail?.questions ?? [], [detail]);
   const selectedAttempt = detail?.selected_attempt ?? null;
-
   const loadExam = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
@@ -153,6 +153,7 @@ export default function ExamScreen({ token, item, setActiveTab, theme, onAuthFai
       const response = await submitStudentExam(token, examId, payload);
       const result = response?.data ?? null;
 
+
       if (response?.success === false || result?.error) {
         throw new Error(response?.message || result?.error || 'Unable to submit exam.');
       }
@@ -182,7 +183,6 @@ export default function ExamScreen({ token, item, setActiveTab, theme, onAuthFai
       ...(current || {}),
       [String(questionId)]: value,
     }));
-
     setDetail((current) => ({
       ...(current || {}),
       answers: {
@@ -417,7 +417,6 @@ function getChoiceLetter(index) {
 
   return String(index + 1);
 }
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,

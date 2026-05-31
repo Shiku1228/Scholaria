@@ -4,8 +4,6 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { login, logout, restoreSession } from '@/api/auth';
-import { isStudentUser, STUDENT_ACCESS_DENIED_MESSAGE } from '@/utils/userRole';
-import { clearSession } from '@/utils/session';
 import StudentTabBar from '@/components/StudentTabBar';
 import { darkTheme, lightTheme } from '@/constants/colors';
 import AssignmentSubmitScreen from '@/screens/AssignmentSubmitScreen';
@@ -21,6 +19,8 @@ import StudentCoursesScreen from '@/screens/StudentCoursesScreen';
 import StudentGradesScreen from '@/screens/StudentGradesScreen';
 import StudentNotificationsScreen from '@/screens/StudentNotificationsScreen';
 import StudentTasksScreen from '@/screens/StudentTasksScreen';
+import { clearSession } from '@/utils/session';
+import { isStudentUser, STUDENT_ACCESS_DENIED_MESSAGE } from '@/utils/userRole';
 
 export default function AppNavigator() {
   const [booting, setBooting] = useState(true);

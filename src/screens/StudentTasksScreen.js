@@ -23,7 +23,11 @@ import {
 } from '@/api/student';
 import { darkTheme as colors } from '@/constants/colors';
 
+<<<<<<< HEAD
 export default function StudentTasksScreen({ token, setActiveTab: parentSetActiveTab, setSelectedItem, theme, onAuthFailure }) {
+=======
+export default function StudentTasksScreen({ token, setActiveTab: parentSetActiveTab, setSelectedItem, theme }) {
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -64,9 +68,12 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
       });
     } catch (err) {
       setError(err?.message || 'Unable to load tasks.');
+<<<<<<< HEAD
       if (err?.status === 401 || /token is invalid|unauthorized|unauthenticated/i.test(String(err?.message || ''))) {
         onAuthFailure?.();
       }
+=======
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
     } finally {
       setLoading(false);
     }
@@ -138,9 +145,12 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
       }
     } catch (err) {
       setError(err?.message || `Unable to load ${kind} details.`);
+<<<<<<< HEAD
       if (err?.status === 401 || /token is invalid|unauthorized|unauthenticated/i.test(String(err?.message || ''))) {
         onAuthFailure?.();
       }
+=======
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
     } finally {
       setAssessmentLoading(false);
     }
@@ -199,9 +209,12 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
       const errorMsg = err?.message || `Unable to start ${assessmentKind}.`;
       setError(errorMsg);
       Alert.alert('Access Denied', errorMsg);
+<<<<<<< HEAD
       if (err?.status === 401 || /token is invalid|unauthorized|unauthenticated/i.test(String(errorMsg))) {
         onAuthFailure?.();
       }
+=======
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
       // Re-fetch detail to sync state if start failed
       if (assessmentId) {
         const kind = assessmentKind;
@@ -227,12 +240,20 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
     setError('');
 
     try {
+<<<<<<< HEAD
       const normalizedAnswers = Object.fromEntries(
         Object.entries(assessmentAnswers).map(([id, value]) => [id, String(value ?? '').trim()])
       );
       const payload = {
         answer: Object.values(normalizedAnswers),
         answers: normalizedAnswers,
+=======
+      const payload = {
+        answers: Object.keys(assessmentAnswers).map((id) => ({
+          question_id: id,
+          answer: assessmentAnswers[id],
+        })),
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
       };
       const response =
         assessmentKind === 'exam'
@@ -251,9 +272,12 @@ export default function StudentTasksScreen({ token, setActiveTab: parentSetActiv
       await loadTasks();
     } catch (err) {
       setError(err?.message || `Unable to submit ${assessmentKind}.`);
+<<<<<<< HEAD
       if (err?.status === 401 || /token is invalid|unauthorized|unauthenticated/i.test(String(err?.message || ''))) {
         onAuthFailure?.();
       }
+=======
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
     } finally {
       setAssessmentSubmitting(false);
     }
@@ -702,7 +726,11 @@ function renderQuestionAnswerInput(question, answers, onChangeAnswer, theme) {
   const questionId = question?.id;
   const value = answers[String(questionId)] ?? '';
   
+<<<<<<< HEAD
   let rawOptions = question?.choices ?? question?.options ?? question?.question_options ?? [];
+=======
+  let rawOptions = question?.options ?? question?.choices ?? question?.question_options ?? [];
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
   if (typeof rawOptions === 'string') {
     try {
       rawOptions = JSON.parse(rawOptions);
@@ -711,6 +739,7 @@ function renderQuestionAnswerInput(question, answers, onChangeAnswer, theme) {
     }
   }
 
+<<<<<<< HEAD
   const qType = String(question?.question_type || '').toLowerCase().trim().replace(/[- ]/g, '_');
   let options = [];
   if (Array.isArray(rawOptions)) {
@@ -776,6 +805,33 @@ function renderQuestionAnswerInput(question, answers, onChangeAnswer, theme) {
                     {optionLabel}
                   </Text>
                 </View>
+=======
+  let options = Array.isArray(rawOptions) ? rawOptions : (rawOptions && typeof rawOptions === 'object' ? Object.values(rawOptions) : []);
+
+  const qType = String(question?.question_type || '').toLowerCase().trim().replace(/[- ]/g, '_');
+  const isChoiceType = ['multiple_choice', 'true_false'].includes(qType);
+
+  if (qType === 'true_false' && options.length === 0) {
+    options = ['True', 'False'];
+  }
+
+  if (isChoiceType) {
+    return (
+      <View style={styles.optionStack}>
+        {options.length ? (
+          options.map((option, index) => {
+            const optionValue = typeof option === 'object' ? option.value ?? option.label ?? option.text ?? String(index) : String(option);
+            const optionLabel = typeof option === 'object' ? option.label ?? option.text ?? option.value ?? String(index + 1) : String(option);
+            const active = value === optionValue;
+
+            return (
+              <Pressable // Added theme to optionButton and optionButtonText
+                key={`${questionId}-${optionValue}-${index}`}
+                onPress={() => onChangeAnswer(questionId, optionValue)}
+                style={[styles.optionButton, { backgroundColor: theme.card, borderColor: theme.border }, active && styles.optionButtonActive, active && { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}
+              >
+                <Text style={[styles.optionButtonText, { color: theme.text }, active && styles.optionButtonTextActive, active && { color: theme.accent }]}>{optionLabel}</Text>
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
               </Pressable>
             );
           })
@@ -798,6 +854,7 @@ function renderQuestionAnswerInput(question, answers, onChangeAnswer, theme) {
   );
 }
 
+<<<<<<< HEAD
 function getChoiceLetter(index) {
   if (index >= 0 && index < 26) {
     return String.fromCharCode(65 + index);
@@ -806,6 +863,8 @@ function getChoiceLetter(index) {
   return String(index + 1);
 }
 
+=======
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
 function formatReadableDate(value) {
   if (!value) {
     return 'No date';
@@ -1180,15 +1239,19 @@ const styles = StyleSheet.create({
   optionStack: {
     gap: 8,
   },
+<<<<<<< HEAD
   choiceHint: {
     fontSize: 12,
     fontWeight: '700',
   },
+=======
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
   optionButton: {
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
+<<<<<<< HEAD
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1213,6 +1276,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginRight: -4,
   },
+=======
+>>>>>>> e75af9484bee52dcca8ec3fe53f23cec694400a4
   optionButtonActive: {
   },
   optionButtonText: {

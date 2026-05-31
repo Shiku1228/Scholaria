@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 
 import {
-    getStudentQuiz,
-    startStudentQuiz,
-    submitStudentQuiz,
+  getStudentQuiz,
+  startStudentQuiz,
+  submitStudentQuiz,
 } from '@/api/student';
 
 export default function QuizScreen({ token, item, setActiveTab, theme, onAuthFailure }) {
